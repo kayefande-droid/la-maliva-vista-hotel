@@ -3,11 +3,21 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, date
+import os
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'lamaliva_vista_paradise_2026'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lamaliva.db'
+# Use environment variable for secret key in production, fallback to dev key locally
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
+# Use absolute path for database to avoid location issues on Render
+db_path = os.path.join(app.instance_path, 'lamaliva.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Ensure instance folder exists
+try:
+    os.makedirs(app.instance_path)
+except OSError:
+    pass
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -215,7 +225,9 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
+# Run database creation inside the app context at startup (for Render compatibility)
+with app.app_context():
+    create_initial_data()
+
 if __name__ == '__main__':
-    with app.app_context():
-        create_initial_data()
     app.run(debug=True)
