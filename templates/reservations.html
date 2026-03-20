@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <h5>All Reservations</h5>
+    <table class="table table-bordered table-sm">
+        <thead><tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Action</th></tr></thead>
+        <tbody>
+            {% for res in reservations %}
+            <tr>
+                <td>{{res.guest_id}}</td>
+                <td>Room {{res.room_id}}</td>
+                <td>{{res.check_in}}</td>
+                <td>{{res.check_out}}</td>
+                <td>
+                    <a href="/checkin/{{res.id}}" class="btn btn-sm btn-success">Check-in</a>
+                    <a href="/checkout/{{res.id}}" class="btn btn-sm btn-warning">Check-out</a>
+                    <a href="/invoice/{{res.id}}" class="btn btn-sm btn-info">Invoice</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

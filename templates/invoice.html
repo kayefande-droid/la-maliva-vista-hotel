@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <div class="card" id="invoice-card">
+        <div class="card-header text-center bg-primary text-white">
+            <h4>LA-MALIVA VISTA HOTEL</h4>
+            <p>A Taste of Paradise • Buea, Cameroon</p>
+        </div>
+        <div class="card-body">
+            <h5>Invoice for {{guest.name}}</h5>
+            <p>Room {{room.room_number}} • {{room.room_type}}</p>
+            <p>Check-in: {{res.check_in}} &nbsp; Check-out: {{res.check_out}} ({{days}} nights)</p>
+            <h4 class="text-end">Total: FCFA {{res.amount}}</h4>
+            <p class="text-center mt-4">Thank you for choosing LA-MALIVA VISTA HOTEL!</p>
+        </div>
+    </div>
+
+    <div class="mt-4 text-center no-print">
+        <button onclick="window.print()" class="btn btn-primary me-2"><i class="bi bi-printer"></i> Print Invoice</button>
+        <button onclick="downloadPDF()" class="btn btn-success"><i class="bi bi-download"></i> Download PDF</button>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+    function downloadPDF() {
+        const element = document.getElementById('invoice-card');
+        const opt = {
+            margin:       10,
+            filename:     'Invoice_{{guest.name}}_{{res.id}}.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    }
+</script>
+
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #invoice-card, #invoice-card * {
+            visibility: visible;
+        }
+        #invoice-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}

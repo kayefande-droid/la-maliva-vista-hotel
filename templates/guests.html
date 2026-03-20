@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <h5>Guest Database</h5>
+    <table class="table table-bordered"><thead><tr><th>Name</th><th>Phone</th><th>Email</th></tr></thead>
+        <tbody>{% for g in guests %}<tr><td>{{g.name}}</td><td>{{g.phone}}</td><td>{{g.email}}</td></tr>{% endfor %}</tbody>
+    </table>
+</div>
+{% endblock %}

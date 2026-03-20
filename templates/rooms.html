@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <h5>Rooms Management</h5>
+    <table class="table table-bordered">
+        <thead><tr><th>Room No.</th><th>Type</th><th>Price</th><th>Status</th></tr></thead>
+        <tbody>
+            {% for room in rooms %}
+            <tr><td>{{room.room_number}}</td><td>{{room.room_type}}</td><td>FCFA {{room.price}}</td><td>{{room.status}}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

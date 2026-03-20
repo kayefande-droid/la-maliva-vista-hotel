@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <h5>New Reservation</h5>
+    <form method="POST">
+        <div class="mb-3"><input type="text" name="name" class="form-control" placeholder="Guest Name" required></div>
+        <div class="mb-3"><input type="text" name="phone" class="form-control" placeholder="Phone (+237)" required></div>
+        <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email" required></div>
+        <div class="mb-3">
+            <select name="room_id" class="form-select" required>
+                {% for room in rooms %}
+                <option value="{{room.id}}">Room {{room.room_number}} - {{room.room_type}} (FCFA {{room.price}})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="row">
+            <div class="col"><input type="date" name="check_in" class="form-control" required></div>
+            <div class="col"><input type="date" name="check_out" class="form-control" required></div>
+        </div>
+        <button class="btn btn-primary mt-3 w-100">Create Reservation</button>
+    </form>
+</div>
+{% endblock %}
