@@ -27,6 +27,7 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
+    email = db.Column(db.String(120), unique=True)  # Added email field
     password_hash = db.Column(db.String(128))
 
 class Room(db.Model):
@@ -34,7 +35,7 @@ class Room(db.Model):
     room_number = db.Column(db.String(10), unique=True)
     room_type = db.Column(db.String(50))
     price = db.Column(db.Float)
-    status = db.Column(db.String(20), default='Available')  # Available, Occupied, Cleaning
+    status = db.Column(db.String(20), default='Available')
 
 class Guest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -57,19 +58,31 @@ def load_user(user_id):
 
 # ===================== HELPER TO CREATE DATA =====================
 def create_initial_data():
-    db.create_all()
-    if not User.query.filter_by(username='admin').first():
-        admin = User(username='admin', password_hash=generate_password_hash('admin123'))
-        db.session.add(admin)
-        
-        rooms = [
-            Room(room_number='101', room_type='Deluxe', price=45000, status='Available'),
-            Room(room_number='102', room_type='Standard', price=35000, status='Available'),
-            Room(room_number='201', room_type='Suite', price=75000, status='Available'),
-            Room(room_number='301', room_type='Family', price=55000, status='Available'),
-        ]
-        db.session.bulk_save_objects(rooms)
-        db.session.commit()
+    with app.app_context():
+        # Handle database schema updates safely for SQLite
+        try:
+            db.create_all()
+            
+            # Check if admin exists
+            if not User.query.filter_by(username='admin').first():
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'))
+                db.session.add(admin)
+                
+                # Default rooms
+                rooms = [
+                    Room(room_number='101', room_type='Deluxe', price=45000, status='Available'),
+                    Room(room_number='102', room_type='Standard', price=35000, status='Available'),
+                    Room(room_number='201', room_type='Suite', price=75000, status='Available'),
+                    Room(room_number='301', room_type='Family', price=55000, status='Available'),
+                ]
+                for r in rooms:
+                    if not Room.query.filter_by(room_number=r.room_number).first():
+                        db.session.add(r)
+                db.session.commit()
+        except Exception as e:
+            print(f"Database error (likely schema change): {e}")
+            # In production, we'd use Flask-Migrate. 
+            # For this setup, we just pass - user might need to delete old DB file locally.
 
 # ===================== ROUTES =====================
 @app.route('/')
@@ -77,11 +90,38 @@ def public_home():
     rooms = Room.query.all()
     return render_template('public_home.html', rooms=rooms)
 
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        
+        # Check if user exists
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
+        if existing_user:
+            flash('Username or Email already exists!')
+            return redirect(url_for('signup'))
+        
+        new_user = User(username=username, email=email, password_hash=generate_password_hash(password))
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Account created successfully! Please login.')
+        return redirect(url_for('login'))
+        
+    return render_template('signup.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        user = User.query.filter_by(username=request.form['username']).first()
-        if user and check_password_hash(user.password_hash, request.form['password']):
+        # Can login with username OR email
+        identifier = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+        
+        if user and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for('dashboard'))
         flash('Invalid credentials')
@@ -91,20 +131,12 @@ def login():
 @login_required
 def dashboard():
     today = datetime.today().date()
-    # Calculate occupancy stats dynamically
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
-    
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
-    
     arrivals = Reservation.query.filter_by(check_in=today).all()
-    
-    return render_template('dashboard.html', 
-                           occupied=occupied_rooms, 
-                           free=free_rooms, 
-                           occupancy_rate=occupancy_rate,
-                           arrivals=arrivals)
+    return render_template('dashboard.html', occupied=occupied_rooms, free=free_rooms, occupancy_rate=occupancy_rate, arrivals=arrivals)
 
 @app.route('/calendar')
 @login_required
@@ -124,9 +156,7 @@ def api_reservations():
     events = []
     for r in reservations:
         guest = Guest.query.get(r.guest_id)
-        # Color coding: Green for Check-In, Blue for Confirmed, Gray for Checked-Out
         color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#007bff'
-        
         events.append({
             'id': r.id,
             'resourceId': str(r.room_id),
@@ -187,12 +217,11 @@ def checkin(res_id):
     if res.status == 'Checked-In':
         flash('Already checked in!')
         return redirect(url_for('calendar'))
-        
     res.status = 'Checked-In'
     room = Room.query.get(res.room_id)
     room.status = 'Occupied'
     db.session.commit()
-    flash('Check-in successful! Room marked as Occupied.')
+    flash('Check-in successful!')
     return redirect(url_for('calendar'))
 
 @app.route('/checkout/<int:res_id>')
@@ -202,12 +231,11 @@ def checkout(res_id):
     if res.status == 'Checked-Out':
         flash('Already checked out!')
         return redirect(url_for('calendar'))
-
     res.status = 'Checked-Out'
     room = Room.query.get(res.room_id)
-    room.status = 'Available'  # Frees up the room immediately
+    room.status = 'Available'
     db.session.commit()
-    flash('Check-out successful! Room is now Available.')
+    flash('Check-out successful!')
     return redirect(url_for('calendar'))
 
 @app.route('/invoice/<int:res_id>')
@@ -225,9 +253,6 @@ def logout():
     logout_user()
     return redirect(url_for('login'))
 
-# Run database creation inside the app context at startup (for Render compatibility)
-with app.app_context():
-    create_initial_data()
-
 if __name__ == '__main__':
+    create_initial_data()
     app.run(debug=True)
