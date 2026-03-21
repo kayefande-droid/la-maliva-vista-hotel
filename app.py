@@ -1,9 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 import os
+import io
+import csv
 
 app = Flask(__name__)
 # Use environment variable for secret key in production, fallback to dev key locally
@@ -29,6 +31,7 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True)
     email = db.Column(db.String(120), unique=True)  # Added email field
     password_hash = db.Column(db.String(128))
+    role = db.Column(db.String(20), default='user')
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -47,10 +50,16 @@ class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     guest_id = db.Column(db.Integer, db.ForeignKey('guest.id'))
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'))
-    check_in = db.Column(db.Date)
-    check_out = db.Column(db.Date)
+    check_in = db.Column(db.DateTime)
+    check_out = db.Column(db.DateTime)
     status = db.Column(db.String(20), default='Confirmed')
     amount = db.Column(db.Float)
+
+class Hotel(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), default='LA-MALIVA VISTA HOTEL')
+    address = db.Column(db.String(200), default='Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon')
+    tax_rate = db.Column(db.Float, default=0.0)
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -65,7 +74,7 @@ def create_initial_data():
             
             # Check if admin exists
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'))
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
                 
                 # Default rooms
@@ -78,6 +87,12 @@ def create_initial_data():
                 for r in rooms:
                     if not Room.query.filter_by(room_number=r.room_number).first():
                         db.session.add(r)
+                
+                # Default hotel settings
+                if not Hotel.query.first():
+                    default_hotel = Hotel()
+                    db.session.add(default_hotel)
+                
                 db.session.commit()
         except Exception as e:
             print(f"Database error (likely schema change): {e}")
@@ -118,13 +133,18 @@ def login():
         # Can login with username OR email
         identifier = request.form['username']
         password = request.form['password']
+        access_level = request.form['access_level']
         
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
         
         if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            return redirect(url_for('dashboard'))
-        flash('Invalid credentials')
+            if user.role == access_level:
+                login_user(user)
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid access level for this account')
+        else:
+            flash('Invalid credentials')
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -135,7 +155,7 @@ def dashboard():
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
-    arrivals = Reservation.query.filter_by(check_in=today).all()
+    arrivals = Reservation.query.filter(Reservation.check_in >= datetime.combine(today, datetime.min.time()), Reservation.check_in < datetime.combine(today + timedelta(days=1), datetime.min.time())).all()
     return render_template('dashboard.html', occupied=occupied_rooms, free=free_rooms, occupancy_rate=occupancy_rate, arrivals=arrivals)
 
 @app.route('/calendar')
@@ -182,6 +202,9 @@ def reservations():
 @app.route('/guests')
 @login_required
 def guests():
+    if current_user.role not in ['admin', 'staff']:
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     guest_list = Guest.query.all()
     return render_template('guests.html', guests=guest_list)
 
@@ -194,13 +217,16 @@ def new_reservation():
         db.session.commit()
         
         room = Room.query.get(request.form['room_id'])
-        days = (datetime.strptime(request.form['check_out'], '%Y-%m-%d').date() - 
-                datetime.strptime(request.form['check_in'], '%Y-%m-%d').date()).days
-        amount = room.price * days if days > 0 else room.price
+        check_in_str = f"{request.form['check_in_date']} {request.form['check_in_time']}"
+        check_out_str = f"{request.form['check_out_date']} {request.form['check_out_time']}"
+        check_in = datetime.strptime(check_in_str, '%Y-%m-%d %H:%M')
+        check_out = datetime.strptime(check_out_str, '%Y-%m-%d %H:%M')
+        days = (check_out - check_in).total_seconds() / (24 * 3600)
+        amount = room.price * max(days, 1) # At least 1 day
         
         res = Reservation(guest_id=guest.id, room_id=room.id,
-                          check_in=datetime.strptime(request.form['check_in'], '%Y-%m-%d').date(),
-                          check_out=datetime.strptime(request.form['check_out'], '%Y-%m-%d').date(),
+                          check_in=check_in,
+                          check_out=check_out,
                           amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
@@ -252,6 +278,127 @@ def invoice(res_id):
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/export_data')
+@login_required
+def export_data():
+    if current_user.role not in ['admin', 'staff']:
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
+    guests = Guest.query.all()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Name', 'Phone', 'Email'])
+    for g in guests:
+        writer.writerow([g.name, g.phone, g.email])
+    output.seek(0)
+    return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='guests.csv')
+
+@app.route('/settings', methods=['GET', 'POST'])
+@login_required
+def settings():
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
+    hotel = Hotel.query.first()
+    if request.method == 'POST':
+        hotel.name = request.form['name']
+        hotel.address = request.form['address']
+        hotel.tax_rate = float(request.form['tax_rate'])
+        db.session.commit()
+        flash('Settings updated')
+        return redirect(url_for('settings'))
+    return render_template('settings.html', hotel=hotel)
+
+@app.route('/users', methods=['GET', 'POST'])
+@login_required
+def users():
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'add':
+            username = request.form['username']
+            email = request.form['email']
+            password = request.form['password']
+            role = request.form['role']
+            if User.query.filter((User.username == username) | (User.email == email)).first():
+                flash('User already exists')
+            else:
+                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role)
+                db.session.add(new_user)
+                db.session.commit()
+                flash('User added')
+        elif action == 'delete':
+            user_id = request.form['user_id']
+            user = User.query.get(user_id)
+            if user and user.id != current_user.id:
+                db.session.delete(user)
+                db.session.commit()
+                flash('User deleted')
+            else:
+                flash('Cannot delete yourself')
+        return redirect(url_for('users'))
+    users_list = User.query.all()
+    return render_template('users.html', users=users_list)
+
+@app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_user(user_id):
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form.get('password')
+        role = request.form['role']
+        
+        # Check if username or email conflicts with others
+        existing = User.query.filter(
+            ((User.username == username) | (User.email == email)) & (User.id != user_id)
+        ).first()
+        if existing:
+            flash('Username or Email already exists')
+        else:
+            user.username = username
+            user.email = email
+            if password:
+                user.password_hash = generate_password_hash(password)
+            user.role = role
+            db.session.commit()
+            flash('User updated')
+            return redirect(url_for('users'))
+    return render_template('edit_user.html', user=user)
+
+@app.route('/backup')
+@login_required
+def backup():
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
+    db_file = db_path
+    return send_file(db_file, as_attachment=True, download_name='lamaliva_backup.db')
+
+@app.route('/restore', methods=['GET', 'POST'])
+@login_required
+def restore():
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
+    if request.method == 'POST':
+        file = request.files['backup_file']
+        if file:
+            file.save(db_path)
+            flash('Database restored. Please restart the application.')
+            return redirect(url_for('dashboard'))
+    return render_template('restore.html')
+
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 if __name__ == '__main__':
     create_initial_data()

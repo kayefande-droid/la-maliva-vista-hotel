@@ -1,65 +1,221 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+        animation: slideInDown 0.6s ease-out;
+    }
+    @keyframes slideInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .stat-card {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        animation: fadeInScale 0.6s ease-out forwards;
+    }
+    .stat-card:nth-child(1) { animation-delay: 0.1s; }
+    .stat-card:nth-child(2) { animation-delay: 0.2s; }
+    .stat-card:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes fadeInScale {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+        animation: shine 3s infinite;
+    }
+    @keyframes shine {
+        0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+        100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+    }
+    .stat-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+    }
+    .stat-card-occupied {
+        background: linear-gradient(135deg, #0052cc, #003d99) !important;
+        border-left: 5px solid #ffb700;
+    }
+    .stat-card-available {
+        background: linear-gradient(135deg, #28a745, #20c997) !important;
+        border-left: 5px solid #ffb700;
+    }
+    .stat-card-occupancy {
+        background: linear-gradient(135deg, #ffb700, #ff9500) !important;
+        border-left: 5px solid #0052cc;
+    }
+    .stat-icon {
+        font-size: 28px;
+        margin-right: 12px;
+        opacity: 0.8;
+    }
+    .stat-number {
+        font-size: 32px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    .stat-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+    /* Hotel-themed image animation */
+    .hotel-image-animated {
+        max-width: 100%;
+        border-radius: 8px;
+        animation: imageFloat 4s ease-in-out infinite;
+        box-shadow: 0 8px 16px rgba(0, 82, 204, 0.2);
+    }
+    .chart-container {
+        position: relative;
+        width: 100%;
+        height: 280px;
+        margin: 0 auto;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .chart-container canvas {
+        width: 100% !important;
+        height: 100% !important;
+        border-radius: 8px;
+    }
+    @keyframes imageFloat {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    /* Responsive chart adjustments */
+    @media (max-width: 768px) {
+        .chart-container {
+            height: 250px;
+        }
+        .stat-card {
+            margin-bottom: 15px;
+        }
+    }
+    @media (max-width: 576px) {
+        .chart-container {
+            height: 200px;
+        }
+        .stat-number {
+            font-size: 24px;
+        }
+    }
+</style>
+
 <div class="main-content">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5>Dashboard - LA-MALIVA VISTA HOTEL</h5>
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h5 class="mb-0" style="font-size: 28px;"><i class="bi bi-building"></i> LA-MALIVA VISTA HOTEL</h5>
+                <small>Welcome Back! Real-time Hotel Management Dashboard</small>
+            </div>
+            <div class="col-md-4 text-end">
+                <img src="https://cdn-icons-png.flaticon.com/512/1524/1524816.png" alt="Hotel" style="height: 50px; opacity: 0.8; animation: spin 20s linear infinite;">
+            </div>
+        </div>
     </div>
 
     <div class="row">
         <!-- Stats Cards -->
-        <div class="col-md-3">
-            <div class="card bg-primary text-white mb-3">
-                <div class="card-body">
-                    <h5>{{ occupied }}</h5>
-                    <p>Occupied Rooms</p>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card stat-card-occupied text-white">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-door-closed stat-icon"></i>
+                        <div>
+                            <div class="stat-number">{{ occupied }}</div>
+                            <div class="stat-label">Occupied Rooms</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white mb-3">
-                <div class="card-body">
-                    <h5>{{ free }}</h5>
-                    <p>Available Rooms</p>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card stat-card-available text-white">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-door-open stat-icon"></i>
+                        <div>
+                            <div class="stat-number">{{ free }}</div>
+                            <div class="stat-label">Available Rooms</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white mb-3">
-                <div class="card-body">
-                    <h5>{{ occupancy_rate }}%</h5>
-                    <p>Occupancy Rate</p>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card stat-card-occupancy text-white">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-percent stat-icon"></i>
+                        <div>
+                            <div class="stat-number">{{ occupancy_rate }}%</div>
+                            <div class="stat-label">Occupancy Rate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card text-white" style="background: linear-gradient(135deg, #17a2b8, #138496); border-left: 5px solid #ffb700;">
+                <div class="card-body position-relative">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-person-check stat-icon"></i>
+                        <div>
+                            <div class="stat-number">--</div>
+                            <div class="stat-label">Guests Today</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
+    <div class="row mt-4">
         <!-- Arrivals Table -->
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">Today's Arrivals</div>
+        <div class="col-md-7">
+            <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15);">
+                <div class="card-header" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d; border-bottom: 3px solid #0052cc;">
+                    <i class="bi bi-arrow-down-circle"></i> Today's Arrivals
+                </div>
                 <div class="card-body p-0">
                     <table class="table table-striped mb-0">
                         <thead>
-                            <tr>
-                                <th>Guest</th>
-                                <th>Room</th>
-                                <th>Status</th>
-                                <th>Action</th>
+                            <tr style="background: linear-gradient(90deg, #0052cc, #003d99); color: white;">
+                                <th><i class="bi bi-person"></i> Guest</th>
+                                <th><i class="bi bi-door-open"></i> Room</th>
+                                <th><i class="bi bi-info-circle"></i> Status</th>
+                                <th><i class="bi bi-gear"></i> Action</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% if arrivals %}
                                 {% for arr in arrivals %}
-                                <tr>
-                                    <td>Guest #{{ arr.guest_id }}</td>
-                                    <td>Room {{ arr.room_id }}</td>
-                                    <td><span class="badge bg-warning text-dark">{{ arr.status }}</span></td>
-                                    <td><a href="/checkin/{{ arr.id }}" class="btn btn-sm btn-primary">Check-in</a></td>
+                                <tr style="transition: all 0.3s ease;">
+                                    <td><strong>Guest #{{ arr.guest_id }}</strong></td>
+                                    <td><span style="background: linear-gradient(90deg, #ffb700, #ff9500); padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold;">Room {{ arr.room_id }}</span></td>
+                                    <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700);">{{ arr.status }}</span></td>
+                                    <td><a href="/checkin/{{ arr.id }}" class="btn btn-sm btn-primary" style="background: linear-gradient(90deg, #0052cc, #003d99); border: none;">Check-in</a></td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
-                                <tr><td colspan="4" class="text-center text-muted">No arrivals scheduled for today.</td></tr>
+                                <tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-inbox"></i> No arrivals scheduled for today.</td></tr>
                             {% endif %}
                         </tbody>
                     </table>
@@ -67,12 +223,41 @@
             </div>
         </div>
 
-        <!-- Chart -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">Live Occupancy</div>
-                <div class="card-body">
-                    <canvas id="dashboardChart" height="200"></canvas>
+        <!-- Chart & Hotel Image -->
+        <div class="col-md-5">
+            <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15); border-radius: 12px; overflow: hidden;">
+                <div class="card-header" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d; border-bottom: 3px solid #0052cc; padding: 15px;">
+                    <i class="bi bi-graph-up"></i> Live Occupancy
+                </div>
+                <div class="card-body" style="padding: 20px;">
+                    <div class="chart-container" style="position: relative; width: 100%; height: 280px; margin: 0 auto;">
+                        <canvas id="dashboardChart" style="width: 100% !important; height: 100% !important;"></canvas>
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" class="hotel-image-animated" style="height: 40px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hotel-themed Info Section -->
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card" style="border: 2px solid #ffb700; overflow: hidden;">
+                <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&h=300&fit=crop" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
+                <div class="card-body" style="background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));">
+                    <h6 style="color: #ffb700;"><i class="bi bi-star-fill"></i> Premium Experience</h6>
+                    <p class="small text-muted">Discover luxury accommodations with world-class amenities and exceptional service.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card" style="border: 2px solid #0052cc; overflow: hidden;">
+                <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=500&h=300&fit=crop" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
+                <div class="card-body" style="background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));">
+                    <h6 style="color: #0052cc;"><i class="bi bi-cup-hot"></i> Fine Dining</h6>
+                    <p class="small text-muted">Experience culinary excellence with our award-winning restaurant and bar.</p>
                 </div>
             </div>
         </div>
@@ -82,32 +267,98 @@
 <script>
     // Wait for DOM to load before initializing chart
     document.addEventListener('DOMContentLoaded', function() {
-        // Pass dynamic data from Flask to JS safely
-        var occupiedCount = {{ occupied }};
-        var freeCount = {{ free }};
-
-        var ctx = document.getElementById('dashboardChart');
-        if (ctx) {
-            new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Occupied', 'Available'],
-                    datasets: [{
-                        data: [occupiedCount, freeCount],
-                        backgroundColor: ['#007bff', '#28a745'],
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
+        // Show loading state
+        const chartContainer = document.querySelector('.chart-container');
+        if (chartContainer) {
+            chartContainer.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #0052cc;">
+                    <i class="bi bi-pie-chart" style="font-size: 48px; margin-bottom: 10px; color: #ffb700;"></i>
+                    <div style="font-size: 16px; font-weight: bold;">Loading Chart...</div>
+                    <div style="font-size: 12px; opacity: 0.7;">Analyzing occupancy data</div>
+                </div>
+                <canvas id="dashboardChart" style="display: none;"></canvas>
+            `;
         }
+
+        // Small delay to ensure DOM is fully ready
+        setTimeout(() => {
+            // Pass dynamic data from Flask to JS safely
+            var occupiedCount = {{ occupied }};
+            var freeCount = {{ free }};
+
+            console.log('Chart data:', { occupiedCount, freeCount });
+
+            var ctx = document.getElementById('dashboardChart');
+            if (ctx) {
+                console.log('Chart canvas found, initializing...');
+                // Clear loading state
+                const container = ctx.parentElement;
+                container.innerHTML = '<canvas id="dashboardChart" style="width: 100% !important; height: 100% !important;"></canvas>';
+                ctx = document.getElementById('dashboardChart');
+
+                try {
+                    const chart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Occupied', 'Available'],
+                            datasets: [{
+                                data: [occupiedCount, freeCount],
+                                backgroundColor: ['#0052cc', '#ffb700'],
+                                borderColor: '#fff',
+                                borderWidth: 3,
+                                hoverBorderWidth: 5,
+                                hoverBorderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        color: '#0052cc',
+                                        font: { weight: 'bold', size: 14 },
+                                        padding: 15,
+                                        usePointStyle: true
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.parsed || 0;
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = Math.round((value / total) * 100);
+                                            return `${label}: ${value} rooms (${percentage}%)`;
+                                        }
+                                    }
+                                }
+                            },
+                            animation: {
+                                animateScale: true,
+                                animateRotate: true,
+                                duration: 1000,
+                                easing: 'easeOutQuart'
+                            }
+                        }
+                    });
+                    console.log('Chart initialized successfully');
+                } catch (error) {
+                    console.error('Chart initialization error:', error);
+                    const container = ctx.parentElement;
+                    container.innerHTML = `
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #dc3545;">
+                            <i class="bi bi-exclamation-triangle" style="font-size: 48px; margin-bottom: 10px;"></i>
+                            <div style="font-size: 16px; font-weight: bold;">Chart Error</div>
+                            <div style="font-size: 12px; opacity: 0.7;">Unable to load occupancy data</div>
+                        </div>
+                    `;
+                }
+            } else {
+                console.error('Chart canvas not found');
+            }
+        }, 100);
     });
 </script>
 {% endblock %}

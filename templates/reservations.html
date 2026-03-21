@@ -1,24 +1,265 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    .reservations-header {
+        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        animation: slideInDown 0.6s ease-out;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+    }
+    .reservations-container {
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 250, 255, 0.9));
+        border: 2px solid #ffb700;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes slideInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .reservations-table {
+        border: 2px solid #ffb700 !important;
+        border-radius: 8px;
+        overflow: hidden;
+        animation: fadeIn 0.6s ease-out;
+        background: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    .reservations-table thead {
+        background: linear-gradient(90deg, #0052cc, #003d99) !important;
+        color: white;
+        font-weight: bold;
+    }
+    .reservations-table thead th {
+        border-color: #ffb700 !important;
+        padding: 18px 15px;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #ffb700 !important;
+        position: relative;
+    }
+    .reservations-table thead th i {
+        margin-right: 8px;
+        color: #ffb700;
+    }
+    .reservations-table tbody tr {
+        border-bottom: 1px solid rgba(0, 82, 204, 0.2);
+        transition: all 0.3s ease;
+    }
+    .reservations-table tbody tr:hover {
+        background: linear-gradient(90deg, rgba(0, 82, 204, 0.08), rgba(255, 183, 0, 0.05));
+        box-shadow: inset 3px 0 0 #ffb700;
+        transform: translateX(5px);
+    }
+    .reservations-table tbody td {
+        padding: 16px 15px;
+        vertical-align: middle;
+        border-left: 1px solid rgba(0, 82, 204, 0.1);
+        border-right: 1px solid rgba(0, 82, 204, 0.1);
+    }
+    .reservations-table tbody td:first-child {
+        border-left: none;
+    }
+    .reservations-table tbody td:last-child {
+        border-right: none;
+    }
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    .btn-action {
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: none;
+        min-width: 80px;
+    }
+    .btn-action:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    .btn-checkin {
+        background: linear-gradient(90deg, #28a745, #20c997);
+        color: white;
+    }
+    .btn-checkin:hover {
+        background: linear-gradient(90deg, #20c997, #17a2b8);
+    }
+    .btn-checkout {
+        background: linear-gradient(90deg, #ffb700, #ff9500);
+        color: #001a4d;
+    }
+    .btn-checkout:hover {
+        background: linear-gradient(90deg, #ff9500, #ff7c00);
+    }
+    .btn-invoice {
+        background: linear-gradient(90deg, #0052cc, #003d99);
+        color: white;
+    }
+    .btn-invoice:hover {
+        background: linear-gradient(90deg, #003d99, #002266);
+    }
+    .guest-name {
+        color: #0052cc;
+        font-weight: bold;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .guest-name i {
+        color: #ffb700;
+    }
+    .room-badge {
+        background: linear-gradient(90deg, #ffb700, #ff9500);
+        color: #001a4d;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: bold;
+        display: inline-block;
+        font-size: 12px;
+        border: 2px solid #ff7c00;
+    }
+    .datetime-info {
+        font-size: 12px;
+        color: #666;
+        line-height: 1.4;
+    }
+    .datetime-info strong {
+        color: #0052cc;
+    }
+    .no-reservations {
+        text-align: center;
+        padding: 50px;
+        color: #666;
+        font-size: 18px;
+    }
+    .no-reservations i {
+        font-size: 48px;
+        color: #ffb700;
+        margin-bottom: 20px;
+    }
+    @media (max-width: 768px) {
+        .reservations-container {
+            padding: 10px;
+        }
+        .reservations-table thead th {
+            padding: 12px 8px;
+            font-size: 10px;
+        }
+        .reservations-table tbody td {
+            padding: 12px 8px;
+        }
+        .action-buttons {
+            flex-direction: column;
+            gap: 4px;
+        }
+        .btn-action {
+            min-width: 100%;
+            font-size: 11px;
+        }
+    }
+</style>
+
 <div class="main-content">
-    <h5>All Reservations</h5>
-    <table class="table table-bordered table-sm">
-        <thead><tr><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Action</th></tr></thead>
-        <tbody>
-            {% for res in reservations %}
-            <tr>
-                <td>{{res.guest_id}}</td>
-                <td>Room {{res.room_id}}</td>
-                <td>{{res.check_in}}</td>
-                <td>{{res.check_out}}</td>
-                <td>
-                    <a href="/checkin/{{res.id}}" class="btn btn-sm btn-success">Check-in</a>
-                    <a href="/checkout/{{res.id}}" class="btn btn-sm btn-warning">Check-out</a>
-                    <a href="/invoice/{{res.id}}" class="btn btn-sm btn-info">Invoice</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="reservations-header">
+        <div>
+            <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-calendar-check"></i> All Reservations</h5>
+            <small>View and manage all guest reservations</small>
+        </div>
+        <div style="text-align: right;">
+            <div style="font-size: 18px; font-weight: bold; color: #ffb700;">{{ reservations|length }}</div>
+            <small style="color: rgba(255,255,255,0.8);">Total Reservations</small>
+        </div>
+    </div>
+
+    <div class="reservations-container">
+        <div class="table-responsive">
+            <table class="table table-hover reservations-table mb-0">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person"></i> Guest</th>
+                        <th><i class="bi bi-door-open"></i> Room</th>
+                        <th><i class="bi bi-calendar-event"></i> Check-in</th>
+                        <th><i class="bi bi-calendar-event"></i> Check-out</th>
+                        <th><i class="bi bi-gear"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for res in reservations %}
+                    <tr>
+                        <td>
+                            <div class="guest-name">
+                                <i class="bi bi-person-circle"></i>
+                                {% set guest = res.guest %}
+                                {{ guest.name if guest else 'N/A' }}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="room-badge">
+                                <i class="bi bi-house-door"></i>
+                                Room {{ res.room.room_number if res.room else res.room_id }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="datetime-info">
+                                <strong>{{ res.check_in.strftime('%d %b %Y') }}</strong><br>
+                                <i class="bi bi-clock"></i> {{ res.check_in.strftime('%H:%M') }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="datetime-info">
+                                <strong>{{ res.check_out.strftime('%d %b %Y') }}</strong><br>
+                                <i class="bi bi-clock"></i> {{ res.check_out.strftime('%H:%M') }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="/checkin/{{res.id}}" class="btn btn-sm btn-action btn-checkin">
+                                    <i class="bi bi-box-arrow-down"></i> Check-in
+                                </a>
+                                <a href="/checkout/{{res.id}}" class="btn btn-sm btn-action btn-checkout">
+                                    <i class="bi bi-box-arrow-up"></i> Check-out
+                                </a>
+                                <a href="/invoice/{{res.id}}" class="btn btn-sm btn-action btn-invoice">
+                                    <i class="bi bi-file-earmark"></i> Invoice
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% if not reservations %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="no-reservations">
+                                <i class="bi bi-calendar-x"></i>
+                                <div>No reservations found</div>
+                                <small style="color: #999;">Create a new reservation to get started</small>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}

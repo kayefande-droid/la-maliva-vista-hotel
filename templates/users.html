@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    .users-header {
+        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        animation: slideInDown 0.6s ease-out;
+    }
+    @keyframes slideInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .add-user-form {
+        background: linear-gradient(135deg, rgba(0, 82, 204, 0.08), rgba(255, 183, 0, 0.08));
+        border: 2px solid #ffb700;
+        padding: 18px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        animation: slideInUp 0.6s ease-out;
+    }
+    @keyframes slideInUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .add-user-form .form-control, .add-user-form .form-select {
+        border: 2px solid rgba(0, 82, 204, 0.3) !important;
+        transition: all 0.3s ease;
+    }
+    .add-user-form .form-control:focus, .add-user-form .form-select:focus {
+        border-color: #ffb700 !important;
+        box-shadow: 0 0 8px rgba(255, 183, 0, 0.2) !important;
+    }
+    .users-table {
+        border: 2px solid #ffb700 !important;
+        border-radius: 8px;
+        overflow: hidden;
+        animation: fadeIn 0.6s ease-out;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    .users-table thead {
+        background: linear-gradient(90deg, #0052cc, #003d99) !important;
+        color: white;
+        font-weight: bold;
+    }
+    .users-table thead th {
+        border-color: #ffb700 !important;
+        padding: 15px;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    .users-table tbody tr {
+        border-bottom: 1px solid rgba(0, 82, 204, 0.2);
+        transition: all 0.3s ease;
+    }
+    .users-table tbody tr:hover {
+        background: linear-gradient(90deg, rgba(0, 82, 204, 0.1), rgba(255, 183, 0, 0.05));
+        box-shadow: inset 3px 0 0 #ffb700;
+    }
+    .users-table tbody td {
+        padding: 12px 15px;
+        vertical-align: middle;
+    }
+    .role-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        display: inline-block;
+    }
+    .role-admin {
+        background: linear-gradient(90deg, #dc3545, #c82333);
+        color: white;
+    }
+    .role-staff {
+        background: linear-gradient(90deg, #ffb700, #ff9500);
+        color: #001a4d;
+    }
+    .role-user {
+        background: linear-gradient(90deg, #0052cc, #003d99);
+        color: white;
+    }
+    .btn-action {
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        font-size: 12px;
+        font-weight: 600;
+    }
+    .btn-action:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    .btn-edit {
+        background: linear-gradient(90deg, #ffb700, #ff9500);
+        border: none;
+        color: #001a4d;
+    }
+    .btn-delete {
+        background: linear-gradient(90deg, #dc3545, #c82333);
+        border: none;
+        color: white;
+    }
+    .btn-add {
+        background: linear-gradient(90deg, #28a745, #20c997);
+        border: none;
+        color: white;
+    }
+</style>
+
+<div class="main-content">
+    <div class="users-header">
+        <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-shield-lock"></i> User Management</h5>
+        <small>Add and manage system users and access roles</small>
+    </div>
+
+    <div class="add-user-form">
+        <h6 style="color: #ffb700; margin-bottom: 15px;"><i class="bi bi-person-plus"></i> Add New User</h6>
+        <form method="POST" class="mb-0">
+            <input type="hidden" name="action" value="add">
+            <div class="row g-2">
+                <div class="col-md-2">
+                    <input type="text" name="username" class="form-control" placeholder="Username" required>
+                </div>
+                <div class="col-md-3">
+                    <input type="email" name="email" class="form-control" placeholder="Email" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="password" name="password" class="form-control" placeholder="Password" required>
+                </div>
+                <div class="col-md-2">
+                    <select name="role" class="form-select" required>
+                        <option value="">Select Role</option>
+                        <option value="user">User</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-action btn-add w-100"><i class="bi bi-plus-circle"></i> Add User</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover table-sm users-table mb-0">
+            <thead>
+                <tr>
+                    <th><i class="bi bi-person-fill"></i> Username</th>
+                    <th><i class="bi bi-envelope-fill"></i> Email</th>
+                    <th><i class="bi bi-shield-check"></i> Role</th>
+                    <th><i class="bi bi-gear"></i> Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td><strong style="color: #0052cc;">{{ user.username }}</strong></td>
+                    <td>{{ user.email }}</td>
+                    <td>
+                        <span class="role-badge {% if user.role == 'admin' %}role-admin{% elif user.role == 'staff' %}role-staff{% else %}role-user{% endif %}">
+                            {{ user.role.upper() }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/edit_user/{{ user.id }}" class="btn btn-action btn-sm btn-edit"><i class="bi bi-pencil"></i> Edit</a>
+                        {% if user.id != current_user.id %}
+                        <form method="POST" style="display:inline;">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <button type="submit" class="btn btn-action btn-sm btn-delete" onclick="return confirm('Delete this user?');"><i class="bi bi-trash"></i> Delete</button>
+                        </form>
+                        {% else %}
+                        <span class="badge bg-secondary" title="You cannot delete your own account">Your Account</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

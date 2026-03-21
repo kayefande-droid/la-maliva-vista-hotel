@@ -1,23 +1,223 @@
 {% extends 'base.html' %}
 {% block content %}
+<style>
+    .invoice-header {
+        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        animation: slideInDown 0.6s ease-out;
+        text-align: center;
+        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+    }
+    @keyframes slideInDown {
+        from { opacity: 0; transform: translateY(-20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    #invoice-card {
+        border: 3px solid #ffb700;
+        border-radius: 12px;
+        overflow: hidden;
+        animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 12px 30px rgba(0, 82, 204, 0.2);
+        background: white;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .card-header {
+        background: linear-gradient(135deg, #0052cc, #003d99) !important;
+        color: white !important;
+        padding: 25px !important;
+        text-align: center;
+        border-bottom: 3px solid #ffb700;
+    }
+    .card-header h4 {
+        margin: 0;
+        font-weight: bold;
+        font-size: 26px;
+        letter-spacing: 1px;
+        color: #ffb700;
+    }
+    .card-header p {
+        margin: 8px 0 0 0;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+    .card-body {
+        background: white;
+        padding: 35px;
+        color: #333;
+    }
+    .card-body h5 {
+        color: #0052cc;
+        font-weight: bold;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+        margin-top: 20px;
+    }
+    .card-body h5:first-child {
+        margin-top: 0;
+    }
+    .card-body p {
+        color: #555;
+        margin: 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+    .card-body strong {
+        color: #0052cc;
+        font-weight: 600;
+    }
+    .invoice-section {
+        margin-bottom: 25px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid rgba(0, 82, 204, 0.1);
+    }
+    .invoice-section:last-of-type {
+        border-bottom: none;
+    }
+    .invoice-total {
+        background: linear-gradient(90deg, #ffb700, #ff9500);
+        color: #001a4d;
+        padding: 25px;
+        border-radius: 8px;
+        text-align: right;
+        font-weight: bold;
+        margin: 25px 0;
+        font-size: 22px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .invoice-total i {
+        font-size: 28px;
+    }
+    .button-group {
+        display: flex;
+        gap: 12px;
+        margin-top: 30px;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .btn-action {
+        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        padding: 14px 28px;
+        font-weight: bold;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .btn-print {
+        background: linear-gradient(90deg, #0052cc, #003d99);
+        color: white;
+    }
+    .btn-download {
+        background: linear-gradient(90deg, #28a745, #20c997);
+        color: white;
+    }
+    .btn-action:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+    .btn-action:active {
+        transform: scale(0.98);
+    }
+    .thank-you-message {
+        text-align: center;
+        padding: 20px;
+        background: linear-gradient(90deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));
+        border-radius: 8px;
+        margin-top: 20px;
+    }
+    .thank-you-message p {
+        color: #0052cc;
+        font-weight: bold;
+        font-size: 16px;
+        display: block !important;
+    }
+    .no-print {
+        animation: slideInUp 0.6s ease-out;
+    }
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #invoice-card, #invoice-card * {
+            visibility: visible;
+        }
+        #invoice-card {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            box-shadow: none;
+            border: none;
+            margin: 0;
+            padding: 0;
+        }
+        .no-print {
+            display: none !important;
+        }
+    }
+</style>
+
 <div class="main-content">
+    <div class="invoice-header">
+        <h5 class="mb-0" style="font-size: 26px;"><i class="bi bi-file-earmark-pdf"></i> Invoice</h5>
+        <small>LA-MALIVA VISTA HOTEL • A Taste of Paradise</small>
+    </div>
+
     <div class="card" id="invoice-card">
-        <div class="card-header text-center bg-primary text-white">
-            <h4>LA-MALIVA VISTA HOTEL</h4>
+        <div class="card-header">
+            <h4><i class="bi bi-building"></i> LA-MALIVA VISTA HOTEL</h4>
             <p>A Taste of Paradise • Buea, Cameroon</p>
+            <p style="font-size: 11px; margin-top: 10px;">www.lamalivavistahotel.com</p>
         </div>
         <div class="card-body">
-            <h5>Invoice for {{guest.name}}</h5>
-            <p>Room {{room.room_number}} • {{room.room_type}}</p>
-            <p>Check-in: {{res.check_in}} &nbsp; Check-out: {{res.check_out}} ({{days}} nights)</p>
-            <h4 class="text-end">Total: FCFA {{res.amount}}</h4>
-            <p class="text-center mt-4">Thank you for choosing LA-MALIVA VISTA HOTEL!</p>
+            <h5><i class="bi bi-person-fill"></i> Guest Information</h5>
+            <p><strong>Name:</strong> {{guest.name}}</p>
+            <p><strong>Email:</strong> {{guest.email}}</p>
+            <p><strong>Phone:</strong> {{guest.phone}}</p>
+
+            <hr style="border-color: #ffb700; margin: 20px 0;">
+
+            <h5><i class="bi bi-door-open"></i> Room Details</h5>
+            <p><strong>Room Number:</strong> {{room.room_number}}</p>
+            <p><strong>Room Type:</strong> {{room.room_type}}</p>
+            <p><strong>Price per Night:</strong> FCFA {{room.price}}</p>
+
+            <hr style="border-color: #ffb700; margin: 20px 0;">
+
+            <h5><i class="bi bi-calendar-check"></i> Reservation Details</h5>
+            <p><strong>Check-in:</strong> {{ res.check_in.strftime('%d %B %Y at %H:%M') }}</p>
+            <p><strong>Check-out:</strong> {{ res.check_out.strftime('%d %B %Y at %H:%M') }}</p>
+            <p><strong>Duration:</strong> {{ (res.check_out - res.check_in).total_seconds() / (24*3600) | round(1) }} nights</p>
+
+            <div class="invoice-total">
+                <i class="bi bi-currency-dollar"></i> Total Amount: FCFA {{res.amount}}
+            </div>
+
+            <p class="text-center mt-4" style="color: #0052cc; font-weight: bold; font-size: 14px;">
+                <i class="bi bi-heart-fill" style="color: #ffb700;"></i> Thank you for choosing LA-MALIVA VISTA HOTEL!
+            </p>
         </div>
     </div>
 
-    <div class="mt-4 text-center no-print">
-        <button onclick="window.print()" class="btn btn-primary me-2"><i class="bi bi-printer"></i> Print Invoice</button>
-        <button onclick="downloadPDF()" class="btn btn-success"><i class="bi bi-download"></i> Download PDF</button>
+    <div class="button-group no-print">
+        <button onclick="window.print()" class="btn btn-action btn-print"><i class="bi bi-printer"></i> Print Invoice</button>
+        <button onclick="downloadPDF()" class="btn btn-action btn-download"><i class="bi bi-download"></i> Download PDF</button>
     </div>
 </div>
 
@@ -35,24 +235,4 @@
         html2pdf().set(opt).from(element).save();
     }
 </script>
-
-<style>
-    @media print {
-        body * {
-            visibility: hidden;
-        }
-        #invoice-card, #invoice-card * {
-            visibility: visible;
-        }
-        #invoice-card {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-        }
-        .no-print {
-            display: none !important;
-        }
-    }
-</style>
 {% endblock %}
