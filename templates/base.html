@@ -527,40 +527,88 @@
         </div>
 
         <!-- RIGHT PANEL (Statistics) -->
-        <div class="col-md-auto d-none d-lg-block" style="width:270px; background:#f8f9fa; border-left:1px solid #ddd; padding:12px;">
-            <h6>Hotel Statistics</h6>
-            <!-- Changed ID to avoid conflict with dashboard chart -->
-            <canvas id="sidebarChart" height="180"></canvas>
-            <p class="text-center mt-2"><strong>Occupancy Today: 68%</strong></p>
+        <div class="col-md-auto d-none d-lg-block" style="width:270px; background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%); border-left: 2px solid #ffb700; padding: 20px; border-radius: 8px;">
+            <h6 style="color: #0052cc; margin-bottom: 15px;"><i class="bi bi-pie-chart"></i> Occupancy</h6>
+            <div style="position: relative; height: 200px;">
+                <canvas id="sidebarChart"></canvas>
+            </div>
+            <p class="text-center mt-3" style="font-weight: bold; color: #0052cc; font-size: 14px;">
+                <span id="occupancyPercent">0</span>% Occupied
+            </p>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Initialize Sidebar Chart safely
-    document.addEventListener('DOMContentLoaded', function() {
+    let sidebarChartInstance = null;
+
+    // Initialize Sidebar Chart with real data
+    function initializeSidebarChart() {
         const ctx = document.getElementById('sidebarChart');
         if (ctx) {
-            new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Occupied', 'Free'],
-                    datasets: [{
-                        data: [68, 32], // Default values for sidebar
-                        backgroundColor: ['#007bff', '#28a745']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: {
-                        legend: { position: 'bottom', labels: { boxWidth: 10 } }
+            fetch('/api/rooms')
+                .then(r => r.json())
+                .then(rooms => {
+                    const occupied = rooms.filter(room => room.extendedProps && room.extendedProps.status === 'Occupied').length;
+                    const total = rooms.length;
+                    const available = total - occupied;
+                    const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+
+                    // Update percentage text
+                    document.getElementById('occupancyPercent').textContent = rate;
+
+                    // Destroy previous chart if exists
+                    if (sidebarChartInstance) {
+                        sidebarChartInstance.destroy();
                     }
-                }
-            });
+
+                    // Create new chart
+                    sidebarChartInstance = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: [`Occupied (${occupied})`, `Available (${available})`],
+                            datasets: [{
+                                data: [occupied, available],
+                                backgroundColor: ['#dc3545', '#28a745'],
+                                borderColor: ['#ffffff', '#ffffff'],
+                                borderWidth: 2
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom',
+                                    labels: {
+                                        boxWidth: 12,
+                                        font: { size: 11 },
+                                        padding: 10
+                                    }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                            return context.label + ': ' + percentage + '%';
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                })
+                .catch(err => console.log('Chart load error:', err));
         }
-    });
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', initializeSidebarChart);
+
+    // Refresh chart every 30 seconds
+    setInterval(initializeSidebarChart, 30000);
 
     // Quick Actions Functions
     function showArrivals() {

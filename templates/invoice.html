@@ -151,6 +151,16 @@
         animation: slideInUp 0.6s ease-out;
     }
     @media print {
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
         body * {
             visibility: hidden;
         }
@@ -162,10 +172,30 @@
             left: 0;
             top: 0;
             width: 100%;
+            max-width: 100%;
+            height: auto;
             box-shadow: none;
             border: none;
             margin: 0;
-            padding: 0;
+            padding: 20px;
+            page-break-inside: avoid;
+            page-break-after: avoid;
+        }
+        .invoice-header {
+            page-break-inside: avoid;
+        }
+        .card-header {
+            page-break-inside: avoid;
+        }
+        .card-body {
+            page-break-inside: avoid;
+            padding: 30px;
+        }
+        .invoice-section {
+            page-break-inside: avoid;
+        }
+        .invoice-total {
+            page-break-inside: avoid;
         }
         .no-print {
             display: none !important;
@@ -226,11 +256,20 @@
     function downloadPDF() {
         const element = document.getElementById('invoice-card');
         const opt = {
-            margin:       10,
-            filename:     'Invoice_{{guest.name}}_{{res.id}}.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            margin: 15,
+            filename: 'Invoice_{{guest.name}}_{{res.id}}.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff'
+            },
+            jsPDF: {
+                unit: 'mm',
+                format: 'a4',
+                orientation: 'portrait'
+            }
         };
         html2pdf().set(opt).from(element).save();
     }

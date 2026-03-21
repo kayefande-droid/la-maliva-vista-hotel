@@ -115,14 +115,15 @@ def signup():
         # Check if user exists
         existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
         if existing_user:
-            flash('Username or Email already exists!')
+            flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
         
         new_user = User(username=username, email=email, password_hash=generate_password_hash(password))
         db.session.add(new_user)
         db.session.commit()
         
-        flash('Account created successfully! Please login.')
+        # Redirect directly to login, showing success message
+        flash('✅ Account created successfully! Please login with your credentials.', 'success')
         return redirect(url_for('login'))
         
     return render_template('signup.html')
@@ -133,16 +134,12 @@ def login():
         # Can login with username OR email
         identifier = request.form['username']
         password = request.form['password']
-        access_level = request.form['access_level']
         
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
         
         if user and check_password_hash(user.password_hash, password):
-            if user.role == access_level:
-                login_user(user)
-                return redirect(url_for('dashboard'))
-            else:
-                flash('Invalid access level for this account')
+            login_user(user)
+            return redirect(url_for('dashboard'))
         else:
             flash('Invalid credentials')
     return render_template('login.html')
