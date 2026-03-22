@@ -90,7 +90,7 @@ def create_initial_data():
                 
                 # Default hotel settings
                 if not Hotel.query.first():
-                    default_hotel = Hotel()
+                    default_hotel = Hotel(name='LA-MALIVA VISTA HOTEL', address='Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon', tax_rate=0.0)
                     db.session.add(default_hotel)
                 
                 db.session.commit()
@@ -313,13 +313,16 @@ def users():
     if current_user.role != 'admin':
         flash('Access denied')
         return redirect(url_for('dashboard'))
+    
     if request.method == 'POST':
         action = request.form.get('action')
+        
         if action == 'add':
             username = request.form['username']
             email = request.form['email']
             password = request.form['password']
             role = request.form['role']
+            
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash('User already exists')
             else:
@@ -327,16 +330,20 @@ def users():
                 db.session.add(new_user)
                 db.session.commit()
                 flash('User added')
+                
         elif action == 'delete':
-            user_id = request.form['user_id']
+            user_id = request.form.get('user_id')
             user = User.query.get(user_id)
-            if user and user.id != current_user.id:
-                db.session.delete(user)
-                db.session.commit()
-                flash('User deleted')
-            else:
-                flash('Cannot delete yourself')
+            if user:
+                if user.id == current_user.id:
+                    flash('Cannot delete yourself')
+                else:
+                    db.session.delete(user)
+                    db.session.commit()
+                    flash('User deleted')
+                    
         return redirect(url_for('users'))
+
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
 
