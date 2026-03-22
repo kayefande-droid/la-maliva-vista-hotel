@@ -29,7 +29,7 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
-    email = db.Column(db.String(120), unique=True)
+    email = db.Column(db.String(120), unique=True)  # Added email field
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
 
@@ -75,24 +75,26 @@ def create_initial_data():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
             
-            # Updated Room Data: Standard is lowest, Room 301 removed
-            # Reassigning 101 to Standard and 102 to Deluxe to reflect hierarchy
+            # --- STRICT ROOM CONFIGURATION ---
+            # Remove incorrect/old rooms
+            rooms_to_delete = ['301']
+            for num in rooms_to_delete:
+                old_room = Room.query.filter_by(room_number=num).first()
+                if old_room:
+                    db.session.delete(old_room)
+            
+            # Define correct room data (Standard is lowest price)
             rooms_data = [
-                {'number': '101', 'type': 'Standard', 'price': 10000}, # Was Deluxe
-                {'number': '102', 'type': 'Deluxe', 'price': 15000},   # Was Standard
+                {'number': '101', 'type': 'Standard', 'price': 10000},
+                {'number': '102', 'type': 'Deluxe', 'price': 15000},
                 {'number': '201', 'type': 'Suite', 'price': 20000},
-                {'number': '202', 'type': 'Family', 'price': 25000},   # New number for Family room to replace 301
+                {'number': '202', 'type': 'Family', 'price': 25000}
             ]
             
-            # Remove room 301 if it exists
-            room_301 = Room.query.filter_by(room_number='301').first()
-            if room_301:
-                db.session.delete(room_301)
-
             for r_data in rooms_data:
                 existing_room = Room.query.filter_by(room_number=r_data['number']).first()
                 if existing_room:
-                    # Update existing room
+                    # Force update existing room details
                     existing_room.room_type = r_data['type']
                     existing_room.price = r_data['price']
                 else:
@@ -116,6 +118,7 @@ def create_initial_data():
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
+    # Sort by price ascending: Standard (10k) -> Deluxe (15k) -> Suite (20k) -> Family (25k)
     rooms = Room.query.order_by(Room.price).all()
     return render_template('public_home.html', rooms=rooms)
 
