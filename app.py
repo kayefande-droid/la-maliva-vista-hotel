@@ -228,7 +228,10 @@ def new_reservation():
         days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
         amount = room.price * days
         
-        res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
+        res = Reservation(guest_id=guest.id, room_id=room.id,
+                          check_in=check_in,
+                          check_out=check_out,
+                          amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
         flash('Reservation created successfully!')
