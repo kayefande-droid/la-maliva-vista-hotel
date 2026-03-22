@@ -29,7 +29,7 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
-    email = db.Column(db.String(120), unique=True)  # Added email field
+    email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
 
@@ -75,15 +75,19 @@ def create_initial_data():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
             
-            # --- STRICT ROOM CONFIGURATION ---
-            # Remove incorrect/old rooms
-            rooms_to_delete = ['301']
-            for num in rooms_to_delete:
-                old_room = Room.query.filter_by(room_number=num).first()
-                if old_room:
-                    db.session.delete(old_room)
-            
-            # Define correct room data (Standard is lowest price)
+            # --- STRICT CLEANUP & RE-INIT ---
+            # 1. Delete Room 301 explicitly
+            room_301 = Room.query.filter_by(room_number='301').first()
+            if room_301:
+                db.session.delete(room_301)
+                
+            # 2. Delete any room with price 55000 (just in case)
+            old_family = Room.query.filter_by(price=55000).first()
+            if old_family:
+                db.session.delete(old_family)
+
+            # 3. Define EXACT Room Structure (Hierarchy: Standard -> Deluxe -> Suite -> Family)
+            # Standard (10k) comes FIRST
             rooms_data = [
                 {'number': '101', 'type': 'Standard', 'price': 10000},
                 {'number': '102', 'type': 'Deluxe', 'price': 15000},
@@ -94,11 +98,11 @@ def create_initial_data():
             for r_data in rooms_data:
                 existing_room = Room.query.filter_by(room_number=r_data['number']).first()
                 if existing_room:
-                    # Force update existing room details
+                    # FORCE update price and type to ensure correctness
                     existing_room.room_type = r_data['type']
                     existing_room.price = r_data['price']
                 else:
-                    # Create new room
+                    # Create if missing
                     new_room = Room(
                         room_number=r_data['number'], 
                         room_type=r_data['type'], 
@@ -118,7 +122,7 @@ def create_initial_data():
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    # Sort by price ascending: Standard (10k) -> Deluxe (15k) -> Suite (20k) -> Family (25k)
+    # Sort by PRICE ascending to ensure Standard (10k) is first
     rooms = Room.query.order_by(Room.price).all()
     return render_template('public_home.html', rooms=rooms)
 
@@ -239,7 +243,7 @@ def new_reservation():
         flash('Reservation created successfully!')
         return redirect(url_for('calendar'))
     
-    # Sort rooms by price for the dropdown
+    # Sort rooms by price for the dropdown: Standard (10k) First
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms)
 
@@ -433,6 +437,7 @@ def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
+    # Sort rooms by price: Standard first
     rooms = Room.query.order_by(Room.price).all()
     return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 
