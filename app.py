@@ -8,18 +8,23 @@ import io
 import csv
 
 app = Flask(__name__)
-# Use environment variable for secret key in production, fallback to dev key locally
+
+# --- CONFIGURATION ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
-# Use absolute path for database to avoid location issues on Render
-db_path = os.path.join(app.instance_path, 'lamaliva.db')
+
+# Use /tmp for database on read-only file systems (like some Render instances) if needed,
+# but usually instance_path works if created correctly.
+# We will use an absolute path to be safe.
+basedir = os.path.abspath(os.path.dirname(__file__))
+db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
+
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Ensure instance folder exists
-try:
-    os.makedirs(app.instance_path)
-except OSError:
-    pass
+instance_folder = os.path.join(basedir, 'instance')
+if not os.path.exists(instance_folder):
+    os.makedirs(instance_folder)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -29,7 +34,7 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
-    email = db.Column(db.String(120), unique=True)  # Added email field
+    email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
 
@@ -75,19 +80,20 @@ def create_initial_data():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
             
-            # --- STRICT CLEANUP & RE-INIT ---
-            # 1. Delete Room 301 explicitly
-            room_301 = Room.query.filter_by(room_number='301').first()
-            if room_301:
-                db.session.delete(room_301)
+            # --- STRICT ROOM CONFIGURATION ---
+            # Remove incorrect/old rooms
+            try:
+                room_301 = Room.query.filter_by(room_number='301').first()
+                if room_301:
+                    db.session.delete(room_301)
                 
-            # 2. Delete any room with price 55000 (just in case)
-            old_family = Room.query.filter_by(price=55000).first()
-            if old_family:
-                db.session.delete(old_family)
+                old_family = Room.query.filter_by(price=55000).first()
+                if old_family:
+                    db.session.delete(old_family)
+            except Exception as e:
+                print(f"Cleanup warning: {e}")
 
-            # 3. Define EXACT Room Structure (Hierarchy: Standard -> Deluxe -> Suite -> Family)
-            # Standard (10k) comes FIRST
+            # Define correct room data
             rooms_data = [
                 {'number': '101', 'type': 'Standard', 'price': 10000},
                 {'number': '102', 'type': 'Deluxe', 'price': 15000},
@@ -98,11 +104,9 @@ def create_initial_data():
             for r_data in rooms_data:
                 existing_room = Room.query.filter_by(room_number=r_data['number']).first()
                 if existing_room:
-                    # FORCE update price and type to ensure correctness
                     existing_room.room_type = r_data['type']
                     existing_room.price = r_data['price']
                 else:
-                    # Create if missing
                     new_room = Room(
                         room_number=r_data['number'], 
                         room_type=r_data['type'], 
@@ -116,13 +120,19 @@ def create_initial_data():
                 db.session.add(default_hotel)
             
             db.session.commit()
+            print("Database initialized successfully.")
         except Exception as e:
-            print(f"Database error: {e}")
+            print(f"Database initialization error: {e}")
+
+# Initialize Database on Startup (Crucial for Render)
+try:
+    create_initial_data()
+except Exception as e:
+    print(f"Startup Error: {e}")
 
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    # Sort by PRICE ascending to ensure Standard (10k) is first
     rooms = Room.query.order_by(Room.price).all()
     return render_template('public_home.html', rooms=rooms)
 
@@ -180,7 +190,6 @@ def calendar():
 @app.route('/api/rooms')
 @login_required
 def api_rooms():
-    # Sort rooms by price so Standard comes first in calendar
     rooms = Room.query.order_by(Room.price).all()
     return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})'} for r in rooms])
 
@@ -243,7 +252,6 @@ def new_reservation():
         flash('Reservation created successfully!')
         return redirect(url_for('calendar'))
     
-    # Sort rooms by price for the dropdown: Standard (10k) First
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms)
 
@@ -281,12 +289,8 @@ def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
-    
-    # Calculate duration
     duration_seconds = (res.check_out - res.check_in).total_seconds()
     days = duration_seconds / (24 * 3600)
-    
-    # Pass 'now' for the timestamp
     return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now())
 
 @app.route('/logout')
@@ -332,16 +336,13 @@ def users():
     if current_user.role != 'admin':
         flash('Access denied')
         return redirect(url_for('dashboard'))
-    
     if request.method == 'POST':
         action = request.form.get('action')
-        
         if action == 'add':
             username = request.form['username']
             email = request.form['email']
             password = request.form['password']
             role = request.form['role']
-            
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash('User already exists')
             else:
@@ -356,10 +357,7 @@ def users():
                 db.session.delete(user)
                 db.session.commit()
                 flash('User deleted')
-            else:
-                flash('Cannot delete yourself')
         return redirect(url_for('users'))
-        
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
 
@@ -375,7 +373,6 @@ def edit_user(user_id):
         email = request.form['email']
         password = request.form.get('password')
         role = request.form['role']
-        
         existing = User.query.filter(((User.username == username) | (User.email == email)) & (User.id != user_id)).first()
         if existing:
             flash('Username or Email already exists')
@@ -413,7 +410,6 @@ def restore():
     return render_template('restore.html')
 
 @app.route('/about')
-@login_required
 def about():
     return render_template('about.html')
 
@@ -437,11 +433,8 @@ def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
-    # Sort rooms by price: Standard first
     rooms = Room.query.order_by(Room.price).all()
     return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 
 if __name__ == '__main__':
-    with app.app_context():
-        create_initial_data()
     app.run(debug=True)
