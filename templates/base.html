@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LA-MALIVA VISTA HOTEL - A Taste of Paradise</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0052cc">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Using FullCalendar Scheduler for Resource Timeline View -->
@@ -21,62 +23,10 @@
             font-size:13px;
             min-height: 100vh;
         }
-        /* Click and interaction animations */
-        button:active, a:active, input:active {
-            transform: scale(0.98) !important;
-        }
-        button:focus, a:focus, input:focus {
-            outline: none;
-        }
-        /* More selective hover effects - only for interactive elements */
-        button:hover, a:hover, .card:hover, .btn:hover, .form-control:hover, .table tbody tr:hover {
-            filter: brightness(1.05);
-        }
-        /* Animated Background */
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(-45deg, #001a4d, #003d99, #0052cc, #001a4d);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-            z-index: -2;
-        }
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background:
-                radial-gradient(circle at 20% 50%, rgba(0, 82, 204, 0.1) 0%, transparent 50%),
-                radial-gradient(circle at 80% 80%, rgba(0, 58, 153, 0.1) 0%, transparent 50%);
-            animation: float 20s ease-in-out infinite;
-            z-index: -1;
-        }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-20px); }
-        }
         /* Page Transition Animation */
         @keyframes pageSlideIn {
-            from {
-                opacity: 0;
-                transform: translateX(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
         }
         .main-content {
             animation: pageSlideIn 0.5s ease-out;
@@ -127,14 +77,8 @@
             backdrop-filter: blur(10px);
         }
         @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-15px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from { opacity: 0; transform: translateY(-15px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         .top-menu .dropdown-item {
             transition: all 0.2s ease;
@@ -202,306 +146,205 @@
             border-color: rgba(255, 183, 0, 0.3);
             margin: 12px 0;
         }
-        table {
-            border: 2px solid #ffb700 !important;
-            border-radius: 8px;
-            overflow: hidden;
-            animation: fadeIn 0.5s ease-out;
-            background: white;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        table thead {
-            background: linear-gradient(90deg, #0052cc, #003d99) !important;
-            color: white;
-            font-weight: bold;
-        }
-        table thead th {
-            border-color: #ffb700 !important;
-            padding: 15px;
-            text-transform: uppercase;
-            font-size: 12px;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #ffb700 !important;
-        }
-        table tbody tr {
-            border-bottom: 1px solid rgba(0, 82, 204, 0.2);
-            transition: all 0.3s ease;
-        }
-        table tbody tr:hover {
-            background: rgba(0, 82, 204, 0.1);
-            transition: background 0.2s ease;
-        }
-        table tbody td {
-            padding: 12px 15px;
-            vertical-align: middle;
-            border-left: 1px solid rgba(0, 82, 204, 0.1);
-            border-right: 1px solid rgba(0, 82, 204, 0.1);
-        }
-        table tbody td:first-child {
-            border-left: none;
-        }
-        table tbody td:last-child {
-            border-right: none;
-        }
-        .fc {
-            border: 1px solid #0052cc !important;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .fc .fc-col-header-cell {
-            background: linear-gradient(90deg, #0052cc, #003d99) !important;
-            color: white;
-            font-weight: bold;
-            border-color: #0052cc !important;
-        }
-        .fc .fc-daygrid-day:hover {
-            background: rgba(0, 82, 204, 0.05) !important;
-        }
-        button {
-            position: relative;
-            z-index: 10;
-            cursor: pointer;
-        }
-        h5 {
-            color: #0052cc;
-            font-weight: bold;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        h5 i {
-            color: #ffb700;
-            font-size: 28px;
-        }
-        h6 {
-            color: #0052cc;
-            font-weight: bold;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        h6 i {
-            color: #ffb700;
-            font-size: 20px;
-        }
-        .card {
-            border: 2px solid rgba(0, 82, 204, 0.3);
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.1);
-            animation: slideUp 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
-            overflow: hidden;
-        }
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .card-header {
-            background: linear-gradient(90deg, #0052cc, #003d99) !important;
-            border-bottom: 2px solid #ffb700 !important;
-            padding: 15px 20px;
-            color: white !important;
-            font-weight: bold;
-        }
-        .form-control, .form-select {
-            border: 2px solid rgba(0, 82, 204, 0.3) !important;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            padding: 12px 16px;
-            font-size: 14px;
-            margin-bottom: 8px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .form-control:focus, .form-select:focus {
-            border-color: #ffb700 !important;
-            box-shadow: 0 0 12px rgba(255, 183, 0, 0.3) !important;
-            background: white;
-            outline: none;
-        }
-        .form-label {
-            color: #0052cc;
-            font-weight: bold;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-        .form-floating {
-            margin-bottom: 16px;
-        }
-        .form-floating .form-control {
-            border: 2px solid rgba(0, 82, 204, 0.3);
-            border-radius: 8px;
-            height: calc(3.5rem + 4px);
-            padding: 1rem 0.75rem;
-        }
-        .form-floating .form-control:focus {
-            border-color: #ffb700;
-            box-shadow: 0 0 12px rgba(255, 183, 0, 0.3);
-        }
-        .form-floating label {
-            padding: 1rem 0.75rem;
-            color: #0052cc;
-            font-weight: 500;
-        }
-        .input-group {
-            margin-bottom: 16px;
-        }
-        .input-group .form-control {
-            border: 2px solid rgba(0, 82, 204, 0.3);
-            border-radius: 8px;
-            margin-bottom: 0;
-        }
-        .input-group .form-control:focus {
-            border-color: #ffb700;
-            box-shadow: 0 0 12px rgba(255, 183, 0, 0.3);
-        }
-        .btn-primary {
-            background: linear-gradient(90deg, #0052cc, #003d99);
+
+        /* Mobile Menu Button - Left Aligned */
+        .mobile-menu-btn {
+            display: none;
+            background: transparent;
             border: none;
-            border-radius: 8px;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            font-weight: bold;
-            padding: 10px 20px;
+            color: white;
+            font-size: 24px;
+            margin-left: 10px;
+            margin-right: 15px;
         }
-        .btn-primary:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0, 82, 204, 0.4);
-            background: linear-gradient(90deg, #ffb700, #ff9500);
+
+        /* Mobile Offcanvas Menu */
+        .mobile-offcanvas {
+            background: linear-gradient(180deg, #001a4d 0%, #003d99 100%);
+            color: white;
+            width: 250px;
+        }
+        .mobile-offcanvas .btn-close {
+            filter: invert(1);
+        }
+        .mobile-offcanvas a {
+            color: white !important;
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: block;
+            text-decoration: none;
+        }
+        .mobile-offcanvas a:hover {
+            background: rgba(255, 183, 0, 0.2);
+            color: #ffb700 !important;
+        }
+
+        /* PWA Install Button */
+        #pwa-install-btn {
+            display: none; /* Hidden by default, shown by JS if installable */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #ffb700;
             color: #001a4d;
+            border: none;
+            border-radius: 50px;
+            padding: 12px 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-weight: bold;
+            animation: bounce 2s infinite;
         }
-        .alert {
-            border-radius: 8px;
-            border: 2px solid;
-            padding: 15px;
-            margin-bottom: 20px;
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+            40% {transform: translateY(-10px);}
+            60% {transform: translateY(-5px);}
         }
-        .alert-success {
-            background: linear-gradient(90deg, rgba(40, 167, 69, 0.1), rgba(255, 183, 0, 0.05));
-            border-color: #28a745;
-            color: #155724;
-        }
-        .alert-danger {
-            background: linear-gradient(90deg, rgba(220, 53, 69, 0.1), rgba(255, 183, 0, 0.05));
-            border-color: #dc3545;
-            color: #721c24;
-        }
-        .alert-warning {
-            background: linear-gradient(90deg, rgba(255, 193, 7, 0.1), rgba(0, 82, 204, 0.05));
-            border-color: #ffc107;
-            color: #856404;
-        }
+
         /* Responsive Adjustments */
-        @media (max-width: 768px) {
+        @media (max-width: 992px) {
+            .mobile-menu-btn {
+                display: block; /* Show hamburger on mobile */
+            }
+            .navbar-collapse {
+                display: none !important; /* Hide desktop menu */
+            }
             .sidebar {
-                display: none;
+                display: none !important;
             }
             .toolbar {
                 display: flex;
-                flex-wrap: wrap;
-                justify-content: center;
+                overflow-x: auto;
+                white-space: nowrap;
+                padding-bottom: 15px;
             }
             .toolbar button {
-                margin-bottom: 8px;
-                margin-right: 5px;
+                flex: 0 0 auto;
             }
             .main-content {
-                min-height: auto;
                 margin: 10px;
+                padding: 15px;
             }
         }
     </style>
 </head>
 <body>
+
+<!-- PWA Install Button -->
+<button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
+
+<!-- Navbar -->
 <nav class="top-menu navbar navbar-expand-lg">
-    <div class="container-fluid">
-        <div style="display: flex; align-items: center; gap: 15px; margin-right: 20px;">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Hotel Logo" style="height: 45px; width: auto; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-            <div style="color: white;">
-                <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
-                <small style="color: #ffb700;">A Taste of Paradise</small>
+    <div class="container-fluid p-0">
+        <div class="d-flex align-items-center w-100">
+            <!-- Mobile Menu Toggle (Hamburger) -->
+            <button class="mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <!-- Logo Area -->
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Hotel Logo" style="height: 40px; width: auto; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                <div style="color: white; line-height: 1.2;">
+                    <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
+                    <small style="color: #ffb700; font-size: 10px;">Paradise in Buea</small>
+                </div>
+            </div>
+
+            <!-- Desktop Menu (Hidden on Mobile) -->
+            <div class="collapse navbar-collapse ms-4">
+                <ul class="navbar-nav me-auto">
+                    <!-- File Menu -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">File</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}">New Reservation</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="window.print()">Print...</a></li>
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+                            <li><a class="dropdown-item" href="{{ url_for('export_data') }}">Export Data</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Tools (Admin Only) -->
+                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Tools</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('users') }}">User Management</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('backup') }}">Backup Database</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('restore') }}">Restore Database</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    <!-- View Menu -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">View</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('calendar') }}">Calendar</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('rooms') }}">Room List</a></li>
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+                            <li><a class="dropdown-item" href="{{ url_for('guests') }}">Guest List</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()">Full Screen</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Help Menu -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Help</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('user_manual') }}">User Manual</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('about') }}">About</a></li>
+                            <li><a class="dropdown-item" href="tel:+237678302909">Contact Support</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
-        <div class="collapse navbar-collapse">
-            <ul class="navbar-nav me-auto">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" id="fileDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        File
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="fileDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}">New Reservation</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="window.print()">Print...</a></li>
-                        {% if current_user.role == 'admin' or current_user.role == 'staff' %}
-                        <li><a class="dropdown-item" href="{{ url_for('export_data') }}">Export Data</a></li>
-                        {% endif %}
-                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
-                    </ul>
-                </li>
-                {% if current_user.role == 'admin' %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" id="toolsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Tools
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="toolsDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('users') }}">User Management</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('backup') }}">Backup Database</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('restore') }}">Restore Database</a></li>
-                    </ul>
-                </li>
-                {% endif %}
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" id="viewDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        View
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="viewDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('calendar') }}">Calendar</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('rooms') }}">Room List</a></li>
-                        {% if current_user.role == 'admin' or current_user.role == 'staff' %}
-                        <li><a class="dropdown-item" href="{{ url_for('guests') }}">Guest List</a></li>
-                        {% endif %}
-                        <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()">Full Screen</a></li>
-                    </ul>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle text-white" href="#" id="helpDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        Help
-                    </a>
-                    <ul class="dropdown-menu" aria-labelledby="helpDropdown">
-                        <li><a class="dropdown-item" href="{{ url_for('static', filename='user_manual.pdf') }}" target="_blank">User Manual</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('about') }}">About</a></li>
-                        <li><a class="dropdown-item" href="tel:+237678302909">Contact Support</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-        <span class="navbar-text text-white">www.lamalivavistahotel.com • A Taste of Paradise • Buea, Cameroon</span>
     </div>
 </nav>
 
-<div class="toolbar">
+<!-- Mobile Offcanvas Menu (Left Side) -->
+<div class="offcanvas offcanvas-start mobile-offcanvas" tabindex="-1" id="mobileMenu">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title text-white">Menu</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="list-group list-group-flush bg-transparent">
+            <!-- Mobile Links -->
+            <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+            <a href="{{ url_for('todays_arrivals') }}"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
+            <a href="{{ url_for('todays_departures') }}"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <div class="border-top my-2 border-secondary"></div>
+            <small class="text-muted ms-3">ADMIN TOOLS</small>
+            <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> Users</a>
+            <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
+            {% endif %}
+
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
+            <a href="{{ url_for('logout') }}" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </div>
+</div>
+
+<div class="toolbar d-none d-lg-block">
+    <!-- Desktop Toolbar (Hidden on Mobile, replaced by Offcanvas) -->
     <button onclick="window.location.href='/dashboard'" class="btn btn-sm btn-light me-1"><i class="bi bi-house-door"></i> Dashboard</button>
     <button onclick="window.location.href='/calendar'" class="btn btn-sm btn-light me-1"><i class="bi bi-calendar3"></i> Calendar</button>
     <button onclick="window.location.href='/rooms'" class="btn btn-sm btn-light me-1"><i class="bi bi-door-open"></i> Rooms</button>
-    {% if current_user.role == 'admin' or current_user.role == 'staff' %}
+    {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
     <button onclick="window.location.href='/guests'" class="btn btn-sm btn-light me-1"><i class="bi bi-people"></i> Guests</button>
     <button onclick="window.location.href='/reservations'" class="btn btn-sm btn-light me-1"><i class="bi bi-list"></i> Reservations</button>
     {% endif %}
@@ -510,12 +353,12 @@
 
 <div class="container-fluid mt-2">
     <div class="row">
-        <!-- LEFT SIDEBAR -->
-        <div class="col-md-auto sidebar d-none d-md-block">
+        <!-- LEFT SIDEBAR (Desktop Only) -->
+        <div class="col-md-auto sidebar d-none d-lg-block">
             <h6 class="mb-3"><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
-            <a href="#" onclick="showArrivals()" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
-            <a href="#" onclick="showDepartures()" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Departures</a>
-            <a href="#" onclick="showOccupancy()" class="btn btn-sm btn-outline-success w-100 mb-2"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+            <a href="/todays_arrivals" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
+            <a href="/todays_departures" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="/occupancy_report" class="btn btn-sm btn-outline-success w-100 mb-2"><i class="bi bi-graph-up"></i> Occupancy Report</a>
             <a href="/new_reservation" class="btn btn-sm btn-outline-warning w-100"><i class="bi bi-plus-lg"></i> New Booking</a>
             <hr>
             <small><i class="bi bi-door-open"></i> Free Rooms: <span id="freeRoomsCount" class="text-success fw-bold">...</span></small>
@@ -526,7 +369,7 @@
             {% block content %}{% endblock %}
         </div>
 
-        <!-- RIGHT PANEL (Statistics) -->
+        <!-- RIGHT PANEL (Statistics) (Desktop Only) -->
         <div class="col-md-auto d-none d-lg-block" style="width:270px; background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%); border-left: 2px solid #ffb700; padding: 20px; border-radius: 8px;">
             <h6 style="color: #0052cc; margin-bottom: 15px;"><i class="bi bi-pie-chart"></i> Occupancy</h6>
             <div style="position: relative; height: 200px;">
@@ -541,9 +384,39 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // PWA Installation Logic
+    let deferredPrompt;
+    const installBtn = document.getElementById('pwa-install-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') {
+                installBtn.style.display = 'none';
+            }
+            deferredPrompt = null;
+        }
+    });
+
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registered!', reg))
+                .catch(err => console.log('SW failed', err));
+        });
+    }
+
+    // Chart & Stats Logic
     let sidebarChartInstance = null;
 
-    // Initialize Sidebar Chart with real data
     function initializeSidebarChart() {
         const ctx = document.getElementById('sidebarChart');
         if (ctx) {
@@ -555,19 +428,12 @@
                     const available = total - occupied;
                     const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
 
-                    // Update occupancy text and free rooms count
                     document.getElementById('occupancyPercent').textContent = rate;
                     const freeRoomsElem = document.getElementById('freeRoomsCount');
-                    if (freeRoomsElem) {
-                        freeRoomsElem.textContent = available;
-                    }
+                    if (freeRoomsElem) freeRoomsElem.textContent = available;
 
-                    // Destroy previous chart if exists
-                    if (sidebarChartInstance) {
-                        sidebarChartInstance.destroy();
-                    }
+                    if (sidebarChartInstance) sidebarChartInstance.destroy();
 
-                    // Create new chart
                     sidebarChartInstance = new Chart(ctx, {
                         type: 'doughnut',
                         data: {
@@ -583,23 +449,7 @@
                             responsive: true,
                             maintainAspectRatio: false,
                             plugins: {
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        boxWidth: 12,
-                                        font: { size: 11 },
-                                        padding: 10
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                            return context.label + ': ' + percentage + '%';
-                                        }
-                                    }
-                                }
+                                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } }
                             }
                         }
                     });
@@ -608,64 +458,8 @@
         }
     }
 
-    // Initialize on page load
     document.addEventListener('DOMContentLoaded', initializeSidebarChart);
-
-    // Refresh chart every 30 seconds
     setInterval(initializeSidebarChart, 30000);
-
-    // Quick Actions Functions
-    function showArrivals() {
-        const today = new Date().toISOString().split('T')[0];
-        fetch('/api/reservations')
-            .then(r => r.json())
-            .then(data => {
-                const arrivals = data.filter(res => res.start && res.start.includes(today));
-                if (arrivals.length === 0) {
-                    alert('📭 No arrivals scheduled for today');
-                } else {
-                    let message = '🎉 TODAY\'S ARRIVALS:\n\n';
-                    arrivals.forEach(a => {
-                        const time = a.start ? new Date(a.start).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-                        message += `• ${a.title} - Check-in at ${time}\n`;
-                    });
-                    alert(message);
-                }
-            })
-            .catch(err => alert('❌ Error loading arrivals. Please try again.'));
-    }
-
-    function showDepartures() {
-        const today = new Date().toISOString().split('T')[0];
-        fetch('/api/reservations')
-            .then(r => r.json())
-            .then(data => {
-                const departures = data.filter(res => res.end && res.end.includes(today));
-                if (departures.length === 0) {
-                    alert('📭 No departures scheduled for today');
-                } else {
-                    let message = '👋 TODAY\'S DEPARTURES:\n\n';
-                    departures.forEach(d => {
-                        const time = d.end ? new Date(d.end).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
-                        message += `• ${d.title} - Checkout at ${time}\n`;
-                    });
-                    alert(message);
-                }
-            })
-            .catch(err => alert('❌ Error loading departures. Please try again.'));
-    }
-
-    function showOccupancy() {
-        fetch('/api/rooms')
-            .then(r => r.json())
-            .then(rooms => {
-                const occupied = rooms.filter(room => room.extendedProps && room.extendedProps.status === 'Occupied').length;
-                const total = rooms.length;
-                const rate = Math.round((occupied / total) * 100);
-                alert(`📊 OCCUPANCY REPORT\n\nOccupied: ${occupied}/${total}\nOccupancy Rate: ${rate}%\n\n✅ Status: ${rate > 75 ? 'High' : rate > 50 ? 'Moderate' : 'Low'}`);
-            })
-            .catch(err => alert('❌ Error loading occupancy data. Please try again.'));
-    }
 </script>
 </body>
 </html>
