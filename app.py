@@ -77,32 +77,43 @@ def create_initial_data():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
                 
-                # Default rooms
-                rooms = [
-                    Room(room_number='101', room_type='Deluxe', price=45000, status='Available'),
-                    Room(room_number='102', room_type='Standard', price=35000, status='Available'),
-                    Room(room_number='201', room_type='Suite', price=75000, status='Available'),
-                    Room(room_number='301', room_type='Family', price=55000, status='Available'),
+                # Correct rooms with new prices
+                rooms_data = [
+                    {'number': '101', 'type': 'Standard', 'price': 10000},
+                    {'number': '102', 'type': 'Deluxe', 'price': 15000},
+                    {'number': '201', 'type': 'Suite', 'price': 20000},
+                    {'number': '202', 'type': 'Family', 'price': 25000},
                 ]
-                for r in rooms:
-                    if not Room.query.filter_by(room_number=r.room_number).first():
-                        db.session.add(r)
+                
+                for r_data in rooms_data:
+                    existing_room = Room.query.filter_by(room_number=r_data['number']).first()
+                    if existing_room:
+                        # Update price if room exists
+                        existing_room.price = r_data['price']
+                        existing_room.room_type = r_data['type']
+                    else:
+                        # Create new room
+                        new_room = Room(
+                            room_number=r_data['number'], 
+                            room_type=r_data['type'], 
+                            price=r_data['price'], 
+                            status='Available'
+                        )
+                        db.session.add(new_room)
                 
                 # Default hotel settings
                 if not Hotel.query.first():
-                    default_hotel = Hotel(name='LA-MALIVA VISTA HOTEL', address='Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon', tax_rate=0.0)
+                    default_hotel = Hotel()
                     db.session.add(default_hotel)
                 
                 db.session.commit()
         except Exception as e:
             print(f"Database error (likely schema change): {e}")
-            # In production, we'd use Flask-Migrate. 
-            # For this setup, we just pass - user might need to delete old DB file locally.
 
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    rooms = Room.query.all()
+    rooms = Room.query.order_by(Room.price).all()
     return render_template('public_home.html', rooms=rooms)
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -112,7 +123,6 @@ def signup():
         email = request.form['email']
         password = request.form['password']
         
-        # Check if user exists
         existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
         if existing_user:
             flash('❌ Username or Email already exists!', 'error')
@@ -122,8 +132,7 @@ def signup():
         db.session.add(new_user)
         db.session.commit()
         
-        # Redirect directly to login, showing success message
-        flash('✅ Account created successfully! Please login with your credentials.', 'success')
+        flash('✅ Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
         
     return render_template('signup.html')
@@ -131,10 +140,8 @@ def signup():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Can login with username OR email
         identifier = request.form['username']
         password = request.form['password']
-        
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
         
         if user and check_password_hash(user.password_hash, password):
@@ -218,13 +225,10 @@ def new_reservation():
         check_out_str = f"{request.form['check_out_date']} {request.form['check_out_time']}"
         check_in = datetime.strptime(check_in_str, '%Y-%m-%d %H:%M')
         check_out = datetime.strptime(check_out_str, '%Y-%m-%d %H:%M')
-        days = (check_out - check_in).total_seconds() / (24 * 3600)
-        amount = room.price * max(days, 1) # At least 1 day
+        days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
+        amount = room.price * days
         
-        res = Reservation(guest_id=guest.id, room_id=room.id,
-                          check_in=check_in,
-                          check_out=check_out,
-                          amount=amount, status='Confirmed')
+        res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
         flash('Reservation created successfully!')
@@ -267,7 +271,7 @@ def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
-    days = (res.check_out - res.check_in).days
+    days = max((res.check_out - res.check_in).days, 1)
     return render_template('invoice.html', res=res, guest=guest, room=room, days=days)
 
 @app.route('/logout')
@@ -322,7 +326,7 @@ def users():
             email = request.form['email']
             password = request.form['password']
             role = request.form['role']
-            
+
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash('User already exists')
             else:
@@ -330,20 +334,17 @@ def users():
                 db.session.add(new_user)
                 db.session.commit()
                 flash('User added')
-                
         elif action == 'delete':
             user_id = request.form.get('user_id')
             user = User.query.get(user_id)
-            if user:
-                if user.id == current_user.id:
-                    flash('Cannot delete yourself')
-                else:
-                    db.session.delete(user)
-                    db.session.commit()
-                    flash('User deleted')
-                    
+            if user and user.id != current_user.id:
+                db.session.delete(user)
+                db.session.commit()
+                flash('User deleted')
+            else:
+                flash('Cannot delete yourself')
         return redirect(url_for('users'))
-
+        
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
 
@@ -360,10 +361,7 @@ def edit_user(user_id):
         password = request.form.get('password')
         role = request.form['role']
         
-        # Check if username or email conflicts with others
-        existing = User.query.filter(
-            ((User.username == username) | (User.email == email)) & (User.id != user_id)
-        ).first()
+        existing = User.query.filter(((User.username == username) | (User.email == email)) & (User.id != user_id)).first()
         if existing:
             flash('Username or Email already exists')
         else:
@@ -383,8 +381,7 @@ def backup():
     if current_user.role != 'admin':
         flash('Access denied')
         return redirect(url_for('dashboard'))
-    db_file = db_path
-    return send_file(db_file, as_attachment=True, download_name='lamaliva_backup.db')
+    return send_file(db_path, as_attachment=True, download_name='lamaliva_backup.db')
 
 @app.route('/restore', methods=['GET', 'POST'])
 @login_required
@@ -401,9 +398,34 @@ def restore():
     return render_template('restore.html')
 
 @app.route('/about')
+@login_required
 def about():
     return render_template('about.html')
 
+@app.route('/todays_arrivals')
+@login_required
+def todays_arrivals():
+    today = date.today()
+    arrivals = Reservation.query.filter(db.func.date(Reservation.check_in) == today).all()
+    return render_template('arrivals.html', arrivals=arrivals, today=today)
+
+@app.route('/todays_departures')
+@login_required
+def todays_departures():
+    today = date.today()
+    departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
+    return render_template('departures.html', departures=departures, today=today)
+
+@app.route('/occupancy_report')
+@login_required
+def occupancy_report():
+    total_rooms = Room.query.count()
+    occupied_rooms = Room.query.filter_by(status='Occupied').count()
+    occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
+    rooms = Room.query.all()
+    return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
+
 if __name__ == '__main__':
-    create_initial_data()
+    with app.app_context():
+        create_initial_data()
     app.run(debug=True)

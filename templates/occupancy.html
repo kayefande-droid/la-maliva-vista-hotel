@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <h5><i class="bi bi-graph-up-arrow"></i> Occupancy Report</h5>
+
+    <div class="row my-4">
+        <div class="col-md-4">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="fw-bold">{{ occupied }} / {{ total }}</h3>
+                    <p class="text-muted mb-0">Rooms Occupied</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center bg-light">
+                <div class="card-body">
+                    <h3 class="fw-bold">{{ rate|round|int }}%</h3>
+                    <p class="text-muted mb-0">Occupancy Rate</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            Room Status Details
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Room Number</th>
+                        <th>Room Type</th>
+                        <th>Status</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for room in rooms %}
+                    <tr>
+                        <td>{{ room.room_number }}</td>
+                        <td>{{ room.room_type }}</td>
+                        <td>
+                            <span class="badge {{ 'bg-danger' if room.status == 'Occupied' else 'bg-success' }}">
+                                {{ room.status }}
+                            </span>
+                        </td>
+                        <td>FCFA {{ room.price|int }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="main-content">
+    <h5><i class="bi bi-arrow-up-circle-fill"></i> Today's Departures ({{ today.strftime('%d %b %Y') }})</h5>
+    <div class="card shadow-sm mt-4">
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Guest Name</th>
+                        <th>Room</th>
+                        <th>Check-out Time</th>
+                        <th>Status</th>
+                        <th class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for res in departures %}
+                    <tr>
+                        <td>{{ res.guest.name }}</td>
+                        <td>{{ res.room.room_number }} ({{ res.room.room_type }})</td>
+                        <td>{{ res.check_out.strftime('%I:%M %p') }}</td>
+                        <td><span class="badge bg-info">{{ res.status }}</span></td>
+                        <td class="text-end">
+                            <a href="{{ url_for('invoice', res_id=res.id) }}" class="btn btn-sm btn-primary me-1">Invoice</a>
+                            <a href="{{ url_for('checkout', res_id=res.id) }}" class="btn btn-sm btn-warning">Checkout</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted p-4">No departures scheduled for today.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
