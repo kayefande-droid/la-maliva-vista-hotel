@@ -29,7 +29,7 @@ login_manager.login_view = 'login'
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
-    email = db.Column(db.String(120), unique=True)  # Added email field
+    email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
 
@@ -68,47 +68,50 @@ def load_user(user_id):
 # ===================== HELPER TO CREATE DATA =====================
 def create_initial_data():
     with app.app_context():
-        # Handle database schema updates safely for SQLite
         try:
             db.create_all()
             
-            # Check if admin exists
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
-                
-                # Correct rooms with new prices
-                rooms_data = [
-                    {'number': '101', 'type': 'Standard', 'price': 10000},
-                    {'number': '102', 'type': 'Deluxe', 'price': 15000},
-                    {'number': '201', 'type': 'Suite', 'price': 20000},
-                    {'number': '202', 'type': 'Family', 'price': 25000},
-                ]
-                
-                for r_data in rooms_data:
-                    existing_room = Room.query.filter_by(room_number=r_data['number']).first()
-                    if existing_room:
-                        # Update price if room exists
-                        existing_room.price = r_data['price']
-                        existing_room.room_type = r_data['type']
-                    else:
-                        # Create new room
-                        new_room = Room(
-                            room_number=r_data['number'], 
-                            room_type=r_data['type'], 
-                            price=r_data['price'], 
-                            status='Available'
-                        )
-                        db.session.add(new_room)
-                
-                # Default hotel settings
-                if not Hotel.query.first():
-                    default_hotel = Hotel()
-                    db.session.add(default_hotel)
-                
-                db.session.commit()
+            
+            # Updated Room Data: Standard is lowest, Room 301 removed
+            # Reassigning 101 to Standard and 102 to Deluxe to reflect hierarchy
+            rooms_data = [
+                {'number': '101', 'type': 'Standard', 'price': 10000}, # Was Deluxe
+                {'number': '102', 'type': 'Deluxe', 'price': 15000},   # Was Standard
+                {'number': '201', 'type': 'Suite', 'price': 20000},
+                {'number': '202', 'type': 'Family', 'price': 25000},   # New number for Family room to replace 301
+            ]
+            
+            # Remove room 301 if it exists
+            room_301 = Room.query.filter_by(room_number='301').first()
+            if room_301:
+                db.session.delete(room_301)
+
+            for r_data in rooms_data:
+                existing_room = Room.query.filter_by(room_number=r_data['number']).first()
+                if existing_room:
+                    # Update existing room
+                    existing_room.room_type = r_data['type']
+                    existing_room.price = r_data['price']
+                else:
+                    # Create new room
+                    new_room = Room(
+                        room_number=r_data['number'], 
+                        room_type=r_data['type'], 
+                        price=r_data['price'], 
+                        status='Available'
+                    )
+                    db.session.add(new_room)
+            
+            if not Hotel.query.first():
+                default_hotel = Hotel()
+                db.session.add(default_hotel)
+            
+            db.session.commit()
         except Exception as e:
-            print(f"Database error (likely schema change): {e}")
+            print(f"Database error: {e}")
 
 # ===================== ROUTES =====================
 @app.route('/')
@@ -170,7 +173,8 @@ def calendar():
 @app.route('/api/rooms')
 @login_required
 def api_rooms():
-    rooms = Room.query.all()
+    # Sort rooms by price so Standard comes first in calendar
+    rooms = Room.query.order_by(Room.price).all()
     return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})'} for r in rooms])
 
 @app.route('/api/reservations')
@@ -194,7 +198,7 @@ def api_reservations():
 @app.route('/rooms')
 @login_required
 def rooms():
-    rooms_list = Room.query.all()
+    rooms_list = Room.query.order_by(Room.price).all()
     return render_template('rooms.html', rooms=rooms_list)
 
 @app.route('/reservations')
@@ -221,23 +225,19 @@ def new_reservation():
         db.session.commit()
         
         room = Room.query.get(request.form['room_id'])
-        check_in_str = f"{request.form['check_in_date']} {request.form['check_in_time']}"
-        check_out_str = f"{request.form['check_out_date']} {request.form['check_out_time']}"
-        check_in = datetime.strptime(check_in_str, '%Y-%m-%d %H:%M')
-        check_out = datetime.strptime(check_out_str, '%Y-%m-%d %H:%M')
+        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M')
+        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M')
         days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
         amount = room.price * days
         
-        res = Reservation(guest_id=guest.id, room_id=room.id,
-                          check_in=check_in,
-                          check_out=check_out,
-                          amount=amount, status='Confirmed')
+        res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
         flash('Reservation created successfully!')
         return redirect(url_for('calendar'))
     
-    available_rooms = Room.query.filter_by(status='Available').all()
+    # Sort rooms by price for the dropdown
+    available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms)
 
 @app.route('/checkin/<int:res_id>')
@@ -329,7 +329,7 @@ def users():
             email = request.form['email']
             password = request.form['password']
             role = request.form['role']
-
+            
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash('User already exists')
             else:
@@ -425,7 +425,7 @@ def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
-    rooms = Room.query.all()
+    rooms = Room.query.order_by(Room.price).all()
     return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 
 if __name__ == '__main__':
