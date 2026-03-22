@@ -274,8 +274,13 @@ def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
-    days = max((res.check_out - res.check_in).days, 1)
-    return render_template('invoice.html', res=res, guest=guest, room=room, days=days)
+    
+    # Calculate duration
+    duration_seconds = (res.check_out - res.check_in).total_seconds()
+    days = duration_seconds / (24 * 3600)
+    
+    # Pass 'now' for the timestamp
+    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now())
 
 @app.route('/logout')
 @login_required

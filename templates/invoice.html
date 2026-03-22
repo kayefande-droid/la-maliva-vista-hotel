@@ -1,165 +1,18 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-    .invoice-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
-        color: white;
-        padding: 30px;
-        border-radius: 8px;
-        margin-bottom: 20px;
-        animation: slideInDown 0.6s ease-out;
-        text-align: center;
-        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
-    }
-    @keyframes slideInDown {
-        from { opacity: 0; transform: translateY(-20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    #invoice-card {
-        border: 3px solid #ffb700;
-        border-radius: 12px;
-        overflow: hidden;
-        animation: slideUp 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 12px 30px rgba(0, 82, 204, 0.2);
-        background: white;
-        max-width: 900px;
-        margin: 0 auto;
-    }
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .card-header {
-        background: linear-gradient(135deg, #0052cc, #003d99) !important;
-        color: white !important;
-        padding: 25px !important;
-        text-align: center;
-        border-bottom: 3px solid #ffb700;
-    }
-    .card-header h4 {
-        margin: 0;
-        font-weight: bold;
-        font-size: 26px;
-        letter-spacing: 1px;
-        color: #ffb700;
-    }
-    .card-header p {
-        margin: 8px 0 0 0;
-        font-size: 12px;
-        opacity: 0.9;
-    }
-    .card-body {
-        background: white;
-        padding: 35px;
-        color: #333;
-    }
-    .card-body h5 {
-        color: #0052cc;
-        font-weight: bold;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 18px;
-        margin-top: 20px;
-    }
-    .card-body h5:first-child {
-        margin-top: 0;
-    }
-    .card-body p {
-        color: #555;
-        margin: 8px 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 14px;
-        line-height: 1.6;
-    }
-    .card-body strong {
-        color: #0052cc;
-        font-weight: 600;
-    }
-    .invoice-section {
-        margin-bottom: 25px;
-        padding-bottom: 20px;
-        border-bottom: 2px solid rgba(0, 82, 204, 0.1);
-    }
-    .invoice-section:last-of-type {
-        border-bottom: none;
-    }
-    .invoice-total {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
-        color: #001a4d;
-        padding: 25px;
-        border-radius: 8px;
-        text-align: right;
-        font-weight: bold;
-        margin: 25px 0;
-        font-size: 22px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .invoice-total i {
-        font-size: 28px;
-    }
-    .button-group {
-        display: flex;
-        gap: 12px;
-        margin-top: 30px;
-        justify-content: center;
-        flex-wrap: wrap;
-    }
-    .btn-action {
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        padding: 14px 28px;
-        font-weight: bold;
-        border: none;
-        border-radius: 8px;
-        font-size: 16px;
-        cursor: pointer;
-    }
-    .btn-print {
-        background: linear-gradient(90deg, #0052cc, #003d99);
-        color: white;
-    }
-    .btn-download {
-        background: linear-gradient(90deg, #28a745, #20c997);
-        color: white;
-    }
-    .btn-action:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    }
-    .btn-action:active {
-        transform: scale(0.98);
-    }
-    .thank-you-message {
-        text-align: center;
-        padding: 20px;
-        background: linear-gradient(90deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));
-        border-radius: 8px;
-        margin-top: 20px;
-    }
-    .thank-you-message p {
-        color: #0052cc;
-        font-weight: bold;
-        font-size: 16px;
-        display: block !important;
-    }
-    .no-print {
-        animation: slideInUp 0.6s ease-out;
-    }
+    /* Print-specific adjustments */
     @media print {
-        * {
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-            color-adjust: exact !important;
+        @page {
+            size: A4;
+            margin: 0;
         }
         body {
             margin: 0;
             padding: 0;
-            background: white;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         body * {
             visibility: hidden;
@@ -172,104 +25,188 @@
             left: 0;
             top: 0;
             width: 100%;
-            max-width: 100%;
-            height: auto;
-            box-shadow: none;
-            border: none;
             margin: 0;
             padding: 20px;
-            page-break-inside: avoid;
-            page-break-after: avoid;
+            box-shadow: none !important;
+            border: none !important;
+            background: white !important;
         }
-        .invoice-header {
-            page-break-inside: avoid;
-        }
-        .card-header {
-            page-break-inside: avoid;
-        }
-        .card-body {
-            page-break-inside: avoid;
-            padding: 30px;
-        }
-        .invoice-section {
-            page-break-inside: avoid;
-        }
-        .invoice-total {
-            page-break-inside: avoid;
+        .main-content {
+            border: none !important;
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
         }
         .no-print {
             display: none !important;
         }
     }
+
+    /* Screen Styles */
+    .invoice-wrapper {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .invoice-header-strip {
+        background: linear-gradient(90deg, #0052cc 0%, #003d99 100%);
+        height: 10px;
+        border-radius: 8px 8px 0 0;
+    }
+    .invoice-box {
+        background: white;
+        border-radius: 0 0 8px 8px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        padding: 40px;
+        color: #333;
+    }
+    .invoice-title {
+        color: #0052cc;
+        font-weight: 800;
+        font-size: 28px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+    }
+    .invoice-subtitle {
+        color: #ffb700;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 1px;
+    }
+    .divider {
+        border-top: 2px solid #f0f0f0;
+        margin: 25px 0;
+    }
+    .info-label {
+        font-size: 12px;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 2px;
+    }
+    .info-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 15px;
+    }
+    .total-box {
+        background: #f8f9fa;
+        border-left: 4px solid #ffb700;
+        padding: 20px;
+        margin-top: 30px;
+        text-align: right;
+    }
+    .total-label {
+        font-size: 14px;
+        color: #666;
+    }
+    .total-amount {
+        font-size: 24px;
+        color: #0052cc;
+        font-weight: 800;
+    }
 </style>
 
 <div class="main-content">
-    <div class="invoice-header">
-        <h5 class="mb-0" style="font-size: 26px;"><i class="bi bi-file-earmark-pdf"></i> Invoice</h5>
-        <small>LA-MALIVA VISTA HOTEL • A Taste of Paradise</small>
+    <div class="d-flex justify-content-between align-items-center mb-4 no-print">
+        <h5><i class="bi bi-receipt"></i> Invoice Details</h5>
+        <div>
+            <button onclick="printInvoice()" class="btn btn-primary me-2"><i class="bi bi-printer"></i> Print</button>
+            <button onclick="downloadPDF()" class="btn btn-success"><i class="bi bi-download"></i> Download PDF</button>
+        </div>
     </div>
 
-    <div class="card" id="invoice-card">
-        <div class="card-header">
-            <h4><i class="bi bi-building"></i> LA-MALIVA VISTA HOTEL</h4>
-            <p>A Taste of Paradise • Buea, Cameroon</p>
-            <p style="font-size: 11px; margin-top: 10px;">www.lamalivavistahotel.com</p>
-        </div>
-        <div class="card-body">
-            <h5><i class="bi bi-person-fill"></i> Guest Information</h5>
-            <p><strong>Name:</strong> {{guest.name}}</p>
-            <p><strong>Email:</strong> {{guest.email}}</p>
-            <p><strong>Phone:</strong> {{guest.phone}}</p>
-
-            <hr style="border-color: #ffb700; margin: 20px 0;">
-
-            <h5><i class="bi bi-door-open"></i> Room Details</h5>
-            <p><strong>Room Number:</strong> {{room.room_number}}</p>
-            <p><strong>Room Type:</strong> {{room.room_type}}</p>
-            <p><strong>Price per Night:</strong> FCFA {{room.price}}</p>
-
-            <hr style="border-color: #ffb700; margin: 20px 0;">
-
-            <h5><i class="bi bi-calendar-check"></i> Reservation Details</h5>
-            <p><strong>Check-in:</strong> {{ res.check_in.strftime('%d %B %Y at %H:%M') }}</p>
-            <p><strong>Check-out:</strong> {{ res.check_out.strftime('%d %B %Y at %H:%M') }}</p>
-            <p><strong>Duration:</strong> {{ (res.check_out - res.check_in).total_seconds() / (24*3600) | round(1) }} nights</p>
-
-            <div class="invoice-total">
-                <i class="bi bi-currency-dollar"></i> Total Amount: FCFA {{res.amount}}
+    <div class="invoice-wrapper" id="invoice-card">
+        <div class="invoice-header-strip"></div>
+        <div class="invoice-box">
+            <!-- Header -->
+            <div class="text-center mb-4">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 80px; margin-bottom: 15px;">
+                <div class="invoice-title">LA-MALIVA VISTA HOTEL</div>
+                <div class="invoice-subtitle">A Taste of Paradise • Buea, Cameroon</div>
+                <div style="font-size: 12px; color: #666; margin-top: 5px;">www.lamalivavistahotel.com • (+237) 678-302-909</div>
             </div>
 
-            <p class="text-center mt-4" style="color: #0052cc; font-weight: bold; font-size: 14px;">
-                <i class="bi bi-heart-fill" style="color: #ffb700;"></i> Thank you for choosing LA-MALIVA VISTA HOTEL!
-            </p>
-        </div>
-    </div>
+            <div class="divider"></div>
 
-    <div class="button-group no-print">
-        <button onclick="window.print()" class="btn btn-action btn-print"><i class="bi bi-printer"></i> Print Invoice</button>
-        <button onclick="downloadPDF()" class="btn btn-action btn-download"><i class="bi bi-download"></i> Download PDF</button>
+            <!-- Content Grid -->
+            <div class="row">
+                <!-- Guest Info -->
+                <div class="col-6">
+                    <h6 class="text-primary mb-3"><i class="bi bi-person"></i> Guest Information</h6>
+                    <div class="info-label">Name</div>
+                    <div class="info-value">{{ guest.name }}</div>
+
+                    <div class="info-label">Email</div>
+                    <div class="info-value">{{ guest.email }}</div>
+
+                    <div class="info-label">Phone</div>
+                    <div class="info-value">{{ guest.phone }}</div>
+                </div>
+
+                <!-- Room Info -->
+                <div class="col-6 text-end">
+                    <h6 class="text-primary mb-3"><i class="bi bi-door-open"></i> Room Details</h6>
+                    <div class="info-label">Room Number</div>
+                    <div class="info-value">{{ room.room_number }}</div>
+
+                    <div class="info-label">Room Type</div>
+                    <div class="info-value">{{ room.room_type }}</div>
+
+                    <div class="info-label">Price per Night</div>
+                    <div class="info-value">FCFA {{ "{:,.0f}".format(room.price) }}</div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Reservation Details -->
+            <h6 class="text-primary mb-3"><i class="bi bi-calendar-check"></i> Reservation Summary</h6>
+            <div class="row">
+                <div class="col-4">
+                    <div class="info-label">Check-in</div>
+                    <div class="info-value">{{ res.check_in.strftime('%d %b %Y, %H:%M') }}</div>
+                </div>
+                <div class="col-4 text-center">
+                    <div class="info-label">Check-out</div>
+                    <div class="info-value">{{ res.check_out.strftime('%d %b %Y, %H:%M') }}</div>
+                </div>
+                <div class="col-4 text-end">
+                    <div class="info-label">Duration</div>
+                    <div class="info-value">{{ days|round(1) }} Nights</div>
+                </div>
+            </div>
+
+            <!-- Total -->
+            <div class="total-box">
+                <span class="total-label">Total Amount Due:</span><br>
+                <span class="total-amount">FCFA {{ "{:,.0f}".format(res.amount) }}</span>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-5">
+                <p style="font-size: 13px; color: #888;">Thank you for choosing LA-MALIVA VISTA HOTEL!</p>
+                <p style="font-size: 11px; color: #aaa;">Generated on {{ now.strftime('%d %B %Y at %H:%M') }}</p>
+            </div>
+        </div>
     </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
+    function printInvoice() {
+        window.print();
+    }
+
     function downloadPDF() {
         const element = document.getElementById('invoice-card');
         const opt = {
-            margin: 15,
-            filename: 'Invoice_{{guest.name}}_{{res.id}}.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff'
-            },
-            jsPDF: {
-                unit: 'mm',
-                format: 'a4',
-                orientation: 'portrait'
-            }
+            margin:       [10, 10, 10, 10], // top, left, bottom, right
+            filename:     'Invoice_{{guest.name}}_{{res.id}}.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, scrollY: 0 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().set(opt).from(element).save();
     }
