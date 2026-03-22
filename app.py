@@ -8,13 +8,9 @@ import io
 import csv
 
 app = Flask(__name__)
-
-# --- CONFIGURATION ---
+# Use environment variable for secret key in production, fallback to dev key locally
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
-
-# Use /tmp for database on read-only file systems (like some Render instances) if needed,
-# but usually instance_path works if created correctly.
-# We will use an absolute path to be safe.
+# Use absolute path for database to avoid location issues on Render
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
 
@@ -81,7 +77,6 @@ def create_initial_data():
                 db.session.add(admin)
             
             # --- STRICT ROOM CONFIGURATION ---
-            # Remove incorrect/old rooms
             try:
                 room_301 = Room.query.filter_by(room_number='301').first()
                 if room_301:
@@ -93,7 +88,6 @@ def create_initial_data():
             except Exception as e:
                 print(f"Cleanup warning: {e}")
 
-            # Define correct room data
             rooms_data = [
                 {'number': '101', 'type': 'Standard', 'price': 10000},
                 {'number': '102', 'type': 'Deluxe', 'price': 15000},
@@ -124,7 +118,6 @@ def create_initial_data():
         except Exception as e:
             print(f"Database initialization error: {e}")
 
-# Initialize Database on Startup (Crucial for Render)
 try:
     create_initial_data()
 except Exception as e:
@@ -142,6 +135,11 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        
+        # --- EMAIL VALIDATION: Must be @gmail.com ---
+        if not email.endswith('@gmail.com'):
+            flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed!', 'error')
+            return redirect(url_for('signup'))
         
         existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
         if existing_user:
@@ -435,6 +433,10 @@ def occupancy_report():
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
     rooms = Room.query.order_by(Room.price).all()
     return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
+
+@app.route('/user_manual')
+def user_manual():
+    return render_template('user_manual.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
