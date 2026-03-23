@@ -78,7 +78,7 @@
             opacity: 0;
             transform: translateX(-50px);
             animation: slideMotto 3s ease-out forwards;
-            animation-delay: 2s; /* Delays until after logo/title */
+            animation-delay: 2s;
         }
 
         @keyframes fadeText {
@@ -101,12 +101,13 @@
             100% { transform: translateY(-100vh) rotate(360deg); }
         }
 
-        /* CHATBOT STYLES */
+        /* --- CHATBOT WIDGET STYLES (Fix: Ensure Visibility) --- */
         #chatbot-widget {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            z-index: 10000;
+            z-index: 10000; /* Ensure it's on top of everything */
+            display: block !important; /* Force display */
         }
         #chatbot-toggle {
             background-color: #ffb700;
@@ -117,7 +118,7 @@
             height: 60px;
             font-size: 28px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -134,12 +135,13 @@
             max-width: calc(100% - 40px);
             background: white;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: none;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none; /* Hidden initially, toggled by JS */
             flex-direction: column;
-            border: 1px solid #0052cc;
+            border: 2px solid #0052cc;
             overflow: hidden;
             font-family: Tahoma, sans-serif;
+            z-index: 10001; /* Above toggle button */
         }
         #chatbot-header {
             background: linear-gradient(90deg, #003d99, #0052cc);
@@ -160,7 +162,7 @@
         #chatbot-messages {
             height: 300px;
             overflow-y: auto;
-            padding: 12px;
+            padding: 15px;
             background: #f8f9fa;
             display: flex;
             flex-direction: column;
@@ -190,24 +192,32 @@
             display: flex;
             border-top: 1px solid #ddd;
             background: white;
-            padding: 5px;
+            padding: 8px;
         }
         #chatbot-input {
             flex: 1;
-            border: none;
-            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 15px;
             outline: none;
             font-size: 14px;
+            margin-right: 8px;
+        }
+        #chatbot-input:focus {
+            border-color: #0052cc;
         }
         #chatbot-send {
             background: #ffb700;
             color: #001a4d;
             border: none;
-            padding: 0 15px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             cursor: pointer;
             font-weight: bold;
-            border-radius: 4px;
-            margin: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Rest of Styles */
@@ -250,12 +260,13 @@
             text-decoration: none;
         }
 
-        /* PWA Install Button */
+        /* PWA Install Button (Moved left to avoid chatbot overlap) */
         #pwa-install-btn {
             display: none;
             position: fixed;
-            bottom: 20px; right: 90px; /* Adjusted to sit next to chatbot */
-            z-index: 1000;
+            bottom: 20px;
+            right: 100px; /* Moved left */
+            z-index: 9999;
             background: #ffb700; color: #001a4d;
             border: none; border-radius: 50px;
             padding: 12px 24px;
@@ -287,16 +298,16 @@
     <div class="splash-motto">A Taste of Paradise</div>
 </div>
 
-<!-- CHATBOT WIDGET -->
+<!-- CHATBOT WIDGET START -->
 <div id="chatbot-widget">
-    <button id="chatbot-toggle"><i class="bi bi-chat-dots-fill"></i></button>
+    <button id="chatbot-toggle" title="Chat with Assistant"><i class="bi bi-chat-dots-fill"></i></button>
     <div id="chatbot-window">
         <div id="chatbot-header">
             <span>LaMalaVista Assistant</span>
-            <button id="chatbot-close"><i class="bi bi-x"></i></button>
+            <button id="chatbot-close"><i class="bi bi-x-lg"></i></button>
         </div>
         <div id="chatbot-messages">
-            <div class="message bot-message">Hello! I'm your digital concierge. How can I help you today?</div>
+            <div class="message bot-message">Hello! I'm your digital concierge. Ask me about rooms, prices, or amenities!</div>
         </div>
         <div id="chatbot-input-area">
             <input type="text" id="chatbot-input" placeholder="Type your message..." autocomplete="off">
@@ -304,6 +315,7 @@
         </div>
     </div>
 </div>
+<!-- CHATBOT WIDGET END -->
 
 <button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
 
@@ -475,14 +487,15 @@
                 setTimeout(() => {
                     splash.style.display = 'none';
                 }, 1000);
-            }, 8000); // Changed to 8 seconds
+            }, 8000);
         } else {
             document.getElementById('pwa-splash').style.display = 'none';
         }
     });
 
-    // CHATBOT LOGIC
+    // --- FIXED CHATBOT JS ---
     (function() {
+      // Elements
       const toggleBtn = document.getElementById('chatbot-toggle');
       const chatWindow = document.getElementById('chatbot-window');
       const closeBtn = document.getElementById('chatbot-close');
@@ -490,8 +503,13 @@
       const input = document.getElementById('chatbot-input');
       const messagesDiv = document.getElementById('chatbot-messages');
 
-      // Use relative URL for backend API
       const API_URL = '/chat';
+
+      // Ensure elements exist
+      if (!toggleBtn || !chatWindow) {
+          console.error("Chatbot elements missing!");
+          return;
+      }
 
       function addMessage(text, isUser) {
         const msgDiv = document.createElement('div');
@@ -506,7 +524,8 @@
         if (!message) return;
         addMessage(message, true);
         input.value = '';
-        // Show typing placeholder
+
+        // Typing indicator
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'message bot-message';
         loadingDiv.textContent = '...';
@@ -528,13 +547,21 @@
         }
       }
 
+      // Event Listeners
       toggleBtn.addEventListener('click', () => {
-        chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+        if (chatWindow.style.display === 'flex') {
+            chatWindow.style.display = 'none';
+        } else {
+            chatWindow.style.display = 'flex';
+        }
       });
+
       closeBtn.addEventListener('click', () => {
         chatWindow.style.display = 'none';
       });
+
       sendBtn.addEventListener('click', sendMessage);
+
       input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
       });
