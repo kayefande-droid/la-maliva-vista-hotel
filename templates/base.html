@@ -14,22 +14,95 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        * {
-            transition: all 0.2s ease;
-        }
+        * { transition: all 0.2s ease; }
         body {
             background: linear-gradient(135deg, #001a4d 0%, #003d99 50%, #001a4d 100%);
             font-family: Tahoma, sans-serif;
             font-size:13px;
             min-height: 100vh;
         }
-        /* Page Transition Animation */
-        @keyframes pageSlideIn {
-            from { opacity: 0; transform: translateX(30px); }
+
+        /* SPLASH SCREEN STYLES */
+        #pwa-splash {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #001a4d 0%, #002868 100%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 1s ease-out;
+        }
+
+        #pwa-splash.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-logo {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: white;
+            padding: 10px;
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(255, 183, 0, 0.3);
+            animation: pulseLogo 3s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulseLogo {
+            0% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 183, 0, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(255, 183, 0, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 183, 0, 0.3); }
+        }
+
+        .splash-title {
+            font-family: 'Cinzel', 'Playfair Display', serif; /* Sophisticated Font */
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeText 2s ease-out forwards;
+            animation-delay: 1s;
+        }
+
+        .splash-motto {
+            font-family: 'Dancing Script', cursive;
+            font-size: 18px;
+            color: #ffb700;
+            opacity: 0;
+            transform: translateX(-50px);
+            animation: slideMotto 3s ease-out forwards;
+            animation-delay: 4s; /* Delays until after logo/title */
+        }
+
+        @keyframes fadeText {
+            to { opacity: 1; }
+        }
+
+        @keyframes slideMotto {
             to { opacity: 1; transform: translateX(0); }
         }
+
+        /* Floating Objects Animation */
+        .floating-shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: floatShape 10s infinite linear;
+        }
+        @keyframes floatShape {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        /* Rest of Styles */
         .main-content {
-            animation: pageSlideIn 0.5s ease-out;
             border: 2px solid rgba(0, 82, 204, 0.3);
             background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240, 250, 255, 0.9));
             padding: 25px;
@@ -43,223 +116,94 @@
             background: linear-gradient(90deg, #003d99, #0052cc);
             color:white;
             padding:8px 15px;
-            font-size:13px;
             border-bottom: 3px solid #0052cc;
-            box-shadow: 0 4px 12px rgba(0, 82, 204, 0.3);
-        }
-        .top-menu .navbar-nav .nav-link {
-            color: white !important;
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-        }
-        .top-menu .navbar-nav .nav-link::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: #ffb700;
-            transition: width 0.3s ease;
-        }
-        .top-menu .navbar-nav .nav-link:hover {
-            color: #ffb700 !important;
-            transform: translateY(-2px);
-        }
-        .top-menu .navbar-nav .nav-link:hover::before {
-            width: 100%;
-        }
-        .top-menu .dropdown-menu {
-            border: none;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            background: rgba(0, 61, 153, 0.95);
-            backdrop-filter: blur(10px);
-        }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-15px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .top-menu .dropdown-item {
-            transition: all 0.2s ease;
-            color: white;
-        }
-        .top-menu .dropdown-item:hover {
-            background: linear-gradient(90deg, #0052cc, #003d99);
-            color: #ffb700;
-            transform: translateX(5px);
-            padding-left: 1.75rem;
-        }
-        .toolbar {
-            background: linear-gradient(90deg, rgba(0, 61, 153, 0.8), rgba(0, 82, 204, 0.8));
-            border-bottom: 2px solid #0052cc;
-            padding: 10px;
-            box-shadow: 0 4px 8px rgba(0, 82, 204, 0.2);
-            backdrop-filter: blur(10px);
-        }
-        .toolbar button {
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 1px solid rgba(0, 82, 204, 0.3);
-        }
-        .toolbar button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0, 82, 204, 0.3);
         }
         .sidebar {
             background: linear-gradient(180deg, rgba(0, 61, 153, 0.15), rgba(0, 82, 204, 0.08));
             border-right: 3px solid #ffb700;
             padding: 20px;
             width: 220px;
-            backdrop-filter: blur(10px);
-            box-shadow: inset 0 0 20px rgba(0, 82, 204, 0.1);
-        }
-        .sidebar h6 {
-            color: #ffb700;
-            font-weight: bold;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-size: 14px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        .sidebar .btn {
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-            border: 2px solid #ffb700;
-            color: white;
-            background: rgba(255, 183, 0, 0.1);
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        .sidebar .btn:hover {
-            background: linear-gradient(90deg, #ffb700, #ff9500);
-            color: #001a4d;
-            transform: translateX(8px);
-            box-shadow: 0 6px 16px rgba(255, 183, 0, 0.4);
-            border-color: #ff9500;
-        }
-        .sidebar small {
-            color: #ffb700;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-        }
-        .sidebar hr {
-            border-color: rgba(255, 183, 0, 0.3);
-            margin: 12px 0;
         }
 
-        /* Mobile Menu Button - Left Aligned */
-        .mobile-menu-btn {
-            display: none;
-            background: transparent;
-            border: none;
-            color: white;
-            font-size: 24px;
-            margin-left: 10px;
-            margin-right: 15px;
-        }
-
-        /* Mobile Offcanvas Menu */
+        /* Mobile Menu */
         .mobile-offcanvas {
             background: linear-gradient(180deg, #001a4d 0%, #003d99 100%);
             color: white;
-            width: 250px;
-        }
-        .mobile-offcanvas .btn-close {
-            filter: invert(1);
+            width: 280px;
         }
         .mobile-offcanvas a {
             color: white !important;
-            padding: 10px 15px;
+            padding: 12px 20px;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            display: block;
+            display: flex;
+            align-items: center;
+            gap: 10px;
             text-decoration: none;
-        }
-        .mobile-offcanvas a:hover {
-            background: rgba(255, 183, 0, 0.2);
-            color: #ffb700 !important;
         }
 
         /* PWA Install Button */
         #pwa-install-btn {
-            display: none; /* Hidden by default, shown by JS if installable */
+            display: none;
             position: fixed;
-            bottom: 20px;
-            right: 20px;
+            bottom: 20px; right: 20px;
             z-index: 1000;
-            background: #ffb700;
-            color: #001a4d;
-            border: none;
-            border-radius: 50px;
+            background: #ffb700; color: #001a4d;
+            border: none; border-radius: 50px;
             padding: 12px 24px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             font-weight: bold;
-            animation: bounce 2s infinite;
-        }
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-            40% {transform: translateY(-10px);}
-            60% {transform: translateY(-5px);}
         }
 
-        /* Responsive Adjustments */
         @media (max-width: 992px) {
-            .mobile-menu-btn {
-                display: block; /* Show hamburger on mobile */
-            }
-            .navbar-collapse {
-                display: none !important; /* Hide desktop menu */
-            }
-            .sidebar {
-                display: none !important;
-            }
-            .toolbar {
-                display: flex;
-                overflow-x: auto;
-                white-space: nowrap;
-                padding-bottom: 15px;
-            }
-            .toolbar button {
-                flex: 0 0 auto;
-            }
-            .main-content {
-                margin: 10px;
-                padding: 15px;
-            }
+            .mobile-menu-btn { display: block; background: none; border: none; color: white; font-size: 24px; margin-right: 15px; }
+            .navbar-collapse, .sidebar { display: none !important; }
+            .toolbar { display: flex; overflow-x: auto; padding-bottom: 15px; }
+            .toolbar button { flex: 0 0 auto; }
         }
     </style>
+    <!-- Fonts for Splash -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- PWA Install Button -->
+<!-- SPLASH SCREEN (Only shows on PWA launch or first visit) -->
+<div id="pwa-splash">
+    <!-- Floating background shapes -->
+    <div class="floating-shape" style="width: 100px; height: 100px; left: 10%; bottom: -100px; animation-duration: 15s;"></div>
+    <div class="floating-shape" style="width: 60px; height: 60px; left: 30%; bottom: -60px; animation-duration: 10s;"></div>
+    <div class="floating-shape" style="width: 150px; height: 150px; left: 70%; bottom: -150px; animation-duration: 20s;"></div>
+
+    <img src="{{ url_for('static', filename='logo.png') }}" class="splash-logo" alt="Logo">
+    <div class="splash-title">LaMalivaVista</div>
+    <div class="splash-motto">A Taste of Paradise</div>
+</div>
+
 <button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
 
-<!-- Navbar -->
 <nav class="top-menu navbar navbar-expand-lg">
     <div class="container-fluid p-0">
         <div class="d-flex align-items-center w-100">
-            <!-- Mobile Menu Toggle (Hamburger) -->
             <button class="mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
                 <i class="bi bi-list"></i>
             </button>
 
-            <!-- Logo Area -->
             <div style="display: flex; align-items: center; gap: 10px;">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Hotel Logo" style="height: 40px; width: auto; border-radius: 6px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 40px; width: auto; border-radius: 6px;">
                 <div style="color: white; line-height: 1.2;">
                     <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
                     <small style="color: #ffb700; font-size: 10px;">Paradise in Buea</small>
                 </div>
             </div>
 
-            <!-- Desktop Menu (Hidden on Mobile) -->
+            <!-- DESKTOP MENU -->
             <div class="collapse navbar-collapse ms-4">
                 <ul class="navbar-nav me-auto">
-                    <!-- File Menu -->
+                    <!-- File -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">File</a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}">New Reservation</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="window.print()">Print...</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="window.print()">Print</a></li>
                             {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
                             <li><a class="dropdown-item" href="{{ url_for('export_data') }}">Export Data</a></li>
                             {% endif %}
@@ -267,12 +211,12 @@
                         </ul>
                     </li>
 
-                    <!-- Tools (Admin Only) -->
+                    <!-- Tools (STRICTLY ADMIN ONLY) -->
                     {% if current_user.is_authenticated and current_user.role == 'admin' %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Tools</a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings (Hotel Info)</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('users') }}">User Management</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('backup') }}">Backup Database</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('restore') }}">Restore Database</a></li>
@@ -280,7 +224,7 @@
                     </li>
                     {% endif %}
 
-                    <!-- View Menu -->
+                    <!-- View -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">View</a>
                         <ul class="dropdown-menu">
@@ -294,7 +238,7 @@
                         </ul>
                     </li>
 
-                    <!-- Help Menu -->
+                    <!-- Help -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Help</a>
                         <ul class="dropdown-menu">
@@ -309,38 +253,49 @@
     </div>
 </nav>
 
-<!-- Mobile Offcanvas Menu (Left Side) -->
+<!-- MOBILE MENU (Restricted by Role) -->
 <div class="offcanvas offcanvas-start mobile-offcanvas" tabindex="-1" id="mobileMenu">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title text-white">Menu</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" style="filter: invert(1);"></button>
     </div>
     <div class="offcanvas-body p-0">
         <div class="list-group list-group-flush bg-transparent">
-            <!-- Mobile Links -->
             <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
             <a href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
             <a href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+
+            <!-- Quick Actions -->
+            <div class="border-top my-2 border-secondary"></div>
             <a href="{{ url_for('todays_arrivals') }}"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
             <a href="{{ url_for('todays_departures') }}"><i class="bi bi-arrow-up-circle"></i> Departures</a>
             <a href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
 
+            <!-- ADMIN TOOLS (Hidden for non-admins) -->
             {% if current_user.is_authenticated and current_user.role == 'admin' %}
             <div class="border-top my-2 border-secondary"></div>
-            <small class="text-muted ms-3">ADMIN TOOLS</small>
-            <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> Users</a>
-            <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings</a>
+            <small class="text-muted ms-3 fw-bold" style="color: #ffb700 !important;">ADMIN TOOLS</small>
+            <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
+            <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
+            <a href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup DB</a>
+            {% endif %}
+
+            <!-- STAFF TOOLS (Hidden for Guests) -->
+            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest Database</a>
+            <a href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a>
             {% endif %}
 
             <div class="border-top my-2 border-secondary"></div>
             <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
+            <a href="tel:+237678302909"><i class="bi bi-telephone"></i> Support</a>
             <a href="{{ url_for('logout') }}" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
         </div>
     </div>
 </div>
 
 <div class="toolbar d-none d-lg-block">
-    <!-- Desktop Toolbar (Hidden on Mobile, replaced by Offcanvas) -->
     <button onclick="window.location.href='/dashboard'" class="btn btn-sm btn-light me-1"><i class="bi bi-house-door"></i> Dashboard</button>
     <button onclick="window.location.href='/calendar'" class="btn btn-sm btn-light me-1"><i class="bi bi-calendar3"></i> Calendar</button>
     <button onclick="window.location.href='/rooms'" class="btn btn-sm btn-light me-1"><i class="bi bi-door-open"></i> Rooms</button>
@@ -369,7 +324,7 @@
             {% block content %}{% endblock %}
         </div>
 
-        <!-- RIGHT PANEL (Statistics) (Desktop Only) -->
+        <!-- RIGHT PANEL (Desktop Only) -->
         <div class="col-md-auto d-none d-lg-block" style="width:270px; background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%); border-left: 2px solid #ffb700; padding: 20px; border-radius: 8px;">
             <h6 style="color: #0052cc; margin-bottom: 15px;"><i class="bi bi-pie-chart"></i> Occupancy</h6>
             <div style="position: relative; height: 200px;">
@@ -384,80 +339,71 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // SPLASH SCREEN LOGIC (12 Seconds Delay)
+    window.addEventListener('load', function() {
+        // Check if we are in PWA mode or standalone
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            const splash = document.getElementById('pwa-splash');
+            // Wait 12 seconds then fade out
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 1000); // Wait for fade transition to finish
+            }, 12000);
+        } else {
+            // If in normal browser, hide immediately or show briefly
+            document.getElementById('pwa-splash').style.display = 'none';
+        }
+    });
+
     // PWA Installation Logic
     let deferredPrompt;
     const installBtn = document.getElementById('pwa-install-btn');
-
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
         installBtn.style.display = 'block';
     });
-
     installBtn.addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') {
-                installBtn.style.display = 'none';
-            }
+            if (outcome === 'accepted') installBtn.style.display = 'none';
             deferredPrompt = null;
         }
     });
-
-    // Service Worker Registration
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('SW registered!', reg))
-                .catch(err => console.log('SW failed', err));
+            navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW failed', err));
         });
     }
 
-    // Chart & Stats Logic
+    // Chart & Stats
     let sidebarChartInstance = null;
-
     function initializeSidebarChart() {
         const ctx = document.getElementById('sidebarChart');
         if (ctx) {
-            fetch('/api/rooms')
-                .then(r => r.json())
-                .then(rooms => {
-                    const occupied = rooms.filter(room => room.extendedProps && room.extendedProps.status === 'Occupied').length;
-                    const total = rooms.length;
-                    const available = total - occupied;
-                    const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
-
-                    document.getElementById('occupancyPercent').textContent = rate;
-                    const freeRoomsElem = document.getElementById('freeRoomsCount');
-                    if (freeRoomsElem) freeRoomsElem.textContent = available;
-
-                    if (sidebarChartInstance) sidebarChartInstance.destroy();
-
-                    sidebarChartInstance = new Chart(ctx, {
-                        type: 'doughnut',
-                        data: {
-                            labels: [`Occupied (${occupied})`, `Available (${available})`],
-                            datasets: [{
-                                data: [occupied, available],
-                                backgroundColor: ['#dc3545', '#28a745'],
-                                borderColor: ['#ffffff', '#ffffff'],
-                                borderWidth: 2
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } }
-                            }
-                        }
-                    });
-                })
-                .catch(err => console.log('Chart load error:', err));
+            fetch('/api/rooms').then(r => r.json()).then(rooms => {
+                const occupied = rooms.filter(room => room.extendedProps && room.extendedProps.status === 'Occupied').length;
+                const total = rooms.length;
+                const available = total - occupied;
+                const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+                document.getElementById('occupancyPercent').textContent = rate;
+                const freeRoomsElem = document.getElementById('freeRoomsCount');
+                if (freeRoomsElem) freeRoomsElem.textContent = available;
+                if (sidebarChartInstance) sidebarChartInstance.destroy();
+                sidebarChartInstance = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: [`Occupied (${occupied})`, `Available (${available})`],
+                        datasets: [{ data: [occupied, available], backgroundColor: ['#dc3545', '#28a745'], borderWidth: 2 }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } } } }
+                });
+            }).catch(err => console.log('Chart load error:', err));
         }
     }
-
     document.addEventListener('DOMContentLoaded', initializeSidebarChart);
     setInterval(initializeSidebarChart, 30000);
 </script>

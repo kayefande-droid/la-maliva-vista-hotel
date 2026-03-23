@@ -8,12 +8,16 @@ import io
 import csv
 
 app = Flask(__name__)
+# Use environment variable for secret key in production, fallback to dev key locally
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
+# Use absolute path for database to avoid location issues on Render
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
+
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# Ensure instance folder exists
 instance_folder = os.path.join(basedir, 'instance')
 if not os.path.exists(instance_folder):
     os.makedirs(instance_folder)
@@ -62,20 +66,27 @@ class Hotel(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# ===================== HELPER TO CREATE DATA =====================
 def create_initial_data():
     with app.app_context():
         try:
             db.create_all()
+            
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
             
+            # --- STRICT ROOM CONFIGURATION ---
             try:
                 room_301 = Room.query.filter_by(room_number='301').first()
-                if room_301: db.session.delete(room_301)
+                if room_301:
+                    db.session.delete(room_301)
+                
                 old_family = Room.query.filter_by(price=55000).first()
-                if old_family: db.session.delete(old_family)
-            except Exception: pass
+                if old_family:
+                    db.session.delete(old_family)
+            except Exception as e:
+                print(f"Cleanup warning: {e}")
 
             rooms_data = [
                 {'number': '101', 'type': 'Standard', 'price': 10000},
@@ -83,23 +94,34 @@ def create_initial_data():
                 {'number': '201', 'type': 'Suite', 'price': 20000},
                 {'number': '202', 'type': 'Family', 'price': 25000}
             ]
+            
             for r_data in rooms_data:
                 existing_room = Room.query.filter_by(room_number=r_data['number']).first()
                 if existing_room:
                     existing_room.room_type = r_data['type']
                     existing_room.price = r_data['price']
                 else:
-                    new_room = Room(room_number=r_data['number'], room_type=r_data['type'], price=r_data['price'], status='Available')
+                    new_room = Room(
+                        room_number=r_data['number'], 
+                        room_type=r_data['type'], 
+                        price=r_data['price'], 
+                        status='Available'
+                    )
                     db.session.add(new_room)
             
             if not Hotel.query.first():
                 default_hotel = Hotel()
                 db.session.add(default_hotel)
+            
             db.session.commit()
-        except Exception as e: print(f"DB Error: {e}")
+            print("Database initialized successfully.")
+        except Exception as e:
+            print(f"Database initialization error: {e}")
 
-try: create_initial_data()
-except Exception: pass
+try:
+    create_initial_data()
+except Exception as e:
+    print(f"Startup Error: {e}")
 
 # ===================== ROUTES =====================
 @app.route('/')
@@ -113,17 +135,24 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        
+        # --- EMAIL VALIDATION: Must be @gmail.com ---
         if not email.endswith('@gmail.com'):
             flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed!', 'error')
             return redirect(url_for('signup'))
-        if User.query.filter((User.username == username) | (User.email == email)).first():
+        
+        existing_user = User.query.filter((User.username == username) | (User.email == email)).first()
+        if existing_user:
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
+        
         new_user = User(username=username, email=email, password_hash=generate_password_hash(password))
         db.session.add(new_user)
         db.session.commit()
+        
         flash('✅ Account created successfully! Please login.', 'success')
         return redirect(url_for('login'))
+        
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -132,10 +161,12 @@ def login():
         identifier = request.form['username']
         password = request.form['password']
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+        
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for('dashboard'))
-        else: flash('Invalid credentials')
+        else:
+            flash('Invalid credentials')
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -151,13 +182,14 @@ def dashboard():
 
 @app.route('/calendar')
 @login_required
-def calendar(): return render_template('calendar.html')
+def calendar():
+    return render_template('calendar.html')
 
 @app.route('/api/rooms')
 @login_required
 def api_rooms():
     rooms = Room.query.order_by(Room.price).all()
-    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in rooms])
+    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})'} for r in rooms])
 
 @app.route('/api/reservations')
 @login_required
@@ -167,7 +199,14 @@ def api_reservations():
     for r in reservations:
         guest = Guest.query.get(r.guest_id)
         color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#007bff'
-        events.append({'id': r.id, 'resourceId': str(r.room_id), 'title': f"{guest.name} ({r.status})" if guest else 'Reservation', 'start': r.check_in.isoformat(), 'end': r.check_out.isoformat(), 'color': color})
+        events.append({
+            'id': r.id,
+            'resourceId': str(r.room_id),
+            'title': f"{guest.name} ({r.status})" if guest else 'Reservation',
+            'start': r.check_in.isoformat(),
+            'end': r.check_out.isoformat(),
+            'color': color
+        })
     return jsonify(events)
 
 @app.route('/rooms')
@@ -185,7 +224,9 @@ def reservations():
 @app.route('/guests')
 @login_required
 def guests():
-    if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
+    if current_user.role not in ['admin', 'staff']:
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     guest_list = Guest.query.all()
     return render_template('guests.html', guests=guest_list)
 
@@ -196,16 +237,19 @@ def new_reservation():
         guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
         db.session.add(guest)
         db.session.commit()
+        
         room = Room.query.get(request.form['room_id'])
         check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M')
         check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M')
         days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
         amount = room.price * days
+        
         res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
         flash('Reservation created successfully!')
         return redirect(url_for('calendar'))
+    
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms)
 
@@ -213,22 +257,28 @@ def new_reservation():
 @login_required
 def checkin(res_id):
     res = Reservation.query.get_or_404(res_id)
-    if res.status == 'Checked-In': return redirect(url_for('calendar'))
+    if res.status == 'Checked-In':
+        flash('Already checked in!')
+        return redirect(url_for('calendar'))
     res.status = 'Checked-In'
     room = Room.query.get(res.room_id)
     room.status = 'Occupied'
     db.session.commit()
+    flash('Check-in successful!')
     return redirect(url_for('calendar'))
 
 @app.route('/checkout/<int:res_id>')
 @login_required
 def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
-    if res.status == 'Checked-Out': return redirect(url_for('calendar'))
+    if res.status == 'Checked-Out':
+        flash('Already checked out!')
+        return redirect(url_for('calendar'))
     res.status = 'Checked-Out'
     room = Room.query.get(res.room_id)
     room.status = 'Available'
     db.session.commit()
+    flash('Check-out successful!')
     return redirect(url_for('calendar'))
 
 @app.route('/invoice/<int:res_id>')
@@ -237,7 +287,8 @@ def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
-    days = max((res.check_out - res.check_in).total_seconds() / (24 * 3600), 1)
+    duration_seconds = (res.check_out - res.check_in).total_seconds()
+    days = duration_seconds / (24 * 3600)
     return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now())
 
 @app.route('/logout')
@@ -249,32 +300,40 @@ def logout():
 @app.route('/export_data')
 @login_required
 def export_data():
-    if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
+    if current_user.role not in ['admin', 'staff']:
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     guests = Guest.query.all()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Name', 'Phone', 'Email'])
-    for g in guests: writer.writerow([g.name, g.phone, g.email])
+    for g in guests:
+        writer.writerow([g.name, g.phone, g.email])
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='guests.csv')
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
 def settings():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     hotel = Hotel.query.first()
     if request.method == 'POST':
         hotel.name = request.form['name']
         hotel.address = request.form['address']
         hotel.tax_rate = float(request.form['tax_rate'])
         db.session.commit()
+        flash('Settings updated')
         return redirect(url_for('settings'))
     return render_template('settings.html', hotel=hotel)
 
 @app.route('/users', methods=['GET', 'POST'])
 @login_required
 def users():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
@@ -282,16 +341,20 @@ def users():
             email = request.form['email']
             password = request.form['password']
             role = request.form['role']
-            if not User.query.filter((User.username == username) | (User.email == email)).first():
+            if User.query.filter((User.username == username) | (User.email == email)).first():
+                flash('User already exists')
+            else:
                 new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role)
                 db.session.add(new_user)
                 db.session.commit()
+                flash('User added')
         elif action == 'delete':
             user_id = request.form.get('user_id')
             user = User.query.get(user_id)
             if user and user.id != current_user.id:
                 db.session.delete(user)
                 db.session.commit()
+                flash('User deleted')
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
@@ -299,35 +362,54 @@ def users():
 @app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
 def edit_user(user_id):
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     user = User.query.get_or_404(user_id)
     if request.method == 'POST':
-        user.username = request.form['username']
-        user.email = request.form['email']
-        if request.form.get('password'): user.password_hash = generate_password_hash(request.form.get('password'))
-        user.role = request.form['role']
-        db.session.commit()
-        return redirect(url_for('users'))
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form.get('password')
+        role = request.form['role']
+        existing = User.query.filter(((User.username == username) | (User.email == email)) & (User.id != user_id)).first()
+        if existing:
+            flash('Username or Email already exists')
+        else:
+            user.username = username
+            user.email = email
+            if password:
+                user.password_hash = generate_password_hash(password)
+            user.role = role
+            db.session.commit()
+            flash('User updated')
+            return redirect(url_for('users'))
     return render_template('edit_user.html', user=user)
 
 @app.route('/backup')
 @login_required
 def backup():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     return send_file(db_path, as_attachment=True, download_name='lamaliva_backup.db')
 
 @app.route('/restore', methods=['GET', 'POST'])
 @login_required
 def restore():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('Access denied')
+        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         file = request.files['backup_file']
-        if file: file.save(db_path)
-        return redirect(url_for('dashboard'))
+        if file:
+            file.save(db_path)
+            flash('Database restored. Please restart the application.')
+            return redirect(url_for('dashboard'))
     return render_template('restore.html')
 
 @app.route('/about')
-def about(): return render_template('about.html')
+def about():
+    return render_template('about.html')
 
 @app.route('/todays_arrivals')
 @login_required
@@ -360,8 +442,8 @@ def user_manual():
 @app.route('/manifest.json')
 def manifest():
     return jsonify({
-        "name": "LA-MALIVA VISTA HOTEL PMS",
-        "short_name": "LaMaliva PMS",
+        "name": "LaMalaVista",
+        "short_name": "LaMalaVista",
         "start_url": "/dashboard",
         "display": "standalone",
         "background_color": "#001a4d",
