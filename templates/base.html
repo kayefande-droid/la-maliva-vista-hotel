@@ -60,7 +60,7 @@
         }
 
         .splash-title {
-            font-family: 'Cinzel', 'Playfair Display', serif; /* Sophisticated Font */
+            font-family: 'Cinzel', 'Playfair Display', serif;
             font-size: 28px;
             font-weight: bold;
             letter-spacing: 2px;
@@ -78,7 +78,7 @@
             opacity: 0;
             transform: translateX(-50px);
             animation: slideMotto 3s ease-out forwards;
-            animation-delay: 4s; /* Delays until after logo/title */
+            animation-delay: 2s; /* Delays until after logo/title */
         }
 
         @keyframes fadeText {
@@ -99,6 +99,115 @@
         @keyframes floatShape {
             0% { transform: translateY(0) rotate(0deg); }
             100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        /* CHATBOT STYLES */
+        #chatbot-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+        }
+        #chatbot-toggle {
+            background-color: #ffb700;
+            color: #001a4d;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        #chatbot-toggle:hover {
+            transform: scale(1.1);
+        }
+        #chatbot-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            max-width: calc(100% - 40px);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+            flex-direction: column;
+            border: 1px solid #0052cc;
+            overflow: hidden;
+            font-family: Tahoma, sans-serif;
+        }
+        #chatbot-header {
+            background: linear-gradient(90deg, #003d99, #0052cc);
+            color: white;
+            padding: 12px 16px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #chatbot-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #chatbot-messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 12px;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .user-message {
+            background: #0052cc;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        #chatbot-input-area {
+            display: flex;
+            border-top: 1px solid #ddd;
+            background: white;
+            padding: 5px;
+        }
+        #chatbot-input {
+            flex: 1;
+            border: none;
+            padding: 10px;
+            outline: none;
+            font-size: 14px;
+        }
+        #chatbot-send {
+            background: #ffb700;
+            color: #001a4d;
+            border: none;
+            padding: 0 15px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 4px;
+            margin: 5px;
         }
 
         /* Rest of Styles */
@@ -145,7 +254,7 @@
         #pwa-install-btn {
             display: none;
             position: fixed;
-            bottom: 20px; right: 20px;
+            bottom: 20px; right: 90px; /* Adjusted to sit next to chatbot */
             z-index: 1000;
             background: #ffb700; color: #001a4d;
             border: none; border-radius: 50px;
@@ -174,8 +283,26 @@
     <div class="floating-shape" style="width: 150px; height: 150px; left: 70%; bottom: -150px; animation-duration: 20s;"></div>
 
     <img src="{{ url_for('static', filename='logo.png') }}" class="splash-logo" alt="Logo">
-    <div class="splash-title">LaMalivaVista</div>
+    <div class="splash-title">LaMalaVista</div>
     <div class="splash-motto">A Taste of Paradise</div>
+</div>
+
+<!-- CHATBOT WIDGET -->
+<div id="chatbot-widget">
+    <button id="chatbot-toggle"><i class="bi bi-chat-dots-fill"></i></button>
+    <div id="chatbot-window">
+        <div id="chatbot-header">
+            <span>LaMalaVista Assistant</span>
+            <button id="chatbot-close"><i class="bi bi-x"></i></button>
+        </div>
+        <div id="chatbot-messages">
+            <div class="message bot-message">Hello! I'm your digital concierge. How can I help you today?</div>
+        </div>
+        <div id="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." autocomplete="off">
+            <button id="chatbot-send"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
 </div>
 
 <button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
@@ -339,23 +466,79 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // SPLASH SCREEN LOGIC (12 Seconds Delay)
+    // SPLASH SCREEN LOGIC (8 Seconds Delay)
     window.addEventListener('load', function() {
-        // Check if we are in PWA mode or standalone
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
             const splash = document.getElementById('pwa-splash');
-            // Wait 12 seconds then fade out
             setTimeout(() => {
                 splash.classList.add('hidden');
                 setTimeout(() => {
                     splash.style.display = 'none';
-                }, 1000); // Wait for fade transition to finish
-            }, 12000);
+                }, 1000);
+            }, 8000); // Changed to 8 seconds
         } else {
-            // If in normal browser, hide immediately or show briefly
             document.getElementById('pwa-splash').style.display = 'none';
         }
     });
+
+    // CHATBOT LOGIC
+    (function() {
+      const toggleBtn = document.getElementById('chatbot-toggle');
+      const chatWindow = document.getElementById('chatbot-window');
+      const closeBtn = document.getElementById('chatbot-close');
+      const sendBtn = document.getElementById('chatbot-send');
+      const input = document.getElementById('chatbot-input');
+      const messagesDiv = document.getElementById('chatbot-messages');
+
+      // Use relative URL for backend API
+      const API_URL = '/chat';
+
+      function addMessage(text, isUser) {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+        msgDiv.textContent = text;
+        messagesDiv.appendChild(msgDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      async function sendMessage() {
+        const message = input.value.trim();
+        if (!message) return;
+        addMessage(message, true);
+        input.value = '';
+        // Show typing placeholder
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'message bot-message';
+        loadingDiv.textContent = '...';
+        messagesDiv.appendChild(loadingDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        try {
+          const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: message })
+          });
+          const data = await response.json();
+          loadingDiv.remove();
+          addMessage(data.response || 'Sorry, I encountered an error.', false);
+        } catch (err) {
+          loadingDiv.remove();
+          addMessage('Could not reach the assistant.', false);
+        }
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
+      });
+      closeBtn.addEventListener('click', () => {
+        chatWindow.style.display = 'none';
+      });
+      sendBtn.addEventListener('click', sendMessage);
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+      });
+    })();
 
     // PWA Installation Logic
     let deferredPrompt;

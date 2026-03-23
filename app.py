@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -6,8 +7,12 @@ from datetime import datetime, date, timedelta
 import os
 import io
 import csv
+import random
+import re
 
 app = Flask(__name__)
+CORS(app)  # Allow chatbot requests if needed
+
 # Use environment variable for secret key in production, fallback to dev key locally
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
 # Use absolute path for database to avoid location issues on Render
@@ -25,6 +30,73 @@ if not os.path.exists(instance_folder):
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# ===================== CHATBOT LOGIC =====================
+INTENTS = {
+    "greeting": {
+        "patterns": ["hello", "hi", "hey", "good morning", "good evening"],
+        "responses": [
+            "Hello! Welcome to La-Maliva Vista Hotel. How can I assist you today?",
+            "Hi there! Need help with a booking or hotel information?"
+        ]
+    },
+    "check_in_out": {
+        "patterns": ["check in", "check out", "time", "arrival", "departure"],
+        "responses": [
+            "Check-in is from 2:00 PM, and check-out is until 12:00 PM. Early check-in may be available upon request."
+        ]
+    },
+    "amenities": {
+        "patterns": ["amenities", "pool", "gym", "wifi", "internet", "food", "restaurant"],
+        "responses": [
+            "We offer free high-speed Wi-Fi, 24/7 room service, and a beautiful view of Buea. Our restaurant serves local and international dishes."
+        ]
+    },
+    "rooms": {
+        "patterns": ["room", "price", "cost", "standard", "deluxe", "suite", "family"],
+        "responses": [
+            "Our rooms: Standard (10,000 FCFA), Deluxe (15,000 FCFA), Suite (20,000 FCFA), and Family (25,000 FCFA). All include breakfast."
+        ]
+    },
+    "booking": {
+        "patterns": ["book", "reservation", "how to book"],
+        "responses": [
+            "You can book directly by clicking 'New Booking' in the menu or calling us at (+237) 679-915-967."
+        ]
+    },
+    "location": {
+        "patterns": ["location", "where", "address", "find you"],
+        "responses": [
+            "We are located opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon."
+        ]
+    },
+    "fallback": {
+        "patterns": [],
+        "responses": [
+            "I'm not sure I understand. Could you rephrase? You can also call reception at (+237) 679-915-967.",
+            "I'm your digital assistant. Ask me about rooms, prices, or check-in times!"
+        ]
+    }
+}
+
+def get_intent(message):
+    message_lower = message.lower()
+    for intent, data in INTENTS.items():
+        for pattern in data["patterns"]:
+            if re.search(rf"\b{pattern}\b", message_lower):
+                return intent
+    return "fallback"
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    data = request.get_json()
+    user_message = data.get('message', '')
+    if not user_message:
+        return jsonify({"response": "Please say something."})
+    
+    intent = get_intent(user_message)
+    reply = random.choice(INTENTS[intent]["responses"])
+    return jsonify({"response": reply})
 
 # ===================== MODELS =====================
 class User(UserMixin, db.Model):
@@ -136,7 +208,6 @@ def signup():
         email = request.form['email']
         password = request.form['password']
         
-        # --- EMAIL VALIDATION: Must be @gmail.com ---
         if not email.endswith('@gmail.com'):
             flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed!', 'error')
             return redirect(url_for('signup'))
