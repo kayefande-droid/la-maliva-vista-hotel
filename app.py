@@ -269,14 +269,22 @@ def api_reservations():
     events = []
     for r in reservations:
         guest = Guest.query.get(r.guest_id)
-        color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#007bff'
+        guest_name = guest.name if guest else "Unknown Guest"
+        
+        # Color coding based on status
+        color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#0052cc'
+        
         events.append({
             'id': r.id,
             'resourceId': str(r.room_id),
-            'title': f"{guest.name} ({r.status})" if guest else 'Reservation',
+            'title': f"{guest_name} - {r.status}",
             'start': r.check_in.isoformat(),
             'end': r.check_out.isoformat(),
-            'color': color
+            'color': color,
+            'extendedProps': {
+                'status': r.status,
+                'guest': guest_name
+            }
         })
     return jsonify(events)
 
@@ -304,6 +312,7 @@ def guests():
 @app.route('/new_reservation', methods=['GET', 'POST'])
 @login_required
 def new_reservation():
+    selected_room_id = request.args.get('room_id')
     if request.method == 'POST':
         guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
         db.session.add(guest)
@@ -322,7 +331,7 @@ def new_reservation():
         return redirect(url_for('calendar'))
     
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
-    return render_template('new_reservation.html', rooms=available_rooms)
+    return render_template('new_reservation.html', rooms=available_rooms, selected_room_id=selected_room_id)
 
 @app.route('/checkin/<int:res_id>')
 @login_required
@@ -486,14 +495,40 @@ def about():
 @login_required
 def todays_arrivals():
     today = date.today()
-    arrivals = Reservation.query.filter(db.func.date(Reservation.check_in) == today).all()
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
+    
+    arrivals = Reservation.query.filter(Reservation.check_in >= start_of_day, Reservation.check_in <= end_of_day).all()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
+        data = []
+        for a in arrivals:
+            guest = Guest.query.get(a.guest_id)
+            data.append({
+                "guest_name": guest.name if guest else "Unknown",
+                "time": a.check_in.strftime("%H:%M")
+            })
+        return jsonify(data)
     return render_template('arrivals.html', arrivals=arrivals, today=today)
 
 @app.route('/todays_departures')
 @login_required
 def todays_departures():
     today = date.today()
-    departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
+    
+    departures = Reservation.query.filter(Reservation.check_out >= start_of_day, Reservation.check_out <= end_of_day).all()
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
+        data = []
+        for d in departures:
+            guest = Guest.query.get(d.guest_id)
+            data.append({
+                "guest_name": guest.name if guest else "Unknown",
+                "time": d.check_out.strftime("%H:%M")
+            })
+        return jsonify(data)
     return render_template('departures.html', departures=departures, today=today)
 
 @app.route('/occupancy_report')
@@ -501,7 +536,15 @@ def todays_departures():
 def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
-    occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
+    occupancy_rate = int((occupied_rooms / total_rooms * 100)) if total_rooms > 0 else 0
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
+        return jsonify({
+            "occupied": occupied_rooms,
+            "total": total_rooms,
+            "rate": occupancy_rate
+        })
+    
     rooms = Room.query.order_by(Room.price).all()
     return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 

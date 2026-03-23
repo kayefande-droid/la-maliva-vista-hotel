@@ -173,13 +173,13 @@
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card stat-card text-white" style="background: linear-gradient(135deg, #17a2b8, #138496); border-left: 5px solid #ffb700;">
+            <div class="card stat-card stat-card-arrivals text-white" style="background: linear-gradient(135deg, #17a2b8, #138496) !important; border-left: 5px solid #ffb700;">
                 <div class="card-body position-relative">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-person-check stat-icon"></i>
                         <div>
-                            <div class="stat-number">--</div>
-                            <div class="stat-label">Guests Today</div>
+                            <div class="stat-number">{{ arrivals|length }}</div>
+                            <div class="stat-label">Expected Arrivals</div>
                         </div>
                     </div>
                 </div>
@@ -208,10 +208,16 @@
                             {% if arrivals %}
                                 {% for arr in arrivals %}
                                 <tr style="transition: all 0.3s ease;">
-                                    <td><strong>Guest #{{ arr.guest_id }}</strong></td>
+                                    <td><strong><i class="bi bi-person-circle"></i> Guest #{{ arr.guest_id }}</strong></td>
                                     <td><span style="background: linear-gradient(90deg, #ffb700, #ff9500); padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold;">Room {{ arr.room_id }}</span></td>
                                     <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700);">{{ arr.status }}</span></td>
-                                    <td><a href="/checkin/{{ arr.id }}" class="btn btn-sm btn-primary" style="background: linear-gradient(90deg, #0052cc, #003d99); border: none;">Check-in</a></td>
+                                    <td>
+                                        {% if arr.status != 'Checked-In' %}
+                                        <a href="/checkin/{{ arr.id }}" class="btn btn-sm btn-primary" style="background: linear-gradient(90deg, #0052cc, #003d99); border: none;"><i class="bi bi-check2-circle"></i> Check-in</a>
+                                        {% else %}
+                                        <span class="text-success fw-bold"><i class="bi bi-check-all"></i> Arrived</span>
+                                        {% endif %}
+                                    </td>
                                 </tr>
                                 {% endfor %}
                             {% else %}
@@ -267,19 +273,6 @@
 <script>
     // Wait for DOM to load before initializing chart
     document.addEventListener('DOMContentLoaded', function() {
-        // Show loading state
-        const chartContainer = document.querySelector('.chart-container');
-        if (chartContainer) {
-            chartContainer.innerHTML = `
-                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #0052cc;">
-                    <i class="bi bi-pie-chart" style="font-size: 48px; margin-bottom: 10px; color: #ffb700;"></i>
-                    <div style="font-size: 16px; font-weight: bold;">Loading Chart...</div>
-                    <div style="font-size: 12px; opacity: 0.7;">Analyzing occupancy data</div>
-                </div>
-                <canvas id="dashboardChart" style="display: none;"></canvas>
-            `;
-        }
-
         // Small delay to ensure DOM is fully ready
         setTimeout(() => {
             // Pass dynamic data from Flask to JS safely
@@ -291,10 +284,6 @@
             var ctx = document.getElementById('dashboardChart');
             if (ctx) {
                 console.log('Chart canvas found, initializing...');
-                // Clear loading state
-                const container = ctx.parentElement;
-                container.innerHTML = '<canvas id="dashboardChart" style="width: 100% !important; height: 100% !important;"></canvas>';
-                ctx = document.getElementById('dashboardChart');
 
                 try {
                     const chart = new Chart(ctx, {
