@@ -57,6 +57,10 @@
         background: linear-gradient(135deg, #ffb700, #ff9500) !important;
         border-left: 5px solid #0052cc;
     }
+    .stat-card-arrivals {
+        background: linear-gradient(135deg, #17a2b8, #138496) !important;
+        border-left: 5px solid #ffb700;
+    }
     .stat-icon {
         font-size: 28px;
         margin-right: 12px;
@@ -122,8 +126,10 @@
     <div class="dashboard-header">
         <div class="row align-items-center">
             <div class="col-md-8">
-                <h5 class="mb-0" style="font-size: 28px;"><i class="bi bi-building"></i> LA-MALIVA VISTA HOTEL</h5>
-                <small>Welcome Back! Real-time Hotel Management Dashboard</small>
+                <h5 class="mb-0" style="font-size: 28px; display: flex; align-items: center; gap: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); letter-spacing: 0.5px; text-transform: uppercase;">
+                    <i class="bi bi-building-fill"></i> LA-MALIVA VISTA HOTEL
+                </h5>
+                <small class="opacity-75">Welcome Back, {{ current_user.username }}! Real-time Hotel Management Dashboard</small>
             </div>
             <div class="col-md-4 text-end">
                 <img src="https://cdn-icons-png.flaticon.com/512/1524/1524816.png" alt="Hotel" style="height: 50px; opacity: 0.8; animation: spin 20s linear infinite;">
@@ -173,13 +179,13 @@
             </div>
         </div>
         <div class="col-md-3 mb-3">
-            <div class="card stat-card stat-card-arrivals text-white" style="background: linear-gradient(135deg, #17a2b8, #138496) !important; border-left: 5px solid #ffb700;">
+            <div class="card stat-card stat-card-arrivals text-white">
                 <div class="card-body position-relative">
                     <div class="d-flex align-items-center">
                         <i class="bi bi-person-check stat-icon"></i>
                         <div>
-                            <div class="stat-number">{{ arrivals|length }}</div>
-                            <div class="stat-label">Expected Arrivals</div>
+                            <div class="stat-number">{{ arrivals|selectattr('status', 'equalto', 'Confirmed')|list|length }}</div>
+                            <div class="stat-label">Pending Arrivals</div>
                         </div>
                     </div>
                 </div>
@@ -188,43 +194,80 @@
     </div>
 
     <div class="row mt-4">
-        <!-- Arrivals Table -->
+        <!-- Arrivals & Departures Tabs -->
         <div class="col-md-7">
-            <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15);">
-                <div class="card-header" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d; border-bottom: 3px solid #0052cc;">
-                    <i class="bi bi-arrow-down-circle"></i> Today's Arrivals
+            <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist" style="border-bottom: 2px solid #0052cc;">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active fw-bold text-uppercase" id="arrivals-tab" data-bs-toggle="tab" data-bs-target="#arrivals" type="button" role="tab" style="color: #0052cc; border: none; border-bottom: 3px solid #0052cc;">
+                        <i class="bi bi-arrow-down-circle"></i> Arrivals
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link fw-bold text-uppercase" id="departures-tab" data-bs-toggle="tab" data-bs-target="#departures" type="button" role="tab" style="color: #666; border: none;">
+                        <i class="bi bi-arrow-up-circle"></i> Departures
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="dashboardTabsContent">
+                <!-- Arrivals Pane -->
+                <div class="tab-pane fade show active" id="arrivals" role="tabpanel">
+                    <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15);">
+                        <div class="card-body p-0">
+                            <table class="table table-striped mb-0">
+                                <thead>
+                                    <tr style="background: linear-gradient(90deg, #0052cc, #003d99); color: white;">
+                                        <th><i class="bi bi-person"></i> Guest Name</th>
+                                        <th><i class="bi bi-door-open"></i> Room No.</th>
+                                        <th><i class="bi bi-info-circle"></i> Status</th>
+                                        <th><i class="bi bi-gear"></i> Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if arrivals %}
+                                        {% for res in arrivals %}
+                                        <tr style="transition: all 0.3s ease;">
+                                            <td>
+                                                <strong>
+                                                    <i class="bi bi-person-circle"></i> 
+                                                    {{ res.guest.name if res.guest else 'Guest #' ~ res.guest_id }}
+                                                </strong>
+                                            </td>
+                                            <td>
+                                                <span style="background: linear-gradient(90deg, #0052cc, #003d99); padding: 4px 10px; border-radius: 20px; color: white; font-weight: bold; font-size: 11px;">
+                                                    <i class="bi bi-door-closed"></i> {{ res.room.room_number if res.room else 'N/A' }}
+                                                </span>
+                                            </td>
+                                            <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700); color: #001a4d;">{{ res.status }}</span></td>
+                                            <td>
+                                                {% if res.status != 'Checked-In' %}
+                                                <a href="/checkin/{{ res.id }}" class="btn btn-sm btn-primary" style="background: linear-gradient(90deg, #0052cc, #003d99); border: none;"><i class="bi bi-check2-circle"></i> Check-in</a>
+                                                {% else %}
+                                                <span class="text-success fw-bold"><i class="bi bi-check-all"></i> Arrived</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-inbox"></i> No arrivals scheduled for today.</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-striped mb-0">
-                        <thead>
-                            <tr style="background: linear-gradient(90deg, #0052cc, #003d99); color: white;">
-                                <th><i class="bi bi-person"></i> Guest</th>
-                                <th><i class="bi bi-door-open"></i> Room</th>
-                                <th><i class="bi bi-info-circle"></i> Status</th>
-                                <th><i class="bi bi-gear"></i> Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% if arrivals %}
-                                {% for arr in arrivals %}
-                                <tr style="transition: all 0.3s ease;">
-                                    <td><strong><i class="bi bi-person-circle"></i> Guest #{{ arr.guest_id }}</strong></td>
-                                    <td><span style="background: linear-gradient(90deg, #ffb700, #ff9500); padding: 4px 8px; border-radius: 4px; color: white; font-weight: bold;">Room {{ arr.room_id }}</span></td>
-                                    <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700);">{{ arr.status }}</span></td>
-                                    <td>
-                                        {% if arr.status != 'Checked-In' %}
-                                        <a href="/checkin/{{ arr.id }}" class="btn btn-sm btn-primary" style="background: linear-gradient(90deg, #0052cc, #003d99); border: none;"><i class="bi bi-check2-circle"></i> Check-in</a>
-                                        {% else %}
-                                        <span class="text-success fw-bold"><i class="bi bi-check-all"></i> Arrived</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            {% else %}
-                                <tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-inbox"></i> No arrivals scheduled for today.</td></tr>
-                            {% endif %}
-                        </tbody>
-                    </table>
+
+                <!-- Departures Pane -->
+                <div class="tab-pane fade" id="departures" role="tabpanel">
+                    <div class="card" style="border: 2px solid #0052cc; box-shadow: 0 8px 20px rgba(0, 82, 204, 0.1);">
+                        <div class="card-body p-0" id="departures-container">
+                            <div class="text-center py-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -232,8 +275,10 @@
         <!-- Chart & Hotel Image -->
         <div class="col-md-5">
             <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15); border-radius: 12px; overflow: hidden;">
-                <div class="card-header" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d; border-bottom: 3px solid #0052cc; padding: 15px;">
-                    <i class="bi bi-graph-up"></i> Live Occupancy
+                <div class="card-header" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d; border-bottom: 3px solid #0052cc; padding: 15px; display: flex; align-items: center; gap: 10px;">
+                    <h6 class="mb-0" style="font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                        <i class="bi bi-graph-up" style="color: #001a4d; font-size: 20px;"></i> LIVE OCCUPANCY
+                    </h6>
                 </div>
                 <div class="card-body" style="padding: 20px;">
                     <div class="chart-container" style="position: relative; width: 100%; height: 280px; margin: 0 auto;">
@@ -253,7 +298,9 @@
             <div class="card" style="border: 2px solid #ffb700; overflow: hidden;">
                 <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&h=300&fit=crop" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
                 <div class="card-body" style="background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));">
-                    <h6 style="color: #ffb700;"><i class="bi bi-star-fill"></i> Premium Experience</h6>
+                    <h6 style="color: #ffb700; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                        <i class="bi bi-star-fill" style="color: #ffb700; font-size: 20px;"></i> PREMIUM EXPERIENCE
+                    </h6>
                     <p class="small text-muted">Discover luxury accommodations with world-class amenities and exceptional service.</p>
                 </div>
             </div>
@@ -262,7 +309,9 @@
             <div class="card" style="border: 2px solid #0052cc; overflow: hidden;">
                 <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=500&h=300&fit=crop" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
                 <div class="card-body" style="background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));">
-                    <h6 style="color: #0052cc;"><i class="bi bi-cup-hot"></i> Fine Dining</h6>
+                    <h6 style="color: #0052cc; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                        <i class="bi bi-cup-hot" style="color: #ffb700; font-size: 20px;"></i> FINE DINING
+                    </h6>
                     <p class="small text-muted">Experience culinary excellence with our award-winning restaurant and bar.</p>
                 </div>
             </div>
@@ -347,6 +396,42 @@
             } else {
                 console.error('Chart canvas not found');
             }
+
+            // Fetch departures for the dashboard tab
+            fetch('/todays_departures?json=1')
+                .then(r => r.json())
+                .then(data => {
+                    const container = document.getElementById('departures-container');
+                    if (!data || data.length === 0 || (data.length === 1 && !data[0].guest_name)) {
+                        container.innerHTML = '<div class="text-center text-muted py-3"><i class="bi bi-house-up"></i> No departures scheduled for today.</div>';
+                        return;
+                    }
+
+                    let html = '<table class="table table-striped mb-0"><thead><tr style="background: linear-gradient(90deg, #001a4d, #003d99); color: white;">' +
+                               '<th><i class="bi bi-person"></i> Guest Name</th><th><i class="bi bi-door-open"></i> Room No.</th><th><i class="bi bi-info-circle"></i> Status</th><th><i class="bi bi-gear"></i> Action</th></tr></thead><tbody>';
+                    
+                    data.forEach(d => {
+                        if (d.guest_name) {
+                            html += `<tr style="transition: all 0.3s ease;">
+                                <td><strong><i class="bi bi-person-circle"></i> ${d.guest_name}</strong></td>
+                                <td>
+                                    <span style="background: linear-gradient(90deg, #0052cc, #003d99); padding: 4px 10px; border-radius: 20px; color: white; font-weight: bold; font-size: 11px;">
+                                        <i class="bi bi-door-closed"></i> ${d.room}
+                                    </span>
+                                </td>
+                                <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700); color: #001a4d;">${d.status}</span></td>
+                                <td>
+                                    <a href="/checkout/${d.id}" class="btn btn-sm btn-danger" style="background: linear-gradient(90deg, #dc3545, #b02a37); border: none;"><i class="bi bi-box-arrow-right"></i> Check-out</a>
+                                </td>
+                            </tr>`;
+                        }
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+                })
+                .catch(err => {
+                    document.getElementById('departures-container').innerHTML = '<div class="text-danger p-3">Failed to load departures.</div>';
+                });
         }, 100);
     });
 </script>

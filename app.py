@@ -34,10 +34,10 @@ login_manager.login_view = 'login'
 # ===================== CHATBOT LOGIC =====================
 INTENTS = {
     "greeting": {
-        "patterns": ["hello", "hi", "hey", "good morning", "good evening"],
+        "patterns": ["hello", "hi", "hey", "good morning", "good evening", "greetings"],
         "responses": [
-            "Hello! Welcome to La-Maliva Vista Hotel. How can I assist you today?",
-            "Hi there! Need help with a booking or hotel information?"
+            "Hello! Welcome to La-Maliva Vista Hotel, your paradise in Buea. How can I assist you today?",
+            "Hi there! I'm your digital concierge. Need help with a booking, prices, or hotel information?"
         ]
     },
     "check_in_out": {
@@ -95,7 +95,23 @@ def chat():
         return jsonify({"response": "Please say something."})
     
     intent = get_intent(user_message)
+    
+    # Dynamic logic for specific intents
     reply = random.choice(INTENTS[intent]["responses"])
+    
+    if intent == "rooms":
+        available_count = Room.query.filter_by(status='Available').count()
+        if available_count > 0:
+            reply += f" I've checked our live status: we have {available_count} rooms available right now!"
+        else:
+            reply += " I'm sorry, we appear to be fully booked at the moment, but please check back later!"
+    elif intent == "greeting":
+        # Personalize if user is logged in
+        if current_user.is_authenticated:
+            reply = f"Hello {current_user.username}! " + reply
+        else:
+            reply = "Hello! " + reply
+        
     return jsonify({"response": reply})
 
 # ===================== MODELS =====================
@@ -172,6 +188,9 @@ def create_initial_data():
                 if existing_room:
                     existing_room.room_type = r_data['type']
                     existing_room.price = r_data['price']
+                    # Ensure status is set if missing
+                    if not existing_room.status:
+                        existing_room.status = 'Available'
                 else:
                     new_room = Room(
                         room_number=r_data['number'], 
@@ -190,10 +209,7 @@ def create_initial_data():
         except Exception as e:
             print(f"Database initialization error: {e}")
 
-try:
-    create_initial_data()
-except Exception as e:
-    print(f"Startup Error: {e}")
+create_initial_data()
 
 # ===================== ROUTES =====================
 @app.route('/')
@@ -235,6 +251,7 @@ def login():
         
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
+            flash(f'Welcome back, {user.username}!', 'success')
             return redirect(url_for('dashboard'))
         else:
             flash('Invalid credentials')
@@ -243,13 +260,26 @@ def login():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    today = datetime.today().date()
+    today = date.today()
+    start_of_day = datetime.combine(today, datetime.min.time())
+    end_of_day = datetime.combine(today, datetime.max.time())
+    
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
-    arrivals = Reservation.query.filter(Reservation.check_in >= datetime.combine(today, datetime.min.time()), Reservation.check_in < datetime.combine(today + timedelta(days=1), datetime.min.time())).all()
-    return render_template('dashboard.html', occupied=occupied_rooms, free=free_rooms, occupancy_rate=occupancy_rate, arrivals=arrivals)
+    
+    # Get today's arrivals (both confirmed and already checked-in)
+    arrivals = Reservation.query.filter(
+        Reservation.check_in >= start_of_day, 
+        Reservation.check_in <= end_of_day
+    ).all()
+    
+    return render_template('dashboard.html', 
+                           occupied=occupied_rooms, 
+                           free=free_rooms, 
+                           occupancy_rate=occupancy_rate, 
+                           arrivals=arrivals)
 
 @app.route('/calendar')
 @login_required
@@ -260,7 +290,14 @@ def calendar():
 @login_required
 def api_rooms():
     rooms = Room.query.order_by(Room.price).all()
-    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})'} for r in rooms])
+    return jsonify([{
+        'id': str(r.id), 
+        'room_number': r.room_number,
+        'type': r.room_type,
+        'price': r.price,
+        'title': f'Room {r.room_number} ({r.room_type})',
+        'extendedProps': {'status': r.status}
+    } for r in rooms])
 
 @app.route('/api/reservations')
 @login_required
@@ -271,8 +308,8 @@ def api_reservations():
         guest = Guest.query.get(r.guest_id)
         guest_name = guest.name if guest else "Unknown Guest"
         
-        # Color coding based on status
-        color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#0052cc'
+        # Color coding based on status (Blue for Confirmed, Gold for Checked-In, Grey for Checked-Out)
+        color = '#ffb700' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#0052cc'
         
         events.append({
             'id': r.id,
@@ -312,23 +349,39 @@ def guests():
 @app.route('/new_reservation', methods=['GET', 'POST'])
 @login_required
 def new_reservation():
+    # room_id from GET is used to pre-select room in the template
     selected_room_id = request.args.get('room_id')
+    
     if request.method == 'POST':
-        guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
-        db.session.add(guest)
-        db.session.commit()
+        room_id = request.form.get('room_id')
         
-        room = Room.query.get(request.form['room_id'])
+        # Check if guest already exists by email or phone to avoid duplicates
+        guest = Guest.query.filter((Guest.email == request.form['email']) | (Guest.phone == request.form['phone'])).first()
+        if not guest:
+            guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
+            db.session.add(guest)
+            db.session.commit()
+            
+        room = Room.query.get(room_id)
         check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M')
         check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M')
-        days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
-        amount = room.price * days
+        
+        # Calculate duration in days, ensuring at least 1 day is charged
+        delta = check_out - check_in
+        # Total seconds / seconds in a day, rounded up
+        days = max(int((delta.total_seconds() + 86399) // 86400), 1)
+        
+        # Check if tax rate should be applied from Hotel settings
+        hotel = Hotel.query.first()
+        base_amount = room.price * days
+        tax_amount = base_amount * (hotel.tax_rate / 100) if hotel else 0
+        amount = base_amount + tax_amount
         
         res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
-        flash('Reservation created successfully!')
-        return redirect(url_for('calendar'))
+        flash('Reservation created successfully!', 'success')
+        return redirect(url_for('invoice', res_id=res.id))
     
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms, selected_room_id=selected_room_id)
@@ -344,8 +397,8 @@ def checkin(res_id):
     room = Room.query.get(res.room_id)
     room.status = 'Occupied'
     db.session.commit()
-    flash('Check-in successful!')
-    return redirect(url_for('calendar'))
+    flash('Check-in successful!', 'success')
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/checkout/<int:res_id>')
 @login_required
@@ -353,13 +406,13 @@ def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
     if res.status == 'Checked-Out':
         flash('Already checked out!')
-        return redirect(url_for('calendar'))
+        return redirect(url_for('reservations'))
     res.status = 'Checked-Out'
     room = Room.query.get(res.room_id)
     room.status = 'Available'
     db.session.commit()
-    flash('Check-out successful!')
-    return redirect(url_for('calendar'))
+    flash('Check-out successful! Invoice updated.', 'success')
+    return redirect(url_for('invoice', res_id=res.id))
 
 @app.route('/invoice/<int:res_id>')
 @login_required
@@ -367,8 +420,11 @@ def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
-    duration_seconds = (res.check_out - res.check_in).total_seconds()
-    days = duration_seconds / (24 * 3600)
+    
+    # Calculate duration in days, matching the logic in reservation creation
+    delta = res.check_out - res.check_in
+    days = max(int((delta.total_seconds() + 86399) // 86400), 1)
+    
     return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now())
 
 @app.route('/logout')
@@ -498,17 +554,35 @@ def todays_arrivals():
     start_of_day = datetime.combine(today, datetime.min.time())
     end_of_day = datetime.combine(today, datetime.max.time())
     
-    arrivals = Reservation.query.filter(Reservation.check_in >= start_of_day, Reservation.check_in <= end_of_day).all()
+    # Filter for Confirmed or Checked-In arrivals today
+    arrivals = Reservation.query.filter(
+        Reservation.check_in >= start_of_day, 
+        Reservation.check_in <= end_of_day,
+        Reservation.status.in_(['Confirmed', 'Checked-In'])
+    ).all()
     
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json') or request.is_json:
         data = []
         for a in arrivals:
             guest = Guest.query.get(a.guest_id)
+            room = Room.query.get(a.room_id)
+            guest_name = guest.name if guest else f"Guest #{a.guest_id}"
             data.append({
-                "guest_name": guest.name if guest else "Unknown",
-                "time": a.check_in.strftime("%H:%M")
+                "guest_name": guest_name,
+                "room": room.room_number if room else "N/A",
+                "time": a.check_in.strftime("%H:%M"),
+                "status": a.status,
+                "display": f"• {guest_name} - Check-in at {a.check_in.strftime('%H:%M')}"
             })
-        return jsonify(data)
+        
+        # Return a formatted string for the quick action alert if requested
+        if request.args.get('format') == 'text':
+            if not data:
+                return jsonify({"response": "🎉 TODAY'S ARRIVALS:\n\nNo arrivals scheduled for today."})
+            text_response = "🎉 TODAY'S ARRIVALS:\n\n" + "\n".join([d['display'] for d in data])
+            return jsonify({"response": text_response})
+            
+        return jsonify(data if data else [{"display": "No arrivals scheduled for today."}])
     return render_template('arrivals.html', arrivals=arrivals, today=today)
 
 @app.route('/todays_departures')
@@ -518,17 +592,34 @@ def todays_departures():
     start_of_day = datetime.combine(today, datetime.min.time())
     end_of_day = datetime.combine(today, datetime.max.time())
     
-    departures = Reservation.query.filter(Reservation.check_out >= start_of_day, Reservation.check_out <= end_of_day).all()
+    # Filter for Checked-In guests departing today
+    departures = Reservation.query.filter(
+        Reservation.check_out >= start_of_day, 
+        Reservation.check_out <= end_of_day,
+        Reservation.status == 'Checked-In'
+    ).all()
     
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json') or request.is_json:
         data = []
         for d in departures:
             guest = Guest.query.get(d.guest_id)
+            room = Room.query.get(d.room_id)
+            guest_name = guest.name if guest else f"Guest #{d.guest_id}"
             data.append({
-                "guest_name": guest.name if guest else "Unknown",
-                "time": d.check_out.strftime("%H:%M")
+                "guest_name": guest_name,
+                "room": room.room_number if room else "N/A",
+                "time": d.check_out.strftime("%H:%M"),
+                "status": d.status,
+                "display": f"• {guest_name} - Checkout at {d.check_out.strftime('%H:%M')}"
             })
-        return jsonify(data)
+            
+        if request.args.get('format') == 'text':
+            if not data:
+                return jsonify({"response": "👋 TODAY'S DEPARTURES:\n\nNo departures scheduled for today."})
+            text_response = "👋 TODAY'S DEPARTURES:\n\n" + "\n".join([d['display'] for d in data])
+            return jsonify({"response": text_response})
+            
+        return jsonify(data if data else [{"display": "No departures scheduled for today."}])
     return render_template('departures.html', departures=departures, today=today)
 
 @app.route('/occupancy_report')
@@ -536,13 +627,23 @@ def todays_departures():
 def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
-    occupancy_rate = int((occupied_rooms / total_rooms * 100)) if total_rooms > 0 else 0
+    occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
     
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json'):
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.args.get('json') or request.is_json:
+        status_text = "High" if occupancy_rate >= 75 else "Moderate" if occupancy_rate >= 40 else "Low"
+        emoji = "✅" if occupancy_rate >= 75 else "⚠️" if occupancy_rate >= 40 else "ℹ️"
+        
+        display_text = f"📊 OCCUPANCY REPORT\n\nOccupied: {occupied_rooms}/{total_rooms}\nOccupancy Rate: {occupancy_rate}%\n\n{emoji} Status: {status_text}"
+        
+        if request.args.get('format') == 'text':
+            return jsonify({"response": display_text})
+            
         return jsonify({
             "occupied": occupied_rooms,
             "total": total_rooms,
-            "rate": occupancy_rate
+            "rate": occupancy_rate,
+            "status": status_text,
+            "display": display_text
         })
     
     rooms = Room.query.order_by(Room.price).all()
@@ -572,7 +673,21 @@ def manifest():
 # Service Worker for PWA
 @app.route('/sw.js')
 def service_worker():
-    return app.send_static_file('sw.js')
+    # Try to serve from static folder, otherwise provide a basic fallback
+    sw_path = os.path.join(app.static_folder, 'sw.js')
+    if os.path.exists(sw_path):
+        return send_file(sw_path, mimetype='application/javascript')
+    
+    # Fallback minimal service worker for PWA support
+    fallback_sw = """
+    self.addEventListener('install', (e) => {
+        self.skipWaiting();
+    });
+    self.addEventListener('fetch', (e) => {
+        e.respondWith(fetch(e.request));
+    });
+    """
+    return fallback_sw, 200, {'Content-Type': 'application/javascript'}
 
 if __name__ == '__main__':
     app.run(debug=True)

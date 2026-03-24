@@ -22,121 +22,204 @@
             min-height: 100vh;
         }
 
-        /* CHATBOT CSS - FORCED VISIBILITY */
-        #chatbot-container {
+        /* SPLASH SCREEN STYLES */
+        #pwa-splash {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #001a4d 0%, #002868 100%);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 1s ease-out;
+        }
+
+        #pwa-splash.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .splash-logo {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: white;
+            padding: 10px;
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(255, 183, 0, 0.3);
+            animation: pulseLogo 3s infinite ease-in-out;
+            margin-bottom: 20px;
+        }
+
+        @keyframes pulseLogo {
+            0% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 183, 0, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(255, 183, 0, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 183, 0, 0.3); }
+        }
+
+        .splash-title {
+            font-family: 'Cinzel', 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeText 2s ease-out forwards;
+            animation-delay: 1s;
+        }
+
+        .splash-motto {
+            font-family: 'Dancing Script', cursive;
+            font-size: 18px;
+            color: #ffb700;
+            opacity: 0;
+            transform: translateX(-50px);
+            animation: slideMotto 3s ease-out forwards;
+            animation-delay: 2s;
+        }
+
+        @keyframes fadeText {
+            to { opacity: 1; }
+        }
+
+        @keyframes slideMotto {
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Floating Objects Animation */
+        .floating-shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: floatShape 10s infinite linear;
+        }
+        @keyframes floatShape {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        /* --- CHATBOT WIDGET STYLES --- */
+        #chatbot-widget {
             position: fixed;
             bottom: 20px;
             right: 20px;
-            z-index: 99999 !important; /* Highest Layer */
+            z-index: 10000; /* Ensure it's on top of everything */
+            display: block !important; /* Force display */
         }
-
-        #chatbot-toggle-btn {
+        #chatbot-toggle {
+            background-color: #ffb700;
+            color: #001a4d;
+            border: none;
+            border-radius: 50%;
             width: 60px;
             height: 60px;
-            border-radius: 50%;
-            background-color: #ffb700; /* Gold */
-            color: #001a4d; /* Navy */
-            border: none;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
             font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
             transition: transform 0.3s;
         }
-
-        #chatbot-toggle-btn:hover {
+        #chatbot-toggle:hover {
             transform: scale(1.1);
         }
-
-        #chatbot-box {
-            display: none; /* Hidden by default */
-            position: absolute;
-            bottom: 80px;
-            right: 0;
+        #chatbot-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
             width: 350px;
-            height: 450px;
+            max-width: calc(100% - 40px);
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none; /* Hidden initially, toggled by JS */
             flex-direction: column;
-            border: 2px solid #ffb700;
+            border: 2px solid #0052cc;
             overflow: hidden;
+            font-family: Tahoma, sans-serif;
+            z-index: 10001; /* Above toggle button */
         }
-
-        .chat-header {
-            background: #0052cc;
+        #chatbot-header {
+            background: linear-gradient(90deg, #003d99, #0052cc);
             color: white;
-            padding: 15px;
+            padding: 12px 16px;
             font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-
-        .chat-messages {
-            flex: 1;
-            padding: 15px;
+        #chatbot-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #chatbot-messages {
+            height: 300px;
             overflow-y: auto;
+            padding: 15px;
             background: #f8f9fa;
             display: flex;
             flex-direction: column;
             gap: 10px;
         }
-
-        .chat-input-area {
-            padding: 10px;
-            border-top: 1px solid #ddd;
-            display: flex;
-            background: white;
-        }
-
-        .chat-input {
-            flex: 1;
-            border: 1px solid #ccc;
-            border-radius: 20px;
-            padding: 8px 15px;
-            outline: none;
-        }
-
-        .chat-send {
-            background: #0052cc;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 35px;
-            height: 35px;
-            margin-left: 10px;
-            cursor: pointer;
-        }
-
-        .msg {
+        .message {
             max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 15px;
+            padding: 10px 14px;
+            border-radius: 18px;
             font-size: 13px;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
-
-        .msg-bot {
-            background: #e9ecef;
-            align-self: flex-start;
-            border-bottom-left-radius: 2px;
-        }
-
-        .msg-user {
+        .user-message {
             background: #0052cc;
             color: white;
             align-self: flex-end;
-            border-bottom-right-radius: 2px;
+            border-bottom-right-radius: 4px;
         }
-
-        /* Responsive */
-        @media (max-width: 480px) {
-            #chatbot-box {
-                width: 300px;
-                right: -10px; /* Adjust for mobile padding */
-            }
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        #chatbot-input-area {
+            display: flex;
+            border-top: 1px solid #ddd;
+            background: white;
+            padding: 8px;
+        }
+        #chatbot-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 15px;
+            outline: none;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        #chatbot-input:focus {
+            border-color: #0052cc;
+        }
+        #chatbot-send {
+            background: #ffb700;
+            color: #001a4d;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         /* Rest of Styles */
@@ -183,8 +266,9 @@
         #pwa-install-btn {
             display: none;
             position: fixed;
-            bottom: 20px; right: 100px; /* Left of chatbot */
-            z-index: 1000;
+            bottom: 20px;
+            right: 100px; /* Moved left */
+            z-index: 9999;
             background: #ffb700; color: #001a4d;
             border: none; border-radius: 50px;
             padding: 12px 24px;
@@ -199,27 +283,47 @@
             .toolbar button { flex: 0 0 auto; }
         }
     </style>
+    <!-- Fonts for Splash -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- CHATBOT HTML (Re-written for reliability) -->
-<div id="chatbot-container">
-    <div id="chatbot-box">
-        <div class="chat-header">
+<!-- SPLASH SCREEN (Only shows on PWA launch or first visit) -->
+<script>
+    // Hide splash screen after 3.5 seconds
+    window.addEventListener('load', function() {
+        setTimeout(function() {
+            const splash = document.getElementById('pwa-splash');
+            if (splash) splash.classList.add('hidden');
+        }, 3500);
+    });
+</script>
+<div id="pwa-splash">
+    <!-- Floating background shapes -->
+    <div class="floating-shape" style="width: 100px; height: 100px; left: 10%; bottom: -100px; animation-duration: 15s;"></div>
+    <div class="floating-shape" style="width: 60px; height: 60px; left: 30%; bottom: -60px; animation-duration: 10s;"></div>
+    <div class="floating-shape" style="width: 150px; height: 150px; left: 70%; bottom: -150px; animation-duration: 20s;"></div>
+
+    <img src="{{ url_for('static', filename='logo.png') }}" class="splash-logo" alt="Logo">
+    <div class="splash-title">LaMalaVista</div>
+    <div class="splash-motto">A Taste of Paradise</div>
+</div>
+
+<div id="chatbot-widget">
+    <button id="chatbot-toggle" title="Chat with Assistant" onclick="toggleChat()"><i class="bi bi-chat-dots-fill"></i></button>
+    <div id="chatbot-window">
+        <div id="chatbot-header">
             <span>LaMalaVista Assistant</span>
-            <button id="chatbot-close-btn" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
+            <button id="chatbot-close" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            <div class="msg msg-bot">Hello! I'm your digital concierge. Ask me about rooms, prices, or amenities!</div>
+        <div id="chatbot-messages">
+            <div class="message bot-message">Hello! I'm your digital concierge. Ask me about rooms, prices, or amenities!</div>
         </div>
-        <div class="chat-input-area">
-            <input type="text" id="chat-input" class="chat-input" placeholder="Type here..." onkeypress="handleEnter(event)">
-            <button class="chat-send" onclick="sendChat()"><i class="bi bi-send-fill"></i></button>
+        <div id="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." autocomplete="off" onkeypress="if(event.key === 'Enter') sendChat()">
+            <button id="chatbot-send" onclick="sendChat()"><i class="bi bi-send-fill"></i></button>
         </div>
     </div>
-    <button id="chatbot-toggle-btn" onclick="toggleChat()">
-        <i class="bi bi-chat-dots-fill"></i>
-    </button>
 </div>
 
 <button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
@@ -356,11 +460,12 @@
         <div class="col-md-auto sidebar d-none d-lg-block">
             <h6 class="mb-3"><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
             <a href="/todays_arrivals" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
-            <a href="/todays_departures" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="/todays_departures" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Today's Departures</a>
             <a href="/occupancy_report" class="btn btn-sm btn-outline-success w-100 mb-2"><i class="bi bi-graph-up"></i> Occupancy Report</a>
             <a href="/new_reservation" class="btn btn-sm btn-outline-warning w-100"><i class="bi bi-plus-lg"></i> New Booking</a>
             <hr>
-            <small><i class="bi bi-door-open"></i> Free Rooms: <span id="freeRoomsCount" class="text-success fw-bold">...</span></small>
+            <div class="mb-1"><small><i class="bi bi-door-open"></i> Free Rooms: <span id="freeRoomsCount" class="text-success fw-bold">...</span></small></div>
+            <div><small><i class="bi bi-person-up"></i> Due Out: <span id="departuresCount" class="text-warning fw-bold">...</span></small></div>
         </div>
 
         <!-- MAIN AREA -->
@@ -383,35 +488,33 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // --- SIMPLIFIED CHATBOT JS (Global Scope) ---
     function toggleChat() {
-        const box = document.getElementById('chatbot-box');
-        if (box.style.display === 'none' || box.style.display === '') {
-            box.style.display = 'flex';
+        const windowEl = document.getElementById('chatbot-window');
+        const isHidden = windowEl.style.display === 'none' || windowEl.style.display === '';
+        
+        if (isHidden) {
+            windowEl.style.display = 'flex';
+            document.getElementById('chatbot-input').focus();
         } else {
-            box.style.display = 'none';
+            windowEl.style.display = 'none';
         }
-    }
-
-    document.getElementById('chatbot-close-btn').addEventListener('click', function() {
-        document.getElementById('chatbot-box').style.display = 'none';
-    });
-
-    function handleEnter(event) {
-        if (event.key === 'Enter') sendChat();
     }
 
     function addMessage(text, type) {
         const div = document.createElement('div');
-        div.className = 'msg ' + (type === 'user' ? 'msg-user' : 'msg-bot');
+        div.className = 'message ' + (type === 'user' ? 'user-message' : 'bot-message');
         div.textContent = text;
-        const container = document.getElementById('chat-messages');
+        const container = document.getElementById('chatbot-messages');
         container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
+        
+        // Auto-scroll to bottom
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 10);
     }
 
     function sendChat() {
-        const input = document.getElementById('chat-input');
+        const input = document.getElementById('chatbot-input');
         const text = input.value.trim();
         if (!text) return;
 
@@ -420,10 +523,10 @@
 
         // Simulate typing
         const loadingId = 'loading-' + Date.now();
-        const container = document.getElementById('chat-messages');
+        const container = document.getElementById('chatbot-messages');
         const loading = document.createElement('div');
         loading.id = loadingId;
-        loading.className = 'msg msg-bot';
+        loading.className = 'message bot-message';
         loading.textContent = '...';
         container.appendChild(loading);
         container.scrollTop = container.scrollHeight;
@@ -435,12 +538,19 @@
         })
         .then(r => r.json())
         .then(data => {
-            document.getElementById(loadingId).remove();
+            const loader = document.getElementById(loadingId);
+            if (loader) loader.remove();
             addMessage(data.response, 'bot');
+            
+            // Re-trigger stats update if the bot mentions checking live status
+            if (data.response.includes("live status")) {
+                initializeSidebarChart();
+            }
         })
         .catch(err => {
-            document.getElementById(loadingId).remove();
-            addMessage("Error connecting to concierge.", 'bot');
+            const loader = document.getElementById(loadingId);
+            if (loader) loader.remove();
+            addMessage("Error connecting to concierge. Please try again later.", 'bot');
         });
     }
 
@@ -466,32 +576,77 @@
         });
     }
 
+    // Chart & Stats
     let sidebarChartInstance = null;
     function initializeSidebarChart() {
+        const freeRoomsElem = document.getElementById('freeRoomsCount');
+        const depElem = document.getElementById('departuresCount');
+        const percElem = document.getElementById('occupancyPercent');
+
         const ctx = document.getElementById('sidebarChart');
-        if (ctx) {
-            fetch('/api/rooms').then(r => r.json()).then(rooms => {
+        if (!ctx) return;
+
+        // Update counts from specific endpoints to ensure accuracy
+        fetch('/api/rooms')
+            .then(r => r.json())
+            .then(rooms => {
                 const occupied = rooms.filter(room => room.extendedProps && room.extendedProps.status === 'Occupied').length;
                 const total = rooms.length;
                 const available = total - occupied;
                 const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
-                document.getElementById('occupancyPercent').textContent = rate;
-                const freeRoomsElem = document.getElementById('freeRoomsCount');
+                
+                if (percElem) percElem.textContent = rate;
                 if (freeRoomsElem) freeRoomsElem.textContent = available;
+
                 if (sidebarChartInstance) sidebarChartInstance.destroy();
                 sidebarChartInstance = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        labels: [`Occupied (${occupied})`, `Available (${available})`],
-                        datasets: [{ data: [occupied, available], backgroundColor: ['#dc3545', '#28a745'], borderWidth: 2 }]
+                        labels: ['Occupied', 'Available'],
+                        datasets: [{ 
+                            data: [occupied, available], 
+                            backgroundColor: ['#0052cc', '#ffb700'], 
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
+                        }]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } } } }
+                    options: { 
+                        responsive: true, 
+                        maintainAspectRatio: false, 
+                        plugins: { 
+                            legend: { 
+                                position: 'bottom', 
+                                labels: { boxWidth: 12, font: { size: 11 }, padding: 10, usePointStyle: true } 
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return `${context.label}: ${context.raw} rooms`;
+                                    }
+                                }
+                            }
+                        } 
+                    }
                 });
-            }).catch(err => console.log('Chart load error:', err));
-        }
+            })
+            .catch(err => console.error('Sidebar chart load error:', err));
+
+        // Update departures count in sidebar
+        fetch('/todays_departures?json=1')
+            .then(r => r.json())
+            .then(data => {
+                // Filter items that have actual guest names to exclude the "No departures" message object
+                const count = Array.isArray(data) ? data.filter(d => d.guest_name).length : 0;
+                if (depElem) depElem.textContent = count;
+            })
+            .catch(err => console.error('Departures count load error:', err));
     }
-    document.addEventListener('DOMContentLoaded', initializeSidebarChart);
-    setInterval(initializeSidebarChart, 30000);
+
+    // Initialize on load and refresh every 30 seconds
+    window.addEventListener('load', () => {
+        initializeSidebarChart();
+        setInterval(initializeSidebarChart, 30000);
+    });
 </script>
 </body>
 </html>
