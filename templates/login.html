@@ -7,25 +7,21 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* Glassmorphism 2.0 & Skeuomorphism Design */
         body {
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .slideshow {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
+            top: 0; left: 0; width: 100%; height: 100vh;
             z-index: -1;
         }
         .slide {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover;
             background-position: center;
             opacity: 0;
@@ -42,28 +38,125 @@
 
         .overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.4);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(0, 26, 77, 0.4), rgba(0, 61, 153, 0.4));
             z-index: 0;
         }
+
+        /* Glassmorphism 2.0 Login Card */
         .login-card {
             z-index: 10;
-            width: 380px;
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(5px);
+            width: 400px;
+            background: rgba(255, 255, 255, 0.15); /* More transparent */
+            backdrop-filter: blur(20px); /* Stronger frosted effect */
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Catch highlights */
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            animation: cardEntrance 0.8s ease-out;
         }
-        .logo-small {
-            width: 80px;
-            height: 80px;
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .logo-container {
+            width: 100px;
+            height: 100px;
             border-radius: 50%;
-            object-fit: contain;
             background: white;
-            padding: 5px;
-            margin-bottom: 15px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            padding: 10px;
+            margin: 0 auto 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2), inset 0 2px 5px rgba(0,0,0,0.1); /* Skeuomorphic shadows */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .logo-img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        h3 {
+            color: #ffb700; /* Gold text */
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 5px;
+        }
+        .motto {
+            color: white;
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        /* Skeuomorphic Form Fields */
+        .form-control {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
+            color: white !important;
+            padding: 12px 20px !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); /* Depth inside */
+            transition: all 0.3s ease;
+        }
+        .form-control::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: #ffb700 !important;
+            box-shadow: 0 0 15px rgba(255, 183, 0, 0.4), inset 0 2px 4px rgba(0,0,0,0.2) !important;
+            outline: none;
+        }
+        .form-floating label {
+            color: rgba(255,255,255,0.8);
+        }
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: #ffb700;
+        }
+
+        /* Tactile Button */
+        .btn-primary {
+            background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%);
+            border: none;
+            border-radius: 12px;
+            color: #001a4d;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 14px !important;
+            box-shadow: 0 6px 20px rgba(255, 183, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .btn-primary:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(255, 183, 0, 0.5);
+            background: linear-gradient(135deg, #ffc107 0%, #ffb700 100%);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.3); /* Pressed feel */
+        }
+
+        .signup-link {
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+        }
+        .signup-link:hover {
+            opacity: 1;
+            color: #ffb700;
+        }
+        .signup-link strong {
+            text-decoration: underline;
         }
     </style>
 </head>
@@ -77,25 +170,30 @@
     </div>
     <div class="overlay"></div>
 
-    <div class="card shadow login-card">
-        <div class="card-body text-center p-4">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-small">
-            <h3 class="mb-2">LA-MALIVA VISTA HOTEL</h3>
-            <p class="text-muted mb-4">A Taste of Paradise • Buea</p>
-            <form method="POST">
-                <div class="form-floating mb-3">
-                    <input type="text" name="username" id="username" class="form-control" placeholder="Username or Email" required>
-                    <label for="username">Username or Email</label>
-                </div>
-                <div class="form-floating mb-3">
-                    <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
-                    <label for="password">Password</label>
-                </div>
-                <button class="btn btn-primary w-100 py-2">Login to PMS</button>
-            </form>
-            <div class="mt-3">
-                <small class="text-muted">Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></small>
+    <div class="login-card text-center">
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="logo-img">
+        </div>
+        <h3>La-Maliva Vista</h3>
+        <p class="motto">A Taste of Paradise • Management System</p>
+
+        <form method="POST" class="mt-4">
+            <div class="form-floating mb-3">
+                <input type="text" name="username" id="username" class="form-control" placeholder="Username or Email" required>
+                <label for="username">Username or Email</label>
             </div>
+            <div class="form-floating mb-4">
+                <input type="password" name="password" id="password" class="form-control" placeholder="Password" required>
+                <label for="password">Password</label>
+            </div>
+            <button class="btn btn-primary w-100 py-2 shadow-lg">Access Dashboard</button>
+        </form>
+
+        <div class="mt-4">
+            <a href="{{ url_for('signup') }}" class="signup-link">New staff member? <strong>Create an account</strong></a>
+        </div>
+        <div class="mt-2">
+            <small style="color: rgba(255,255,255,0.5); font-size: 11px;">www.lamalivavistahotel.com</small>
         </div>
     </div>
 

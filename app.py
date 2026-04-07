@@ -135,8 +135,6 @@ def public_home():
     rooms = Room.query.order_by(Room.price).all()
     return render_template('public_home.html', rooms=rooms)
 
-# ... (all other routes remain the same) ...
-
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':

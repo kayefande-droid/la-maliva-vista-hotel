@@ -8,6 +8,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
+        /* Glassmorphism 2.0 & Skeuomorphism Design */
         body {
             margin: 0;
             padding: 0;
@@ -17,18 +18,12 @@
         }
         .slideshow {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100vh;
+            top: 0; left: 0; width: 100%; height: 100vh;
             z-index: -1;
         }
         .slide {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover;
             background-position: center;
             opacity: 0;
@@ -45,11 +40,8 @@
 
         .overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(0, 26, 77, 0.8), rgba(0, 82, 204, 0.6));
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6));
             z-index: 0;
         }
 
@@ -63,139 +55,128 @@
             padding: 40px 20px;
         }
 
+        /* Glassmorphism 2.0 Signup Card */
         .signup-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 250, 255, 0.9));
-            backdrop-filter: blur(10px);
-            border: 2px solid #ffb700;
-            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.15); /* Transparent */
+            backdrop-filter: blur(20px); /* Frosted glass */
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
             padding: 40px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
             max-width: 450px;
             width: 100%;
-            animation: slideInUp 0.8s ease-out;
-        }
-
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .signup-header {
+            animation: cardEntrance 0.8s ease-out;
             text-align: center;
-            margin-bottom: 30px;
         }
-
-        .signup-header h3 {
-            color: #0052cc;
-            font-weight: bold;
-            font-size: 28px;
-            margin-bottom: 10px;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-
-        .signup-header .tagline {
-            color: #ffb700;
-            font-size: 16px;
-            font-style: italic;
-        }
-
-        .form-floating {
-            margin-bottom: 20px;
-        }
-
-        .form-floating .form-control {
-            border: 2px solid rgba(0, 82, 204, 0.3);
-            border-radius: 8px;
-            padding: 12px 16px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-
-        .form-floating .form-control:focus {
-            border-color: #ffb700;
-            box-shadow: 0 0 12px rgba(255, 183, 0, 0.3);
-            background: white;
-        }
-
-        .form-floating label {
-            color: #0052cc;
-            font-weight: 500;
-            padding: 12px 16px;
-        }
-
-        .btn-signup {
-            background: linear-gradient(90deg, #0052cc, #003d99);
-            border: none;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            padding: 12px 30px;
-            border-radius: 8px;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .btn-signup:hover {
-            background: linear-gradient(90deg, #ffb700, #ff9500);
-            color: #001a4d;
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(255, 183, 0, 0.4);
-        }
-
-        .login-link {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .login-link a {
-            color: #0052cc;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .login-link a:hover {
-            color: #ffb700;
-            text-decoration: underline;
-        }
-
-        .alert-danger {
-            background: linear-gradient(90deg, rgba(220, 53, 69, 0.1), rgba(255, 183, 0, 0.05));
-            border: 2px solid #dc3545;
-            color: #721c24;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        @keyframes cardEntrance {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .hotel-icon {
-            display: block;
-            text-align: center;
-            margin-bottom: 20px;
             font-size: 48px;
             color: #ffb700;
-            animation: float 3s ease-in-out infinite;
+            margin-bottom: 15px;
+            animation: floatIcon 3s ease-in-out infinite;
+            text-shadow: 0 2px 10px rgba(255, 183, 0, 0.3);
         }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
+        @keyframes floatIcon {
+            0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
         }
 
-        @media (max-width: 576px) {
-            .signup-card {
-                padding: 30px 20px;
-                margin: 20px;
-            }
-            .signup-header h3 {
-                font-size: 24px;
-            }
+        h3 {
+            color: #ffb700;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 5px;
+        }
+        .tagline {
+            color: white;
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 25px;
+        }
+
+        /* Skeuomorphic Form Fields */
+        .form-control {
+            background: rgba(255, 255, 255, 0.1) !important;
+            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            border-radius: 12px !important;
+            color: white !important;
+            padding: 12px 20px !important;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            margin-bottom: 15px;
+        }
+        .form-control::placeholder {
+            color: rgba(255,255,255,0.6);
+        }
+        .form-control:focus {
+            background: rgba(255, 255, 255, 0.2) !important;
+            border-color: #ffb700 !important;
+            box-shadow: 0 0 15px rgba(255, 183, 0, 0.4), inset 0 2px 4px rgba(0,0,0,0.2) !important;
+            outline: none;
+        }
+        .form-floating label {
+            color: rgba(255,255,255,0.8);
+            padding-left: 20px;
+        }
+        .form-floating > .form-control:focus ~ label,
+        .form-floating > .form-control:not(:placeholder-shown) ~ label {
+            color: #ffb700;
+        }
+
+        /* Tactile Button */
+        .btn-signup {
+            background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%);
+            border: none;
+            border-radius: 12px;
+            color: #001a4d;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 14px !important;
+            box-shadow: 0 6px 20px rgba(255, 183, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn-signup:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(255, 183, 0, 0.5);
+            background: linear-gradient(135deg, #ffc107 0%, #ffb700 100%);
+        }
+        .btn-signup:active {
+            transform: translateY(0);
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.3);
+        }
+
+        .login-link {
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            opacity: 0.8;
+            transition: opacity 0.3s;
+            display: block;
+            margin-top: 25px;
+        }
+        .login-link:hover {
+            opacity: 1;
+            color: #ffb700;
+        }
+
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.2);
+            backdrop-filter: blur(10px);
+            border: 1px solid #dc3545;
+            color: white;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 13px;
         }
     </style>
 </head>
@@ -215,11 +196,8 @@
                 <i class="bi bi-building"></i>
             </div>
 
-            <div class="signup-header">
-                <h3>LA-MALIVA VISTA HOTEL</h3>
-                <p class="tagline">"A Taste of Paradise"</p>
-                <h4 style="color: #0052cc; margin-top: 20px;">Create Your Account</h4>
-            </div>
+            <h3>La-Maliva Vista</h3>
+            <p class="tagline">"A Taste of Paradise"</p>
 
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
@@ -245,36 +223,25 @@
                     <label for="password"><i class="bi bi-key"></i> Password</label>
                 </div>
 
-                <button type="submit" class="btn btn-signup">
-                    <i class="bi bi-person-plus"></i> Create Account
+                <button type="submit" class="btn btn-signup shadow-lg">
+                    Create Staff Account
                 </button>
             </form>
 
-            <div class="login-link">
-                <a href="{{ url_for('login') }}">
-                    <i class="bi bi-arrow-left"></i> Back to Login
-                </a>
-            </div>
+            <a href="{{ url_for('login') }}" class="login-link">
+                <i class="bi bi-arrow-left"></i> Already have an account? <strong>Login</strong>
+            </a>
         </div>
     </div>
 
     <script>
-        // Slideshow functionality
-        let currentSlide = 0;
         const slides = document.querySelectorAll('.slide');
-
-        function showSlide(index) {
-            slides.forEach(slide => slide.classList.remove('active'));
-            slides[index].classList.add('active');
-        }
-
-        function nextSlide() {
+        let currentSlide = 0;
+        setInterval(() => {
+            slides[currentSlide].classList.remove('active');
             currentSlide = (currentSlide + 1) % slides.length;
-            showSlide(currentSlide);
-        }
-
-        // Change slide every 5 seconds
-        setInterval(nextSlide, 5000);
+            slides[currentSlide].classList.add('active');
+        }, 5000);
     </script>
 </body>
 </html>
