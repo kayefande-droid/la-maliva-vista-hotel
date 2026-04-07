@@ -3,138 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="google-site-verification" content="3rRXefg_LYfyIPKcJgeXbLXBLkHx9zKOUlWcX7Fm6Tg" />
     <title>LA-MALIVA VISTA HOTEL - A Taste of Paradise</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0052cc">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Using FullCalendar Scheduler for Resource Timeline View -->
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        /* Global & Smoothness */
-        * { transition: all 0.3s ease; }
+        * { transition: all 0.2s ease; }
         body {
             background: linear-gradient(135deg, #001a4d 0%, #003d99 50%, #001a4d 100%);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: Tahoma, sans-serif;
             font-size:13px;
             min-height: 100vh;
-            color: #333;
-        }
-
-        /* Glassmorphism & Skeuomorphism Core */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-        }
-
-        .skeuo-element {
-            background: #f0f0f0;
-            border-radius: 10px;
-            box-shadow: 5px 5px 15px #d1d1d1, -5px -5px 15px #ffffff;
-            border: none;
-        }
-
-        /* Animated Background */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(-45deg, #001a4d, #003d99, #0052cc, #001a4d);
-            background-size: 400% 400%;
-            animation: gradientShift 15s ease infinite;
-            z-index: -2;
-        }
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* Main Content UI */
-        .main-content {
-            animation: pageSlideIn 0.5s ease-out;
-            background: rgba(255, 255, 255, 0.92);
-            padding: 25px;
-            min-height: 620px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            border-radius: 15px;
-            backdrop-filter: blur(5px);
-            margin: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        @keyframes pageSlideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Navbar & Toolbar */
-        .top-menu {
-            background: rgba(0, 61, 153, 0.85);
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid #ffb700;
-            padding: 8px 15px;
-        }
-        .toolbar {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(8px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .toolbar button {
-            border-radius: 8px;
-            background: #f8f9fa;
-            border: none;
-            box-shadow: 2px 2px 5px #d1d1d1, -2px -2px 5px #ffffff;
-            font-weight: 600;
-            color: #003d99;
-        }
-        .toolbar button:hover {
-            transform: translateY(-2px);
-            background: #ffb700;
-            color: #001a4d;
-        }
-
-        /* Sidebar UI */
-        .sidebar {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(5px);
-            border-right: 2px solid #ffb700;
-            padding: 20px;
-            width: 230px;
-        }
-        .sidebar .btn {
-            background: #f8f9fa;
-            border: none;
-            box-shadow: 3px 3px 8px #00000022, -3px -3px 8px #ffffff11;
-            color: #003d99;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-        .sidebar .btn:hover {
-            background: #ffb700;
-            color: #001a4d;
-            transform: scale(1.02);
-        }
-
-        /* Cards & Components */
-        .card {
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-            background: rgba(255, 255, 255, 0.95);
-        }
-        .card-header {
-            background: linear-gradient(90deg, #0052cc, #003d99) !important;
-            color: white !important;
-            border-bottom: 2px solid #ffb700 !important;
         }
 
         /* SPLASH SCREEN STYLES */
@@ -150,117 +35,355 @@
             color: white;
             transition: opacity 1s ease-out;
         }
-        #pwa-splash.hidden { opacity: 0; pointer-events: none; }
+
+        #pwa-splash.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
         .splash-logo {
-            width: 180px; height: 180px; border-radius: 50%; background: white;
-            padding: 10px; box-shadow: 0 0 30px rgba(255, 183, 0, 0.5);
-            animation: pulseLogo 3s infinite ease-in-out; margin-bottom: 20px;
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: white;
+            padding: 10px;
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(255, 183, 0, 0.3);
+            animation: pulseLogo 3s infinite ease-in-out;
+            margin-bottom: 20px;
         }
+
         @keyframes pulseLogo {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
+            0% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 183, 0, 0.3); }
+            50% { transform: scale(1.05); box-shadow: 0 0 50px rgba(255, 183, 0, 0.6); }
+            100% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 183, 0, 0.3); }
         }
-        .splash-title { font-family: 'Cinzel', serif; font-size: 28px; font-weight: bold; }
-        .splash-motto { font-family: 'Dancing Script', cursive; font-size: 18px; color: #ffb700; }
 
-        /* CHATBOT WIDGET */
-        #chatbot-container { position: fixed; bottom: 20px; right: 20px; z-index: 100000 !important; }
-        #chatbot-toggle-btn {
-            width: 60px; height: 60px; border-radius: 50%; background: #ffb700;
-            color: #001a4d; border: none; box-shadow: 4px 4px 10px #00000044;
-            font-size: 28px; cursor: pointer;
+        .splash-title {
+            font-family: 'Cinzel', 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeText 2s ease-out forwards;
+            animation-delay: 1s;
         }
-        #chatbot-box {
-            display: none; position: absolute; bottom: 80px; right: 0;
-            width: 350px; height: 450px; background: white; border-radius: 15px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); flex-direction: column;
-            border: 2px solid #ffb700; overflow: hidden;
-        }
-        .chat-header { background: #0052cc; color: white; padding: 15px; font-weight: bold; display: flex; justify-content: space-between; }
-        .chat-messages { flex: 1; padding: 15px; overflow-y: auto; background: #f8f9fa; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 8px 12px; border-radius: 15px; font-size: 13px; }
-        .msg-bot { background: #e9ecef; align-self: flex-start; }
-        .msg-user { background: #0052cc; color: white; align-self: flex-end; }
 
-        /* PWA Install Button */
+        .splash-motto {
+            font-family: 'Dancing Script', cursive;
+            font-size: 18px;
+            color: #ffb700;
+            opacity: 0;
+            transform: translateX(-50px);
+            animation: slideMotto 3s ease-out forwards;
+            animation-delay: 2s;
+        }
+
+        @keyframes fadeText {
+            to { opacity: 1; }
+        }
+
+        @keyframes slideMotto {
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Floating Objects Animation */
+        .floating-shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: floatShape 10s infinite linear;
+        }
+        @keyframes floatShape {
+            0% { transform: translateY(0) rotate(0deg); }
+            100% { transform: translateY(-100vh) rotate(360deg); }
+        }
+
+        /* --- CHATBOT WIDGET STYLES (Fix: Ensure Visibility) --- */
+        #chatbot-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000; /* Ensure it's on top of everything */
+            display: block !important; /* Force display */
+        }
+        #chatbot-toggle {
+            background-color: #ffb700;
+            color: #001a4d;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 28px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s;
+        }
+        #chatbot-toggle:hover {
+            transform: scale(1.1);
+        }
+        #chatbot-window {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            width: 350px;
+            max-width: calc(100% - 40px);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: none; /* Hidden initially, toggled by JS */
+            flex-direction: column;
+            border: 2px solid #0052cc;
+            overflow: hidden;
+            font-family: Tahoma, sans-serif;
+            z-index: 10001; /* Above toggle button */
+        }
+        #chatbot-header {
+            background: linear-gradient(90deg, #003d99, #0052cc);
+            color: white;
+            padding: 12px 16px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #chatbot-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        #chatbot-messages {
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .user-message {
+            background: #0052cc;
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        #chatbot-input-area {
+            display: flex;
+            border-top: 1px solid #ddd;
+            background: white;
+            padding: 8px;
+        }
+        #chatbot-input {
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 8px 15px;
+            outline: none;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        #chatbot-input:focus {
+            border-color: #0052cc;
+        }
+        #chatbot-send {
+            background: #ffb700;
+            color: #001a4d;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Rest of Styles */
+        .main-content {
+            border: 2px solid rgba(0, 82, 204, 0.3);
+            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240, 250, 255, 0.9));
+            padding: 25px;
+            min-height: 620px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+            border-radius: 12px;
+            backdrop-filter: blur(5px);
+            margin: 15px;
+        }
+        .top-menu {
+            background: linear-gradient(90deg, #003d99, #0052cc);
+            color:white;
+            padding:8px 15px;
+            border-bottom: 3px solid #0052cc;
+        }
+        .sidebar {
+            background: linear-gradient(180deg, rgba(0, 61, 153, 0.15), rgba(0, 82, 204, 0.08));
+            border-right: 3px solid #ffb700;
+            padding: 20px;
+            width: 220px;
+        }
+
+        /* Mobile Menu */
+        .mobile-offcanvas {
+            background: linear-gradient(180deg, #001a4d 0%, #003d99 100%);
+            color: white;
+            width: 280px;
+        }
+        .mobile-offcanvas a {
+            color: white !important;
+            padding: 12px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        /* PWA Install Button (Moved left to avoid chatbot overlap) */
         #pwa-install-btn {
-            display: none; position: fixed; bottom: 20px; right: 100px;
-            z-index: 9999; background: #ffb700; color: #001a4d;
-            border: none; border-radius: 50px; padding: 12px 24px;
-            box-shadow: 4px 4px 10px #00000044; font-weight: bold;
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 100px; /* Moved left */
+            z-index: 9999;
+            background: #ffb700; color: #001a4d;
+            border: none; border-radius: 50px;
+            padding: 12px 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            font-weight: bold;
         }
 
-        /* Responsive */
         @media (max-width: 992px) {
+            .mobile-menu-btn { display: block; background: none; border: none; color: white; font-size: 24px; margin-right: 15px; }
             .navbar-collapse, .sidebar { display: none !important; }
-            .toolbar { display: flex; overflow-x: auto; white-space: nowrap; }
-            .main-content { margin: 10px; padding: 15px; }
+            .toolbar { display: flex; overflow-x: auto; padding-bottom: 15px; }
+            .toolbar button { flex: 0 0 auto; }
         }
     </style>
+    <!-- Fonts for Splash -->
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
+<!-- SPLASH SCREEN (Only shows on PWA launch or first visit) -->
 <div id="pwa-splash">
+    <!-- Floating background shapes -->
+    <div class="floating-shape" style="width: 100px; height: 100px; left: 10%; bottom: -100px; animation-duration: 15s;"></div>
+    <div class="floating-shape" style="width: 60px; height: 60px; left: 30%; bottom: -60px; animation-duration: 10s;"></div>
+    <div class="floating-shape" style="width: 150px; height: 150px; left: 70%; bottom: -150px; animation-duration: 20s;"></div>
+
     <img src="{{ url_for('static', filename='logo.png') }}" class="splash-logo" alt="Logo">
     <div class="splash-title">LaMalaVista</div>
     <div class="splash-motto">A Taste of Paradise</div>
 </div>
 
-<div id="chatbot-container">
-    <div id="chatbot-box">
-        <div class="chat-header">
+<!-- CHATBOT WIDGET START -->
+<div id="chatbot-widget">
+    <button id="chatbot-toggle" title="Chat with Assistant" onclick="toggleChat()"><i class="bi bi-chat-dots-fill"></i></button>
+    <div id="chatbot-window">
+        <div id="chatbot-header">
             <span>LaMalaVista Assistant</span>
-            <button onclick="toggleChat()" style="background:none; border:none; color:white; font-size:20px; cursor:pointer;">&times;</button>
+            <button id="chatbot-close" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
         </div>
-        <div class="chat-messages" id="chat-messages">
-            <div class="msg msg-bot">Hello! I'm your digital concierge. Ask me about rooms, prices, or amenities!</div>
+        <div id="chatbot-messages">
+            <div class="message bot-message">Hello! I'm your digital concierge. Ask me about rooms, prices, or amenities!</div>
         </div>
-        <div style="padding:10px; border-top:1px solid #ddd; display:flex; background:white;">
-            <input type="text" id="chat-input" style="flex:1; border:1px solid #ccc; border-radius:20px; padding:8px 15px; outline:none;" placeholder="Type here..." onkeypress="if(event.key==='Enter') sendChat()">
-            <button onclick="sendChat()" style="background:#0052cc; color:white; border:none; border-radius:50%; width:35px; height:35px; margin-left:10px; cursor:pointer;"><i class="bi bi-send-fill"></i></button>
+        <div id="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." autocomplete="off" onkeypress="if(event.key === 'Enter') sendChat()">
+            <button id="chatbot-send" onclick="sendChat()"><i class="bi bi-send-fill"></i></button>
         </div>
     </div>
-    <button id="chatbot-toggle-btn" onclick="toggleChat()"><i class="bi bi-chat-dots-fill"></i></button>
 </div>
+<!-- CHATBOT WIDGET END -->
 
 <button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
 
 <nav class="top-menu navbar navbar-expand-lg">
     <div class="container-fluid p-0">
         <div class="d-flex align-items-center w-100">
-            <div style="display: flex; align-items: center; gap: 10px; margin-left: 15px;">
+            <button class="mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
+                <i class="bi bi-list"></i>
+            </button>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 40px; width: auto; border-radius: 6px;">
                 <div style="color: white; line-height: 1.2;">
                     <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
                     <small style="color: #ffb700; font-size: 10px;">Paradise in Buea</small>
                 </div>
             </div>
+
+            <!-- DESKTOP MENU -->
             <div class="collapse navbar-collapse ms-4">
                 <ul class="navbar-nav me-auto">
+                    <!-- File -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">File</a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}">New Reservation</a></li>
                             <li><a class="dropdown-item" href="#" onclick="window.print()">Print</a></li>
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+                            <li><a class="dropdown-item" href="{{ url_for('export_data') }}">Export Data</a></li>
+                            {% endif %}
                             <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
                         </ul>
                     </li>
-                    {% if current_user.role == 'admin' %}
+
+                    <!-- Tools (STRICTLY ADMIN ONLY) -->
+                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Tools</a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('users') }}">Users</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings (Hotel Info)</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('users') }}">User Management</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('backup') }}">Backup Database</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('restore') }}">Restore Database</a></li>
                         </ul>
                     </li>
                     {% endif %}
+
+                    <!-- View -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">View</a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('calendar') }}">Calendar</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('rooms') }}">Room List</a></li>
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+                            <li><a class="dropdown-item" href="{{ url_for('guests') }}">Guest List</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()">Full Screen</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Help -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Help</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('user_manual') }}">User Manual</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('about') }}">About</a></li>
+                            <li><a class="dropdown-item" href="tel:+237678302909">Contact Support</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -269,51 +392,129 @@
     </div>
 </nav>
 
-<div class="toolbar">
-    <button onclick="window.location.href='/dashboard'" class="btn btn-sm me-1"><i class="bi bi-house-door"></i> Dashboard</button>
-    <button onclick="window.location.href='/calendar'" class="btn btn-sm me-1"><i class="bi bi-calendar3"></i> Calendar</button>
-    <button onclick="window.location.href='/rooms'" class="btn btn-sm me-1"><i class="bi bi-door-open"></i> Rooms</button>
-    <button onclick="window.location.href='/new_reservation'" class="btn btn-sm btn-primary text-white"><i class="bi bi-plus-circle"></i> New Booking</button>
+<!-- MOBILE MENU (Restricted by Role) -->
+<div class="offcanvas offcanvas-start mobile-offcanvas" tabindex="-1" id="mobileMenu">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title text-white">Menu</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" style="filter: invert(1);"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="list-group list-group-flush bg-transparent">
+            <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+
+            <!-- Quick Actions -->
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('todays_arrivals') }}"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
+            <a href="{{ url_for('todays_departures') }}"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+
+            <!-- ADMIN TOOLS (Hidden for non-admins) -->
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <div class="border-top my-2 border-secondary"></div>
+            <small class="text-muted ms-3 fw-bold" style="color: #ffb700 !important;">ADMIN TOOLS</small>
+            <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
+            <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
+            <a href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup DB</a>
+            {% endif %}
+
+            <!-- STAFF TOOLS (Hidden for Guests) -->
+            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest Database</a>
+            <a href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a>
+            {% endif %}
+
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
+            <a href="tel:+237678302909"><i class="bi bi-telephone"></i> Support</a>
+            <a href="{{ url_for('logout') }}" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </div>
+</div>
+
+<div class="toolbar d-none d-lg-block">
+    <button onclick="window.location.href='/dashboard'" class="btn btn-sm btn-light me-1"><i class="bi bi-house-door"></i> Dashboard</button>
+    <button onclick="window.location.href='/calendar'" class="btn btn-sm btn-light me-1"><i class="bi bi-calendar3"></i> Calendar</button>
+    <button onclick="window.location.href='/rooms'" class="btn btn-sm btn-light me-1"><i class="bi bi-door-open"></i> Rooms</button>
+    {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+    <button onclick="window.location.href='/guests'" class="btn btn-sm btn-light me-1"><i class="bi bi-people"></i> Guests</button>
+    <button onclick="window.location.href='/reservations'" class="btn btn-sm btn-light me-1"><i class="bi bi-list"></i> Reservations</button>
+    {% endif %}
+    <button onclick="window.location.href='/new_reservation'" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> New Booking</button>
 </div>
 
 <div class="container-fluid mt-2">
     <div class="row">
+        <!-- LEFT SIDEBAR (Desktop Only) -->
         <div class="col-md-auto sidebar d-none d-lg-block">
-            <h6 class="mb-3">Quick Actions</h6>
-            <a href="/todays_arrivals" class="btn btn-sm w-100 mb-2">Today's Arrivals</a>
-            <a href="/todays_departures" class="btn btn-sm w-100 mb-2">Departures</a>
-            <a href="/occupancy_report" class="btn btn-sm w-100">Occupancy</a>
+            <h6 class="mb-3"><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
+            <a href="/todays_arrivals" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
+            <a href="/todays_departures" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="/occupancy_report" class="btn btn-sm btn-outline-success w-100 mb-2"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+            <a href="/new_reservation" class="btn btn-sm btn-outline-warning w-100"><i class="bi bi-plus-lg"></i> New Booking</a>
             <hr>
-            <small>Free Rooms: <span id="freeRoomsCount" class="text-success">...</span></small>
+            <small><i class="bi bi-door-open"></i> Free Rooms: <span id="freeRoomsCount" class="text-success fw-bold">...</span></small>
         </div>
+
+        <!-- MAIN AREA -->
         <div class="col p-0">
             {% block content %}{% endblock %}
+        </div>
+
+        <!-- RIGHT PANEL (Desktop Only) -->
+        <div class="col-md-auto d-none d-lg-block" style="width:270px; background: linear-gradient(180deg, #f8f9fa 0%, #ffffff 100%); border-left: 2px solid #ffb700; padding: 20px; border-radius: 8px;">
+            <h6 style="color: #0052cc; margin-bottom: 15px;"><i class="bi bi-pie-chart"></i> Occupancy</h6>
+            <div style="position: relative; height: 200px;">
+                <canvas id="sidebarChart"></canvas>
+            </div>
+            <p class="text-center mt-3" style="font-weight: bold; color: #0052cc; font-size: 14px;">
+                <span id="occupancyPercent">0</span>% Occupied
+            </p>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Splash
-    window.addEventListener('load', () => {
-        setTimeout(() => { document.getElementById('pwa-splash').classList.add('hidden'); }, 3500);
+    // SPLASH SCREEN LOGIC (8 Seconds Delay)
+    window.addEventListener('load', function() {
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            const splash = document.getElementById('pwa-splash');
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 1000);
+            }, 8000);
+        } else {
+            document.getElementById('pwa-splash').style.display = 'none';
+        }
     });
 
-    // Chatbot
+    // --- CHATBOT JS ---
     function toggleChat() {
-        const box = document.getElementById('chatbot-box');
-        box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'flex' : 'none';
+        const box = document.getElementById('chatbot-window');
+        if (box.style.display === 'none' || box.style.display === '') {
+            box.style.display = 'flex';
+            document.getElementById('chatbot-input').focus();
+        } else {
+            box.style.display = 'none';
+        }
     }
+
     function addMessage(text, type) {
         const div = document.createElement('div');
-        div.className = 'msg ' + (type === 'user' ? 'msg-user' : 'msg-bot');
+        div.className = 'message ' + (type === 'user' ? 'user-message' : 'bot-message');
         div.textContent = text;
-        const container = document.getElementById('chat-messages');
+        const container = document.getElementById('chatbot-messages');
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
     }
+
     function sendChat() {
-        const input = document.getElementById('chat-input');
+        const input = document.getElementById('chatbot-input');
         const text = input.value.trim();
         if (!text) return;
         addMessage(text, 'user');
@@ -324,20 +525,21 @@
             body: JSON.stringify({message: text})
         })
         .then(r => r.json()).then(data => addMessage(data.response, 'bot'))
-        .catch(() => addMessage("Error connecting...", 'bot'));
+        .catch(() => addMessage("I'm sorry, I'm having trouble connecting right now.", 'bot'));
     }
 
-    // PWA
+    // PWA & Stats Logic
     let deferredPrompt;
+    const installBtn = document.getElementById('pwa-install-btn');
     window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault(); deferredPrompt = e;
-        document.getElementById('pwa-install-btn').style.display = 'block';
+        installBtn.style.display = 'block';
     });
-    document.getElementById('pwa-install-btn').addEventListener('click', async () => {
+    installBtn.addEventListener('click', async () => {
         if (deferredPrompt) {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') document.getElementById('pwa-install-btn').style.display = 'none';
+            if (outcome === 'accepted') installBtn.style.display = 'none';
             deferredPrompt = null;
         }
     });
