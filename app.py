@@ -15,6 +15,7 @@ CORS(app)
 
 # --- CONFIGURATION ---
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
+# Use absolute path for database to ensure it runs correctly everywhere
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
@@ -69,67 +70,112 @@ class Hotel(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ===================== HELPER TO CREATE DATA (SAFER FOR DEPLOYMENT) =====================
-@app.before_request
-def initialize_database():
-    # This function runs before the first request, which is safer for Render
-    if not os.path.exists(db_path):
-        print("Database not found. Creating and initializing...")
-        with app.app_context():
-            db.create_all()
-            
-            if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
-                db.session.add(admin)
-            
-            rooms_data = [
-                {'number': '101', 'type': 'Standard', 'price': 10000},
-                {'number': '102', 'type': 'Deluxe', 'price': 15000},
-                {'number': '201', 'type': 'Suite', 'price': 20000},
-                {'number': '202', 'type': 'Family', 'price': 25000}
-            ]
-            
-            for r_data in rooms_data:
-                if not Room.query.filter_by(room_number=r_data['number']).first():
-                    new_room = Room(room_number=r_data['number'], room_type=r_data['type'], price=r_data['price'], status='Available')
-                    db.session.add(new_room)
-            
-            if not Hotel.query.first():
-                default_hotel = Hotel()
-                db.session.add(default_hotel)
-            
-            db.session.commit()
-            print("Database created and initialized.")
-
 # ===================== CHATBOT LOGIC =====================
 INTENTS = {
-    "greeting": { "patterns": ["hello", "hi", "hey", "bonjour", "hola"], "responses": ["Hello! Welcome to La-Maliva Vista Hotel. How can I assist?"]},
-    "check_in_out": { "patterns": ["check in", "check out", "time"], "responses": ["Check-in is from 2:00 PM, and check-out is until 12:00 PM."]},
-    "amenities": { "patterns": ["amenities", "pool", "gym", "wifi"], "responses": ["We offer free high-speed Wi-Fi, 24/7 room service, and a beautiful view of Buea."]},
-    "rooms": { "patterns": ["room", "price", "cost", "standard", "deluxe", "suite", "family"], "responses": ["Our rooms: Standard (10,000 FCFA), Deluxe (15,000 FCFA), Suite (20,000 FCFA), and Family (25,000 FCFA)."]},
-    "booking": { "patterns": ["book", "reservation"], "responses": ["You can book by clicking 'New Booking' or calling us at (+237) 679-915-967."]},
-    "location": { "patterns": ["location", "address"], "responses": ["We are located opposite Fako Heart Entrance, GRA Bokwaongo, Buea."]},
-    "fallback": { "patterns": [], "responses": ["I'm not sure I understand. Please ask about rooms, prices, or check-in times."]}
+    "greeting": {
+        "patterns": ["hello", "hi", "hey", "good morning", "good evening", "greetings", "bonjour", "salut", "hola"],
+        "responses": [
+            "Hello! Welcome to La-Maliva Vista Hotel. How can I assist you today?",
+            "Hi there! I'm the digital concierge for La-Maliva Vista. Ask me about rooms, prices, or amenities!"
+        ]
+    },
+    "check_in_out": {
+        "patterns": ["check in", "check out", "time", "arrival", "departure", "when can i arrive", "what time is checkout"],
+        "responses": [
+            "Check-in is from 2:00 PM, and check-out is until 12:00 PM. Early check-in may be available upon request."
+        ]
+    },
+    "amenities": {
+        "patterns": ["amenities", "pool", "gym", "wifi", "internet", "food", "restaurant", "piscine", "comida"],
+        "responses": [
+            "We offer free high-speed Wi-Fi, 24/7 room service, a beautiful view of Buea, and an on-site restaurant serving local and international dishes."
+        ]
+    },
+    "rooms": {
+        "patterns": ["room", "price", "cost", "standard", "deluxe", "suite", "family", "chambre", "prix", "cuanto cuesta"],
+        "responses": [
+            "Our rooms: Standard (10,000 FCFA), Deluxe (15,000 FCFA), Suite (20,000 FCFA), and Family (25,000 FCFA). All include breakfast."
+        ]
+    },
+    "booking": {
+        "patterns": ["book", "booking", "reservation", "how to book", "reserve", "reserver"],
+        "responses": [
+            "You can book directly by clicking 'New Booking' in the menu or calling us at (+237) 679-915-967."
+        ]
+    },
+    "location": {
+        "patterns": ["location", "where", "address", "find you", "ubicacion"],
+        "responses": [
+            "We are located opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon."
+        ]
+    },
+    "fallback": {
+        "patterns": [],
+        "responses": [
+            "I'm not sure I understand. Could you rephrase? You can ask me about room prices, amenities, or check-in times.",
+            "I'm your digital assistant. For complex questions, please call reception at (+237) 679-915-967."
+        ]
+    }
 }
 
 def get_intent(message):
     message_lower = message.lower()
     for intent, data in INTENTS.items():
         for pattern in data["patterns"]:
-            if re.search(rf"\b{pattern}\b", message_lower): return intent
+            if re.search(rf"\b{pattern}\b", message_lower):
+                return intent
     return "fallback"
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    user_message = request.get_json().get('message', '')
+    data = request.get_json()
+    user_message = data.get('message', '')
+    if not user_message:
+        return jsonify({"response": "Please say something."})
     intent = get_intent(user_message)
     reply = random.choice(INTENTS[intent]["responses"])
     if intent == "rooms":
         available_count = Room.query.filter_by(status='Available').count()
-        reply += f" We currently have {available_count} rooms available."
+        if available_count > 0:
+            reply += f" I've checked our live status: we have {available_count} rooms available right now!"
+        else:
+            reply += " I'm sorry, we appear to be fully booked at the moment."
     return jsonify({"response": reply})
 
-# ===================== MAIN ROUTES =====================
+# ===================== HELPER TO CREATE DATA =====================
+def create_initial_data():
+    with app.app_context():
+        try:
+            db.create_all()
+            if not User.query.filter_by(username='admin').first():
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
+                db.session.add(admin)
+            try:
+                room_301 = Room.query.filter_by(room_number='301').first()
+                if room_301: db.session.delete(room_301)
+                old_family = Room.query.filter_by(price=55000).first()
+                if old_family: db.session.delete(old_family)
+            except Exception: pass
+            rooms_data = [
+                {'number': '101', 'type': 'Standard', 'price': 10000},
+                {'number': '102', 'type': 'Deluxe', 'price': 15000},
+                {'number': '201', 'type': 'Suite', 'price': 20000},
+                {'number': '202', 'type': 'Family', 'price': 25000}
+            ]
+            for r_data in rooms_data:
+                room = Room.query.filter_by(room_number=r_data['number']).first()
+                if room:
+                    room.room_type = r_data['type']
+                    room.price = r_data['price']
+                else:
+                    new_room = Room(room_number=r_data['number'], room_type=r_data['type'], price=r_data['price'], status='Available')
+                    db.session.add(new_room)
+            if not Hotel.query.first():
+                db.session.add(Hotel())
+            db.session.commit()
+        except Exception as e: print(f"DB Error: {e}")
+
+# ===================== ROUTES =====================
 @app.route('/')
 def public_home():
     rooms = Room.query.order_by(Room.price).all()
@@ -220,50 +266,44 @@ def guests():
 @app.route('/new_reservation', methods=['GET', 'POST'])
 @login_required
 def new_reservation():
-    selected_room_id = request.args.get('room_id')
     if request.method == 'POST':
-        room_id = request.form.get('room_id')
-        guest = Guest.query.filter((Guest.email == request.form['email']) | (Guest.phone == request.form['phone'])).first()
-        if not guest:
-            guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
-            db.session.add(guest)
-            db.session.commit()
-        room = Room.query.get(room_id)
+        guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
+        db.session.add(guest)
+        db.session.commit()
+        room = Room.query.get(request.form['room_id'])
         check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M')
         check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M')
-        days = max(int((check_out - check_in).total_seconds() / 86400 + 0.99), 1)
+        days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
         amount = room.price * days
         res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
         db.session.add(res)
         db.session.commit()
-        flash('Reservation created successfully!', 'success')
-        return redirect(url_for('invoice', res_id=res.id))
+        flash('Reservation created successfully!')
+        return redirect(url_for('calendar'))
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
-    return render_template('new_reservation.html', rooms=available_rooms, selected_room_id=selected_room_id)
+    return render_template('new_reservation.html', rooms=available_rooms)
 
 @app.route('/checkin/<int:res_id>')
 @login_required
 def checkin(res_id):
     res = Reservation.query.get_or_404(res_id)
-    if res.status == 'Checked-In': return redirect(request.referrer or url_for('dashboard'))
+    if res.status == 'Checked-In': return redirect(url_for('calendar'))
     res.status = 'Checked-In'
     room = Room.query.get(res.room_id)
     room.status = 'Occupied'
     db.session.commit()
-    flash('Check-in successful!', 'success')
-    return redirect(request.referrer or url_for('dashboard'))
+    return redirect(url_for('calendar'))
 
 @app.route('/checkout/<int:res_id>')
 @login_required
 def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
-    if res.status == 'Checked-Out': return redirect(url_for('invoice', res_id=res.id))
+    if res.status == 'Checked-Out': return redirect(url_for('calendar'))
     res.status = 'Checked-Out'
     room = Room.query.get(res.room_id)
     room.status = 'Available'
     db.session.commit()
-    flash('Check-out successful! Invoice updated.', 'success')
-    return redirect(url_for('invoice', res_id=res.id))
+    return redirect(url_for('calendar'))
 
 @app.route('/invoice/<int:res_id>')
 @login_required
@@ -271,7 +311,7 @@ def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
-    days = max(int((res.check_out - res.check_in).total_seconds() / 86400 + 0.99), 1)
+    days = max((res.check_out - res.check_in).total_seconds() / (24 * 3600), 1)
     return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now())
 
 @app.route('/logout')
@@ -302,7 +342,6 @@ def settings():
         hotel.address = request.form['address']
         hotel.tax_rate = float(request.form['tax_rate'])
         db.session.commit()
-        flash('Settings updated')
         return redirect(url_for('settings'))
     return render_template('settings.html', hotel=hotel)
 
@@ -321,14 +360,12 @@ def users():
                 new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role)
                 db.session.add(new_user)
                 db.session.commit()
-                flash('User added')
         elif action == 'delete':
             user_id = request.form.get('user_id')
             user = User.query.get(user_id)
             if user and user.id != current_user.id:
                 db.session.delete(user)
                 db.session.commit()
-                flash('User deleted')
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
@@ -344,7 +381,6 @@ def edit_user(user_id):
         if request.form.get('password'): user.password_hash = generate_password_hash(request.form.get('password'))
         user.role = request.form['role']
         db.session.commit()
-        flash('User updated')
         return redirect(url_for('users'))
     return render_template('edit_user.html', user=user)
 
@@ -361,7 +397,6 @@ def restore():
     if request.method == 'POST':
         file = request.files['backup_file']
         if file: file.save(db_path)
-        flash('Database restored. Please restart the application.')
         return redirect(url_for('dashboard'))
     return render_template('restore.html')
 
@@ -404,4 +439,6 @@ def service_worker():
     return app.send_static_file('sw.js')
 
 if __name__ == '__main__':
+    with app.app_context():
+        create_initial_data()
     app.run(debug=True)
