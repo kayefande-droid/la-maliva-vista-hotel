@@ -209,7 +209,8 @@ def login():
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
             return redirect(url_for('dashboard'))
-        else: flash('Invalid credentials')
+        else:
+            flash('❌ Invalid username/email or password.', 'error')
     return render_template('login.html')
 
 @app.route('/dashboard')
@@ -220,8 +221,19 @@ def dashboard():
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
-    arrivals = Reservation.query.filter(Reservation.check_in >= datetime.combine(today, datetime.min.time()), Reservation.check_in < datetime.combine(today + timedelta(days=1), datetime.min.time())).all()
-    return render_template('dashboard.html', occupied=occupied_rooms, free=free_rooms, occupancy_rate=occupancy_rate, arrivals=arrivals)
+    
+    start_of_today = datetime.combine(today, datetime.min.time())
+    end_of_today = datetime.combine(today, datetime.max.time())
+    
+    arrivals = Reservation.query.filter(Reservation.check_in >= start_of_today, Reservation.check_in <= end_of_today).all()
+    departures = Reservation.query.filter(Reservation.check_out >= start_of_today, Reservation.check_out <= end_of_today).all()
+    
+    return render_template('dashboard.html', 
+                           occupied=occupied_rooms, 
+                           free=free_rooms, 
+                           occupancy_rate=occupancy_rate, 
+                           arrivals=arrivals,
+                           departures=departures)
 
 @app.route('/calendar')
 @login_required
@@ -266,6 +278,7 @@ def guests():
 @app.route('/new_reservation', methods=['GET', 'POST'])
 @login_required
 def new_reservation():
+    selected_room_id = request.args.get('room_id')
     if request.method == 'POST':
         guest = Guest(name=request.form['name'], phone=request.form['phone'], email=request.form['email'])
         db.session.add(guest)
@@ -277,11 +290,17 @@ def new_reservation():
         amount = room.price * days
         res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
         db.session.add(res)
+        
+        # If check-in is now or in the past, mark room as occupied
+        if check_in <= datetime.now():
+            room.status = 'Occupied'
+            res.status = 'Checked-In'
+            
         db.session.commit()
-        flash('Reservation created successfully!')
+        flash('✅ Reservation created successfully!', 'success')
         return redirect(url_for('calendar'))
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
-    return render_template('new_reservation.html', rooms=available_rooms)
+    return render_template('new_reservation.html', rooms=available_rooms, selected_room_id=selected_room_id)
 
 @app.route('/checkin/<int:res_id>')
 @login_required
@@ -342,6 +361,7 @@ def settings():
         hotel.address = request.form['address']
         hotel.tax_rate = float(request.form['tax_rate'])
         db.session.commit()
+        flash('✅ Hotel settings updated successfully!', 'success')
         return redirect(url_for('settings'))
     return render_template('settings.html', hotel=hotel)
 
@@ -360,12 +380,17 @@ def users():
                 new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role)
                 db.session.add(new_user)
                 db.session.commit()
+                flash(f'✅ User {username} added successfully!', 'info')
+            else:
+                flash(f'❌ User {username} or email already exists!', 'error')
         elif action == 'delete':
             user_id = request.form.get('user_id')
             user = User.query.get(user_id)
             if user and user.id != current_user.id:
+                username = user.username
                 db.session.delete(user)
                 db.session.commit()
+                flash(f'✅ User {username} deleted.', 'info')
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
@@ -396,8 +421,13 @@ def restore():
     if current_user.role != 'admin': return redirect(url_for('dashboard'))
     if request.method == 'POST':
         file = request.files['backup_file']
-        if file: file.save(db_path)
-        return redirect(url_for('dashboard'))
+        if file and file.filename != '':
+            try:
+                file.save(db_path)
+                flash('✅ Database restored successfully!', 'success')
+                return redirect(url_for('dashboard'))
+            except Exception as e:
+                flash(f'❌ Restore failed: {str(e)}', 'error')
     return render_template('restore.html')
 
 @app.route('/about')
