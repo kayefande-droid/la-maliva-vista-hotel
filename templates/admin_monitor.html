@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin User Monitoring</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 900px; margin: auto; background: #f9f9f9; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        .admin-note { background-color: #ffe0b2; border-left: 6px solid #ff9800; margin-bottom: 20px; padding: 10px; }
+        .contact-info { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; }
+        .user-list { margin-top: 20px; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        .user-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .user-item:last-child { border-bottom: none; }
+        .message-form { margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; background-color: #e8f5e9; }
+        textarea { width: 100%; height: 80px; margin-bottom: 10px; padding: 8px; border-radius: 4px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin User Monitoring System</h1>
+        <div class="admin-note">
+            <strong>Administrator Access Only:</strong> This page provides tools for monitoring staff and users. Unauthorized access is prohibited.
+        </div>
+
+        <h2>Registered Users/Staff</h2>
+        <div class="user-list">
+            <!-- Placeholder for dynamically loaded user list -->
+            <div class="user-item">
+                <span>User ID: 101 - John Doe (Staff)</span>
+                <button onclick="selectUserForMessage('John Doe', '101')">Message</button>
+            </div>
+            <div class="user-item">
+                <span>User ID: 102 - Jane Smith (Customer)</span>
+                <button onclick="selectUserForMessage('Jane Smith', '102')">Message</button>
+            </div>
+            <div class="user-item">
+                <span>User ID: 103 - Peter Jones (Staff)</span>
+                <button onclick="selectUserForMessage('Peter Jones', '103')">Message</button>
+            </div>
+            <!-- More users would be listed here -->
+        </div>
+
+        <div class="message-form">
+            <h2>Send Message to <span id="selectedUserName">[Select a User]</span></h2>
+            <form onsubmit="sendMessage(event)">
+                <input type="hidden" id="selectedUserId" value="">
+                <textarea id="messageContent" placeholder="Type your message here..." required></textarea>
+                <button type="submit">Send Message</button>
+            </form>
+        </div>
+
+        <div class="contact-info">
+            <h3>Company Contact Information</h3>
+            <p><strong>Company Phone:</strong> 679915967</p>
+            <p><strong>Support Line:</strong> 679915967</p>
+            <p>For urgent matters, please use the direct line above.</p>
+        </div>
+    </div>
+
+    <script>
+        function selectUserForMessage(userName, userId) {
+            document.getElementById('selectedUserName').innerText = userName;
+            document.getElementById('selectedUserId').value = userId;
+            alert('Selected ' + userName + ' (ID: ' + userId + ') for messaging.');
+        }
+
+        function sendMessage(event) {
+            event.preventDefault();
+            const userId = document.getElementById('selectedUserId').value;
+            const userName = document.getElementById('selectedUserName').innerText;
+            const message = document.getElementById('messageContent').value;
+
+            if (!userId) {
+                alert('Please select a user to send a message to.');
+                return;
+            }
+            if (!message.trim()) {
+                alert('Message cannot be empty.');
+                return;
+            }
+
+            // In a real application, this would send data to a backend server
+            console.log(`Sending message to User ID: ${userId} (${userName}): "${message}"`);
+            alert(`Message sent to ${userName}! (Simulated)`);
+            document.getElementById('messageContent').value = ''; // Clear message box
+        }
+    </script>
+</body>
+</html>
