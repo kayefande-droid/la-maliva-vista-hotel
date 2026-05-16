@@ -24,6 +24,8 @@
                         <th>Username</th>
                         <th>Email</th>
                         <th>Role</th>
+                        <th>Registered On</th> {# New column #}
+                        <th>Monitored</th> {# New column #}
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -36,6 +38,18 @@
                             <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
                                 {{ user.role|upper }}
                             </span>
+                        </td>
+                        <td class="align-middle">{{ user.registered_on.strftime('%Y-%m-%d %H:%M') }}</td> {# Display registered_on #}
+                        <td class="align-middle">
+                            {% if user.role == 'staff' %}
+                                {% if user.can_be_monitored_by_admin %}
+                                    <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
                         </td>
                         <td class="text-end">
                             <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-secondary me-1">

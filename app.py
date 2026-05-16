@@ -44,6 +44,7 @@ class Room(db.Model):
     room_type = db.Column(db.String(50))
     price = db.Column(db.Float)
     status = db.Column(db.String(20), default='Available')
+    description = db.Column(db.String(255), nullable=True) # New field for room features
 
 class Guest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -86,7 +87,7 @@ INTENTS = {
         ]
     },
     "amenities": {
-        "patterns": ["amenities", "pool", "gym", "wifi", "internet", "food", "restaurant", "piscine", "comida"],
+        "patterns": ["amenities", "pool", "wifi", "internet", "food", "restaurant", "piscine", "comida"],
         "responses": [
             "We offer free high-speed Wi-Fi, 24/7 room service, a beautiful view of Buea, and an on-site restaurant serving local and international dishes."
         ]
@@ -150,33 +151,41 @@ def create_initial_data():
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
                 db.session.add(admin)
-            try:
-                room_301 = Room.query.filter_by(room_number='301').first()
-                if room_301: db.session.delete(room_301)
-                old_family = Room.query.filter_by(price=55000).first()
-                if old_family: db.session.delete(old_family)
-            except Exception: pass
-            rooms_data = []
-            # Standard Rooms 101-104
-            for i in range(101, 105):
-                rooms_data.append({'number': str(i), 'type': 'Standard', 'price': 10000})
-            # Deluxe Rooms 201-205
-            for i in range(201, 206):
-                rooms_data.append({'number': str(i), 'type': 'Deluxe', 'price': 15000})
-            # Suite Rooms 206-210
-            for i in range(206, 211):
-                rooms_data.append({'number': str(i), 'type': 'Suite', 'price': 20000})
-            # Family Room (existing)
-            rooms_data.append({'number': '202', 'type': 'Family', 'price': 25000}) # Keep existing family room if it's unique
+            
+            # Clear existing room data to ensure only the new, specified rooms are present
+            Room.query.delete()
+            db.session.commit()
+
+            rooms_data = [
+                # Standard Rooms
+                {'number': '101', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort'},
+                {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view'},
+                {'number': '103', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view'},
+                {'number': '104', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort'},
+                
+                # Deluxe Rooms
+                {'number': '201', 'type': 'Deluxe', 'price': 25000, 'description': 'With fridge, couch, and large space'},
+                {'number': '202', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
+                {'number': '203', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space'},
+                {'number': '204', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space'},
+                {'number': '205', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
+                {'number': '206', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
+                {'number': '207', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
+                {'number': '208', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
+                {'number': '209', 'type': 'Deluxe', 'price': 20000, 'description': 'With fridge and couch'},
+                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV'}
+            ]
 
             for r_data in rooms_data:
-                room = Room.query.filter_by(room_number=r_data['number']).first()
-                if room:
-                    room.room_type = r_data['type']
-                    room.price = r_data['price']
-                else:
-                    new_room = Room(room_number=r_data['number'], room_type=r_data['type'], price=r_data['price'], status='Available')
-                    db.session.add(new_room)
+                new_room = Room(
+                    room_number=r_data['number'],
+                    room_type=r_data['type'],
+                    price=r_data['price'],
+                    status='Available',
+                    description=r_data['description']
+                )
+                db.session.add(new_room)
+
             if not Hotel.query.first():
                 db.session.add(Hotel())
             db.session.commit()
