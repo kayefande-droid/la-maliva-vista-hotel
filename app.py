@@ -156,12 +156,19 @@ def create_initial_data():
                 old_family = Room.query.filter_by(price=55000).first()
                 if old_family: db.session.delete(old_family)
             except Exception: pass
-            rooms_data = [
-                {'number': '101', 'type': 'Standard', 'price': 10000},
-                {'number': '102', 'type': 'Deluxe', 'price': 15000},
-                {'number': '201', 'type': 'Suite', 'price': 20000},
-                {'number': '202', 'type': 'Family', 'price': 25000}
-            ]
+            rooms_data = []
+            # Standard Rooms 101-104
+            for i in range(101, 105):
+                rooms_data.append({'number': str(i), 'type': 'Standard', 'price': 10000})
+            # Deluxe Rooms 201-205
+            for i in range(201, 206):
+                rooms_data.append({'number': str(i), 'type': 'Deluxe', 'price': 15000})
+            # Suite Rooms 206-210
+            for i in range(206, 211):
+                rooms_data.append({'number': str(i), 'type': 'Suite', 'price': 20000})
+            # Family Room (existing)
+            rooms_data.append({'number': '202', 'type': 'Family', 'price': 25000}) # Keep existing family room if it's unique
+
             for r_data in rooms_data:
                 room = Room.query.filter_by(room_number=r_data['number']).first()
                 if room:
@@ -455,6 +462,35 @@ def occupancy_report():
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
     rooms = Room.query.order_by(Room.price).all()
     return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
+
+@app.route('/admin_monitoring')
+@login_required
+def admin_monitoring():
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Administrators only.', 'error')
+        return redirect(url_for('dashboard'))
+    users_list = User.query.all()
+    return render_template('admin_monitoring.html', users=users_list)
+
+@app.route('/send_message', methods=['POST'])
+@login_required
+def send_message():
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Administrators only.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    user_id = request.form.get('user_id')
+    message_content = request.form.get('message_content')
+    
+    user = User.query.get(user_id)
+    if user:
+        # In a real application, you would integrate with a messaging service (e.g., email, SMS, internal notification system)
+        # For this example, we'll just flash a message.
+        flash(f'✅ Message sent to {user.username}: "{message_content}"', 'success')
+    else:
+        flash('❌ User not found.', 'error')
+        
+    return redirect(url_for('admin_monitoring'))
 
 @app.route('/user_manual')
 def user_manual():

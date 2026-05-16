@@ -357,6 +357,7 @@
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings (Hotel Info)</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('users') }}">User Management</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_monitoring') }}">Admin Monitoring</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('backup') }}">Backup Database</a></li>
                             <li><a class="dropdown-item" href="{{ url_for('restore') }}">Restore Database</a></li>
                         </ul>
@@ -415,6 +416,7 @@
             <div class="border-top my-2 border-secondary"></div>
             <small class="text-muted ms-3 fw-bold" style="color: #ffb700 !important;">ADMIN TOOLS</small>
             <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
+            <a href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
             <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
             <a href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup DB</a>
             {% endif %}

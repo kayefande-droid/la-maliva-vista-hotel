@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .monitoring-header {
+        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+    }
+    .info-card {
+        border: 2px solid #ffb700;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+    }
+    .user-card {
+        border: 1px solid rgba(0, 82, 204, 0.2);
+        transition: all 0.3s ease;
+    }
+    .user-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        border-color: #ffb700;
+    }
+    .btn-send {
+        background: linear-gradient(90deg, #0052cc, #003d99);
+        border: none;
+        color: white;
+    }
+    .btn-send:hover {
+        background: linear-gradient(90deg, #ffb700, #ff9500);
+        color: #001a4d;
+    }
+</style>
+
+<div class="main-content">
+    <div class="monitoring-header">
+        <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-display"></i> Admin Monitoring System</h5>
+        <small>Monitor staff activity and manage communications</small>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ 'success' if category == 'success' else 'info' if category == 'info' else 'danger' }} alert-dismissible fade show" role="alert">
+            <i class="bi {{ 'bi-check-circle' if category == 'success' else 'bi-info-circle' }}"></i> {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="card info-card mb-4">
+        <div class="card-header bg-transparent fw-bold" style="color: #0052cc;">
+            <i class="bi bi-info-circle-fill"></i> Company Information
+        </div>
+        <div class="card-body">
+            <p class="mb-1"><strong>Company Phone:</strong> 679915967</p>
+            <p class="mb-1"><strong>Support Number:</strong> 679915967</p>
+            <p class="mb-0"><strong>Other Info:</strong> La-Maliva Vista Hotel, dedicated to providing excellent service.</p>
+        </div>
+    </div>
+
+    <h5 class="mb-3" style="color: #0052cc;"><i class="bi bi-people"></i> Manage Users</h5>
+    <div class="row">
+        {% for user in users %}
+        <div class="col-md-4 mb-3">
+            <div class="card user-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title" style="color: #003d99;">{{ user.username }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted small">{{ user.email }}</h6>
+                    <p class="card-text">
+                        <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
+                            {{ user.role|upper }}
+                        </span>
+                    </p>
+                    <button class="btn btn-send btn-sm w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-userid="{{ user.id }}" data-username="{{ user.username }}">
+                        <i class="bi bi-envelope"></i> Send Message
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Send Message Modal -->
+<div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title text-white" id="sendMessageModalLabel">Send Message to <span id="modalUsername"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('send_message') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="user_id" id="modalUserId">
+                    <div class="mb-3">
+                        <label for="messageContent" class="form-label fw-bold">Message Content</label>
+                        <textarea class="form-control" id="messageContent" name="message_content" rows="5" placeholder="Type your instruction or message here..." required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary bg-primary border-0">
+                        <i class="bi bi-send"></i> Dispatch Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var sendMessageModal = document.getElementById('sendMessageModal');
+        sendMessageModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var userId = button.getAttribute('data-userid');
+            var username = button.getAttribute('data-username');
+            
+            var modalUsername = sendMessageModal.querySelector('#modalUsername');
+            var modalUserId = sendMessageModal.querySelector('#modalUserId');
+            
+            modalUsername.textContent = username;
+            modalUserId.value = userId;
+        });
+    });
+</script>
+{% endblock %}
