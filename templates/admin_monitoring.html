@@ -33,6 +33,11 @@
         background: linear-gradient(90deg, #ffb700, #ff9500);
         color: #001a4d;
     }
+    .monitoring-status-badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.6em;
+        border-radius: 0.3em;
+    }
 </style>
 
 <div class="main-content">
@@ -68,21 +73,40 @@
         {% for user in users %}
         <div class="col-md-4 mb-3">
             <div class="card user-card h-100">
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h5 class="card-title" style="color: #003d99;">{{ user.username }}</h5>
                     <h6 class="card-subtitle mb-2 text-muted small">{{ user.email }}</h6>
-                    <p class="card-text">
-                        <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
+                    <p class="card-text mb-1">
+                        Role: <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
                             {{ user.role|upper }}
                         </span>
                     </p>
-                    <button class="btn btn-send btn-sm w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-userid="{{ user.id }}" data-username="{{ user.username }}">
-                        <i class="bi bi-envelope"></i> Send Message
-                    </button>
+                    <p class="card-text mb-3">
+                        Monitoring:
+                        {% if user.role == 'staff' %}
+                            {% if user.can_be_monitored_by_admin %}
+                                <span class="badge bg-success monitoring-status-badge">Allowed</span>
+                            {% else %}
+                                <span class="badge bg-warning monitoring-status-badge">Not Allowed</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="badge bg-secondary monitoring-status-badge">N/A</span>
+                        {% endif %}
+                    </p>
+                    <div class="mt-auto">
+                        <button class="btn btn-send btn-sm w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-userid="{{ user.id }}" data-username="{{ user.username }}">
+                            <i class="bi bi-envelope"></i> Send Message
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         {% endfor %}
+    </div>
+
+    <div class="alert alert-info mt-4">
+        <h6 class="alert-heading"><i class="bi bi-exclamation-circle"></i> Note on Monitoring:</h6>
+        <p class="mb-0">The "Monitoring" status indicates if an administrator has permission to view this staff member's activity *within the hotel management system website*. This feature requires additional client-side (JavaScript) and potentially server-side (WebSockets) implementation to capture and display real-time activity. This flag only grants the *permission* for such a system to operate, it does not implement the screen view itself. Staff will not be explicitly notified when this permission is granted or when monitoring is active.</p>
     </div>
 </div>
 

@@ -59,7 +59,7 @@
     }
     .btn-cancel:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 88px 16px rgba(0, 0, 0, 0.2);
     }
     .form-section {
         margin-bottom: 20px;
@@ -108,6 +108,17 @@
                     <option value="admin" {% if user.role == 'admin' %}selected{% endif %} style="color: #666;">Admin (Full Access)</option>
                 </select>
             </div>
+
+            {# Admin-only permission for staff monitoring #}
+            {% if user.role == 'staff' and current_user.role == 'admin' %}
+            <div class="form-section form-check mt-4">
+                <input type="checkbox" class="form-check-input" id="can_be_monitored_by_admin" name="can_be_monitored_by_admin" {% if user.can_be_monitored_by_admin %}checked{% endif %}>
+                <label class="form-check-label" for="can_be_monitored_by_admin">
+                    Allow Admin Monitoring (Staff's in-app activity)
+                </label>
+                <small class="text-muted">Grants administrator permission to view this staff member's activity within the hotel management system. Staff will not be notified.</small>
+            </div>
+            {% endif %}
 
             <div class="row mt-4">
                 <div class="col-md-6">
