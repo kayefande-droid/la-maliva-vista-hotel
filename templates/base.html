@@ -14,12 +14,136 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
-        * { transition: all 0.2s ease; }
+        /* General Transitions and Animations */
+        * {
+            transition: all 0.3s ease-in-out;
+        }
         body {
             background: linear-gradient(135deg, #001a4d 0%, #003d99 50%, #001a4d 100%);
-            font-family: Tahoma, sans-serif;
-            font-size:13px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 14px;
             min-height: 100vh;
+            color: #333; /* Default text color for main content */
+            position: relative;
+            overflow-x: hidden; /* Prevent horizontal scroll from animations */
+        }
+
+        /* Background animation for a subtle effect */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at top left, rgba(255, 183, 0, 0.05) 0%, transparent 30%),
+                        radial-gradient(circle at bottom right, rgba(0, 82, 204, 0.05) 0%, transparent 30%);
+            animation: backgroundPan 20s infinite alternate linear;
+            z-index: -2;
+        }
+
+        @keyframes backgroundPan {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+
+        /* General card styling */
+        .card {
+            border-radius: 12px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .card:hover {
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+        }
+
+        /* General button styling */
+        .btn {
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(90deg, #0052cc, #003d99);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(90deg, #003d99, #002266);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0, 82, 204, 0.3);
+        }
+        .btn-warning {
+            background: linear-gradient(90deg, #ffb700, #ff9500);
+            border: none;
+            color: #001a4d;
+        }
+        .btn-warning:hover {
+            background: linear-gradient(90deg, #ff9500, #ff7c00);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(255, 183, 0, 0.3);
+        }
+        .btn-danger {
+            background: linear-gradient(90deg, #dc3545, #b02a37);
+            border: none;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(90deg, #b02a37, #8d1c27);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+        }
+        .btn-success {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border: none;
+        }
+        .btn-success:hover {
+            background: linear-gradient(90deg, #20c997, #17a2b8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Main content area styling */
+        .main-content {
+            background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(245, 250, 255, 0.95));
+            border: 1px solid rgba(0, 82, 204, 0.1);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            margin-top: 20px;
+            margin-bottom: 20px;
+            animation: slideInUp 0.8s ease-out;
+        }
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Headers and titles */
+        h1, h2, h3, h4, h5, h6 {
+            color: #003d99;
+            font-weight: 700;
+        }
+        .text-primary { color: #0052cc !important; }
+        .text-warning { color: #ffb700 !important; }
+        .text-danger { color: #dc3545 !important; }
+        .text-success { color: #28a745 !important; }
+
+        /* Badges */
+        .badge {
+            padding: 0.5em 0.8em;
+            border-radius: 0.5rem;
+            font-weight: 600;
+        }
+
+        /* Alerts */
+        .alert {
+            border-radius: 8px;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         /* SPLASH SCREEN STYLES */
@@ -220,28 +344,110 @@
             justify-content: center;
         }
 
-        /* Rest of Styles */
-        .main-content {
-            border: 2px solid rgba(0, 82, 204, 0.3);
-            background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(240, 250, 255, 0.9));
-            padding: 25px;
-            min-height: 620px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-            border-radius: 12px;
-            backdrop-filter: blur(5px);
-            margin: 15px;
-        }
+        /* Top Menu */
         .top-menu {
             background: linear-gradient(90deg, #003d99, #0052cc);
-            color:white;
-            padding:8px 15px;
-            border-bottom: 3px solid #0052cc;
+            color: white;
+            padding: 8px 15px;
+            border-bottom: 3px solid #ffb700; /* Accent color */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
+        .top-menu .navbar-nav .nav-link {
+            color: white !important;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .top-menu .navbar-nav .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+        .top-menu .dropdown-menu {
+            background-color: #fff;
+            border: 1px solid #0052cc;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        .top-menu .dropdown-item {
+            color: #003d99;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .top-menu .dropdown-item:hover {
+            background-color: #e9ecef;
+            color: #ffb700;
+        }
+        .top-menu .dropdown-item i {
+            margin-right: 8px;
+            color: #ffb700;
+        }
+
+        /* Sidebar */
         .sidebar {
-            background: linear-gradient(180deg, rgba(0, 61, 153, 0.15), rgba(0, 82, 204, 0.08));
-            border-right: 3px solid #ffb700;
+            background: linear-gradient(180deg, rgba(0, 61, 153, 0.05), rgba(0, 82, 204, 0.02));
+            border-right: 2px solid #ffb700;
             padding: 20px;
-            width: 220px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            animation: slideInLeft 0.6s ease-out;
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .sidebar .btn-outline-primary, .sidebar .btn-outline-success, .sidebar .btn-outline-warning {
+            border-width: 2px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .sidebar .btn-outline-primary { color: #0052cc; border-color: #0052cc; }
+        .sidebar .btn-outline-primary:hover { background-color: #0052cc; color: white; }
+        .sidebar .btn-outline-success { color: #28a745; border-color: #28a745; }
+        .sidebar .btn-outline-success:hover { background-color: #28a745; color: white; }
+        .sidebar .btn-outline-warning { color: #ffb700; border-color: #ffb700; }
+        .sidebar .btn-outline-warning:hover { background-color: #ffb700; color: #001a4d; }
+
+        /* Right Panel */
+        .right-panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(240, 250, 255, 0.9));
+            border-left: 2px solid #0052cc;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            animation: slideInRight 0.6s ease-out;
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Toolbar */
+        .toolbar {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin: 10px 15px 0 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            border: 1px solid #eee;
+            animation: fadeIn 0.5s ease-out;
+        }
+        .toolbar .btn {
+            margin-right: 8px;
+            font-size: 13px;
+            padding: 8px 15px;
+        }
+        .toolbar .btn-primary {
+            background: linear-gradient(90deg, #0052cc, #003d99);
+            color: white;
+        }
+        .toolbar .btn-light {
+            background-color: #f8f9fa;
+            border: 1px solid #ddd;
+            color: #003d99;
+        }
+        .toolbar .btn-light:hover {
+            background-color: #e9ecef;
+            border-color: #0052cc;
         }
 
         /* Mobile Menu */
@@ -258,20 +464,13 @@
             align-items: center;
             gap: 10px;
             text-decoration: none;
+            transition: background-color 0.3s ease;
         }
-
-        /* PWA Install Button (Moved left to avoid chatbot overlap) */
-        #pwa-install-btn {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            right: 100px; /* Moved left */
-            z-index: 9999;
-            background: #ffb700; color: #001a4d;
-            border: none; border-radius: 50px;
-            padding: 12px 24px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            font-weight: bold;
+        .mobile-offcanvas a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        .mobile-offcanvas small {
+            color: #ffb700 !important;
         }
 
         @media (max-width: 992px) {
@@ -279,6 +478,7 @@
             .navbar-collapse, .sidebar { display: none !important; }
             .toolbar { display: flex; overflow-x: auto; padding-bottom: 15px; }
             .toolbar button { flex: 0 0 auto; }
+            .main-content { margin: 10px; padding: 15px; }
         }
     </style>
     <!-- Fonts for Splash -->

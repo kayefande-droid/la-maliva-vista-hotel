@@ -157,6 +157,11 @@
         color: #ffb700;
         margin-bottom: 20px;
     }
+    .status-badge {
+        font-size: 0.85em;
+        padding: 0.4em 0.6em;
+        border-radius: 0.3em;
+    }
     @media (max-width: 768px) {
         .reservations-container {
             padding: 10px;
@@ -200,6 +205,8 @@
                         <th><i class="bi bi-door-open"></i> Room</th>
                         <th><i class="bi bi-calendar-event"></i> Check-in</th>
                         <th><i class="bi bi-calendar-event"></i> Check-out</th>
+                        <th><i class="bi bi-hourglass-split"></i> Deadline</th> {# New column #}
+                        <th><i class="bi bi-cash-stack"></i> Paid/Arrived</th> {# New column #}
                         <th><i class="bi bi-gear"></i> Actions</th>
                     </tr>
                 </thead>
@@ -231,11 +238,33 @@
                                 <i class="bi bi-clock"></i> {{ res.check_out.strftime('%H:%M') }}
                             </div>
                         </td>
+                        <td> {# Access Deadline #}
+                            {% if res.access_deadline %}
+                                <div class="datetime-info">
+                                    <strong>{{ res.access_deadline.strftime('%d %b %Y') }}</strong><br>
+                                    <i class="bi bi-clock"></i> {{ res.access_deadline.strftime('%H:%M') }}
+                                </div>
+                                {% if res.access_deadline < datetime.utcnow() and not res.customer_arrived_paid %}
+                                    <span class="badge bg-danger status-badge">Expired</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td> {# Paid/Arrived Status #}
+                            {% if res.customer_arrived_paid %}
+                                <span class="badge bg-success status-badge">Yes</span>
+                            {% else %}
+                                <span class="badge bg-warning status-badge">No</span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="action-buttons">
+                                {% if not res.customer_arrived_paid %}
                                 <a href="/checkin/{{res.id}}" class="btn btn-sm btn-action btn-checkin">
                                     <i class="bi bi-box-arrow-down"></i> Check-in
                                 </a>
+                                {% endif %}
                                 <a href="/checkout/{{res.id}}" class="btn btn-sm btn-action btn-checkout">
                                     <i class="bi bi-box-arrow-up"></i> Check-out
                                 </a>
@@ -248,7 +277,7 @@
                     {% endfor %}
                     {% if not reservations %}
                     <tr>
-                        <td colspan="5">
+                        <td colspan="7"> {# Updated colspan #}
                             <div class="no-reservations">
                                 <i class="bi bi-calendar-x"></i>
                                 <div>No reservations found</div>
