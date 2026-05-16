@@ -38,6 +38,30 @@
         padding: 0.4em 0.6em;
         border-radius: 0.3em;
     }
+    .activity-log-container {
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        padding: 10px;
+        background-color: #f9f9f9;
+        font-size: 0.8em;
+        color: #555;
+    }
+    .activity-log-item {
+        margin-bottom: 5px;
+        padding-bottom: 5px;
+        border-bottom: 1px dashed #eee;
+    }
+    .activity-log-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .log-timestamp {
+        font-weight: bold;
+        color: #0052cc;
+    }
 </style>
 
 <div class="main-content">
@@ -70,7 +94,9 @@
 
     <h5 class="mb-3" style="color: #0052cc;"><i class="bi bi-people"></i> Manage Users</h5>
     <div class="row">
-        {% for user in users %}
+        {% for user_data in users_with_logs %}
+        {% set user = user_data.user %}
+        {% set logs = user_data.logs %}
         <div class="col-md-4 mb-3">
             <div class="card user-card h-100">
                 <div class="card-body d-flex flex-column">
@@ -93,6 +119,22 @@
                             <span class="badge bg-secondary monitoring-status-badge">N/A</span>
                         {% endif %}
                     </p>
+
+                    {% if user.role == 'staff' and user.can_be_monitored_by_admin %}
+                    <h6 class="mt-2 mb-2" style="color: #0052cc;">Recent Activity:</h6>
+                    <div class="activity-log-container mb-3">
+                        {% if logs %}
+                            {% for log in logs %}
+                                <div class="activity-log-item">
+                                    <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>: {{ log.action }}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted mb-0">No recent activity logged.</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
                     <div class="mt-auto">
                         <button class="btn btn-send btn-sm w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-userid="{{ user.id }}" data-username="{{ user.username }}">
                             <i class="bi bi-envelope"></i> Send Message
@@ -106,7 +148,7 @@
 
     <div class="alert alert-info mt-4">
         <h6 class="alert-heading"><i class="bi bi-exclamation-circle"></i> Note on Monitoring:</h6>
-        <p class="mb-0">The "Monitoring" status indicates if an administrator has permission to view this staff member's activity *within the hotel management system website*. This feature requires additional client-side (JavaScript) and potentially server-side (WebSockets) implementation to capture and display real-time activity. This flag only grants the *permission* for such a system to operate, it does not implement the screen view itself. Staff will not be explicitly notified when this permission is granted or when monitoring is active.</p>
+        <p class="mb-0">The "Monitoring" status indicates if an administrator has permission to view this staff member's activity *within the hotel management system website*. This is implemented as an activity log, recording actions performed by the staff member. This flag only grants the *permission* for such a system to operate, it does not implement direct screen sharing. Staff will not be explicitly notified when this permission is granted or when monitoring is active.</p>
     </div>
 </div>
 

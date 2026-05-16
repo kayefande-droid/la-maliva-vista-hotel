@@ -9,6 +9,7 @@ import io
 import csv
 import random
 import re
+from functools import wraps # Import wraps for decorator
 
 app = Flask(__name__)
 CORS(app)
@@ -37,6 +38,8 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
+    registered_on = db.Column(db.DateTime, default=datetime.utcnow) # New: Registration timestamp
+    can_be_monitored_by_admin = db.Column(db.Boolean, default=False) # New: Permission for screen view
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -44,7 +47,7 @@ class Room(db.Model):
     room_type = db.Column(db.String(50))
     price = db.Column(db.Float)
     status = db.Column(db.String(20), default='Available')
-    description = db.Column(db.String(255), nullable=True) # New field for room features
+    description = db.Column(db.String(255), nullable=True)
 
 class Guest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -60,6 +63,8 @@ class Reservation(db.Model):
     check_out = db.Column(db.DateTime)
     status = db.Column(db.String(20), default='Confirmed')
     amount = db.Column(db.Float)
+    access_deadline = db.Column(db.DateTime, nullable=True) # New: Deadline for room access
+    customer_arrived_paid = db.Column(db.Boolean, default=False) # New: Checkbox for arrival/payment
 
 class Hotel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -67,9 +72,35 @@ class Hotel(db.Model):
     address = db.Column(db.String(200), default='Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon')
     tax_rate = db.Column(db.Float, default=0.0)
 
+class ActivityLog(db.Model): # New ActivityLog Model
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    action = db.Column(db.String(255))
+    details = db.Column(db.Text, nullable=True)
+
+    user = db.relationship('User', backref=db.backref('activity_logs', lazy=True))
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# ===================== ACTIVITY LOGGING DECORATOR =====================
+def log_activity(action_description):
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if current_user.is_authenticated and current_user.role == 'staff' and current_user.can_be_monitored_by_admin:
+                log_entry = ActivityLog(
+                    user_id=current_user.id,
+                    action=action_description,
+                    details=f"Accessed {request.path} with method {request.method}"
+                )
+                db.session.add(log_entry)
+                db.session.commit()
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
 # ===================== CHATBOT LOGIC =====================
 INTENTS = {
@@ -149,7 +180,7 @@ def create_initial_data():
         try:
             db.create_all()
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin')
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.utcnow(), can_be_monitored_by_admin=True)
                 db.session.add(admin)
             
             # Clear existing room data to ensure only the new, specified rooms are present
@@ -209,7 +240,7 @@ def signup():
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
-        new_user = User(username=username, email=email, password_hash=generate_password_hash(password))
+        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), registered_on=datetime.utcnow()) # Set registered_on
         db.session.add(new_user)
         db.session.commit()
         flash('✅ Account created successfully! Please login.', 'success')
@@ -231,6 +262,7 @@ def login():
 
 @app.route('/dashboard')
 @login_required
+@log_activity("Viewed Dashboard") # Log activity
 def dashboard():
     today = datetime.today().date()
     total_rooms = Room.query.count()
@@ -253,6 +285,7 @@ def dashboard():
 
 @app.route('/calendar')
 @login_required
+@log_activity("Viewed Calendar") # Log activity
 def calendar(): return render_template('calendar.html')
 
 @app.route('/api/rooms')
@@ -274,18 +307,21 @@ def api_reservations():
 
 @app.route('/rooms')
 @login_required
+@log_activity("Viewed Rooms List") # Log activity
 def rooms():
     rooms_list = Room.query.order_by(Room.price).all()
     return render_template('rooms.html', rooms=rooms_list)
 
 @app.route('/reservations')
 @login_required
+@log_activity("Viewed Reservations List") # Log activity
 def reservations():
     res_list = Reservation.query.all()
     return render_template('reservations.html', reservations=res_list)
 
 @app.route('/guests')
 @login_required
+@log_activity("Viewed Guests List") # Log activity
 def guests():
     if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
     guest_list = Guest.query.all()
@@ -293,6 +329,7 @@ def guests():
 
 @app.route('/new_reservation', methods=['GET', 'POST'])
 @login_required
+@log_activity("Attempted New Reservation") # Log activity
 def new_reservation():
     selected_room_id = request.args.get('room_id')
     if request.method == 'POST':
@@ -302,9 +339,13 @@ def new_reservation():
         room = Room.query.get(request.form['room_id'])
         check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M')
         check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M')
+        
+        # Set access deadline (e.g., 1 hour after check-in)
+        access_deadline = check_in + timedelta(hours=1)
+        
         days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
         amount = room.price * days
-        res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed')
+        res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed', access_deadline=access_deadline, customer_arrived_paid=False)
         db.session.add(res)
         
         # If check-in is now or in the past, mark room as occupied
@@ -313,24 +354,35 @@ def new_reservation():
             res.status = 'Checked-In'
             
         db.session.commit()
-        flash('✅ Reservation created successfully!', 'success')
+        flash('✅ Reservation created successfully! Please ensure customer arrives by deadline.', 'success')
+        log_activity("Created New Reservation") # Log successful creation
         return redirect(url_for('calendar'))
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms, selected_room_id=selected_room_id)
 
 @app.route('/checkin/<int:res_id>')
 @login_required
+@log_activity("Attempted Check-in") # Log activity
 def checkin(res_id):
     res = Reservation.query.get_or_404(res_id)
     if res.status == 'Checked-In': return redirect(url_for('calendar'))
-    res.status = 'Checked-In'
-    room = Room.query.get(res.room_id)
-    room.status = 'Occupied'
-    db.session.commit()
+    
+    # Check if current user is admin or staff to allow setting customer_arrived_paid
+    if current_user.role in ['admin', 'staff']:
+        res.customer_arrived_paid = True # Mark as arrived and paid
+        res.status = 'Checked-In'
+        room = Room.query.get(res.room_id)
+        room.status = 'Occupied'
+        db.session.commit()
+        flash('✅ Guest checked in and payment confirmed!', 'success')
+        log_activity(f"Checked-in Reservation {res.id}") # Log successful check-in
+    else:
+        flash('❌ You do not have permission to perform this action.', 'error')
     return redirect(url_for('calendar'))
 
 @app.route('/checkout/<int:res_id>')
 @login_required
+@log_activity("Attempted Check-out") # Log activity
 def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
     if res.status == 'Checked-Out': return redirect(url_for('calendar'))
@@ -338,10 +390,13 @@ def checkout(res_id):
     room = Room.query.get(res.room_id)
     room.status = 'Available'
     db.session.commit()
+    flash('✅ Guest checked out!', 'success')
+    log_activity(f"Checked-out Reservation {res.id}") # Log successful check-out
     return redirect(url_for('calendar'))
 
 @app.route('/invoice/<int:res_id>')
 @login_required
+@log_activity("Viewed Invoice") # Log activity
 def invoice(res_id):
     res = Reservation.query.get_or_404(res_id)
     guest = Guest.query.get(res.guest_id)
@@ -351,12 +406,14 @@ def invoice(res_id):
 
 @app.route('/logout')
 @login_required
+@log_activity("Logged Out") # Log activity
 def logout():
     logout_user()
     return redirect(url_for('login'))
 
 @app.route('/export_data')
 @login_required
+@log_activity("Exported Data") # Log activity
 def export_data():
     if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
     guests = Guest.query.all()
@@ -369,6 +426,7 @@ def export_data():
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
+@log_activity("Viewed/Edited Settings") # Log activity
 def settings():
     if current_user.role != 'admin': return redirect(url_for('dashboard'))
     hotel = Hotel.query.first()
@@ -383,6 +441,7 @@ def settings():
 
 @app.route('/users', methods=['GET', 'POST'])
 @login_required
+@log_activity("Viewed/Managed Users") # Log activity
 def users():
     if current_user.role != 'admin': return redirect(url_for('dashboard'))
     if request.method == 'POST':
@@ -393,10 +452,11 @@ def users():
             password = request.form['password']
             role = request.form['role']
             if not User.query.filter((User.username == username) | (User.email == email)).first():
-                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role)
+                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.utcnow())
                 db.session.add(new_user)
                 db.session.commit()
                 flash(f'✅ User {username} added successfully!', 'info')
+                log_activity(f"Added User {username}") # Log successful add
             else:
                 flash(f'❌ User {username} or email already exists!', 'error')
         elif action == 'delete':
@@ -407,12 +467,14 @@ def users():
                 db.session.delete(user)
                 db.session.commit()
                 flash(f'✅ User {username} deleted.', 'info')
+                log_activity(f"Deleted User {username}") # Log successful delete
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
 
 @app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
+@log_activity("Viewed/Edited User Profile") # Log activity
 def edit_user(user_id):
     if current_user.role != 'admin': return redirect(url_for('dashboard'))
     user = User.query.get_or_404(user_id)
@@ -421,18 +483,29 @@ def edit_user(user_id):
         user.email = request.form['email']
         if request.form.get('password'): user.password_hash = generate_password_hash(request.form.get('password'))
         user.role = request.form['role']
+        
+        # Update can_be_monitored_by_admin only for staff roles
+        if user.role == 'staff':
+            user.can_be_monitored_by_admin = 'can_be_monitored_by_admin' in request.form
+        else:
+            user.can_be_monitored_by_admin = False # Non-staff cannot be monitored
+            
         db.session.commit()
+        flash(f'✅ User {user.username} updated successfully!', 'success')
+        log_activity(f"Updated User {user.username}") # Log successful update
         return redirect(url_for('users'))
     return render_template('edit_user.html', user=user)
 
 @app.route('/backup')
 @login_required
+@log_activity("Performed Database Backup") # Log activity
 def backup():
     if current_user.role != 'admin': return redirect(url_for('dashboard'))
     return send_file(db_path, as_attachment=True, download_name='lamaliva_backup.db')
 
 @app.route('/restore', methods=['GET', 'POST'])
 @login_required
+@log_activity("Attempted Database Restore") # Log activity
 def restore():
     if current_user.role != 'admin': return redirect(url_for('dashboard'))
     if request.method == 'POST':
@@ -441,9 +514,11 @@ def restore():
             try:
                 file.save(db_path)
                 flash('✅ Database restored successfully!', 'success')
+                log_activity("Successfully Restored Database") # Log successful restore
                 return redirect(url_for('dashboard'))
             except Exception as e:
                 flash(f'❌ Restore failed: {str(e)}', 'error')
+                log_activity(f"Failed Database Restore: {str(e)}") # Log failed restore
     return render_template('restore.html')
 
 @app.route('/about')
@@ -451,6 +526,7 @@ def about(): return render_template('about.html')
 
 @app.route('/todays_arrivals')
 @login_required
+@log_activity("Viewed Today's Arrivals") # Log activity
 def todays_arrivals():
     today = date.today()
     arrivals = Reservation.query.filter(db.func.date(Reservation.check_in) == today).all()
@@ -458,6 +534,7 @@ def todays_arrivals():
 
 @app.route('/todays_departures')
 @login_required
+@log_activity("Viewed Today's Departures") # Log activity
 def todays_departures():
     today = date.today()
     departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
@@ -465,6 +542,7 @@ def todays_departures():
 
 @app.route('/occupancy_report')
 @login_required
+@log_activity("Viewed Occupancy Report") # Log activity
 def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
@@ -474,15 +552,27 @@ def occupancy_report():
 
 @app.route('/admin_monitoring')
 @login_required
+@log_activity("Viewed Admin Monitoring Page") # Log activity
 def admin_monitoring():
     if current_user.role != 'admin':
         flash('❌ Access denied. Administrators only.', 'error')
         return redirect(url_for('dashboard'))
-    users_list = User.query.all()
-    return render_template('admin_monitoring.html', users=users_list)
+    
+    users_with_logs = []
+    all_users = User.query.all()
+    for user in all_users:
+        if user.role == 'staff' and user.can_be_monitored_by_admin:
+            # Fetch logs for this specific staff member
+            logs = ActivityLog.query.filter_by(user_id=user.id).order_by(ActivityLog.timestamp.desc()).limit(10).all()
+            users_with_logs.append({'user': user, 'logs': logs})
+        else:
+            users_with_logs.append({'user': user, 'logs': []}) # No logs for non-monitored or non-staff
+
+    return render_template('admin_monitoring.html', users_with_logs=users_with_logs)
 
 @app.route('/send_message', methods=['POST'])
 @login_required
+@log_activity("Sent Message to User") # Log activity
 def send_message():
     if current_user.role != 'admin':
         flash('❌ Access denied. Administrators only.', 'error')
@@ -496,6 +586,7 @@ def send_message():
         # In a real application, you would integrate with a messaging service (e.g., email, SMS, internal notification system)
         # For this example, we'll just flash a message.
         flash(f'✅ Message sent to {user.username}: "{message_content}"', 'success')
+        log_activity(f"Admin sent message to {user.username}: '{message_content[:50]}...'") # Log message content
     else:
         flash('❌ User not found.', 'error')
         
