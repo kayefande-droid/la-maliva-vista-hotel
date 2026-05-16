@@ -50,7 +50,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6); /* Slightly darker overlay */
+            background: rgba(0, 0, 0, 0.5);
             z-index: 0;
         }
 
@@ -59,32 +59,20 @@
             z-index: 1;
             padding-top: 50px;
             padding-bottom: 50px;
-            animation: fadeIn 1s ease-out; /* Main content fade in */
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
         }
 
         .logo-container {
             width: 150px;
             height: 150px;
-            background: linear-gradient(45deg, #ffb700, #ff9500); /* Gradient background */
+            background: white;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             margin: 0 auto;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
             overflow: hidden;
             padding: 10px;
-            animation: pulse 2s infinite alternate; /* Pulse animation */
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
-            100% { transform: scale(1.05); box-shadow: 0 12px 25px rgba(0,0,0,0.6); }
         }
 
         .logo-img {
@@ -97,53 +85,31 @@
             font-size: 3.5rem;
             font-weight: bold;
             color: #ffb700;
-            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
             margin-top: 20px;
-            animation: slideInUp 1s ease-out 0.5s forwards; /* Slide in animation */
-            opacity: 0;
         }
 
         .lead-text {
             font-size: 1.5rem;
             color: rgba(255, 255, 255, 0.9);
             font-weight: 500;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
             margin-bottom: 40px;
-            animation: slideInUp 1s ease-out 0.7s forwards; /* Slide in animation */
-            opacity: 0;
-        }
-
-        @keyframes slideInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
         }
 
         .room-card {
             background: rgba(255, 255, 255, 0.98);
             color: #333;
-            border: 2px solid #ffb700;
-            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             display: flex;
             flex-direction: column;
-            animation: cardPopIn 0.8s ease-out forwards; /* Card pop-in animation */
-            opacity: 0;
-        }
-        .room-card:nth-child(1) { animation-delay: 1s; }
-        .room-card:nth-child(2) { animation-delay: 1.1s; }
-        .room-card:nth-child(3) { animation-delay: 1.2s; }
-        /* Add more delays for more cards if needed */
-
-        @keyframes cardPopIn {
-            from { opacity: 0; transform: scale(0.8) translateY(20px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
         .room-card:hover {
-            transform: translateY(-10px) scale(1.02); /* Enhanced hover */
-            box-shadow: 0 15px 30px rgba(255, 183, 0, 0.3);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
 
         .room-image {
@@ -159,32 +125,27 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             padding: 12px;
-            transition: all 0.3s ease;
-            border-radius: 8px; /* Slightly rounded buttons */
-        }
-
-        .btn-book:active {
-            transform: scale(0.98);
+            border-radius: 0.3rem;
         }
 
         .price-tag {
-            color: #0052cc;
+            color: #007bff;
             font-size: 1.5rem;
             font-weight: 800;
         }
 
         .price-currency {
-            color: #ffb700;
+            color: #28a745; /* Green for currency */
         }
         .card-body {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            padding: 20px; /* More padding */
+            padding: 20px;
         }
         .card-text-description {
-            font-size: 0.95rem; /* Slightly larger font */
-            color: #555;
+            font-size: 0.9rem;
+            color: #6c757d;
             margin-bottom: 1rem;
             flex-grow: 1;
             line-height: 1.5;
@@ -192,16 +153,13 @@
         .footer-text {
             color: rgba(255, 255, 255, 0.7);
             text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-            animation: fadeIn 1s ease-out 1.5s forwards;
-            opacity: 0;
         }
         .footer-link {
-            color: #ffb700 !important;
+            color: #007bff !important;
             text-decoration: underline;
-            transition: color 0.3s ease;
         }
         .footer-link:hover {
-            color: #fff !important;
+            color: #0056b3 !important;
         }
     </style>
 </head>
@@ -232,10 +190,10 @@
                          alt="Room {{ room.room_number }}"
                          onerror="this.onerror=null;this.src='{{ url_for('static', filename='images/rooms/default.jpg') }}';">
                     <div class="card-body d-flex flex-column">
-                        <h5 class="card-title fw-bold" style="color: #001a4d;"><i class="bi bi-door-open-fill"></i> Room {{room.room_number}}</h5>
-                        <h6 class="card-subtitle mb-2" style="color: #0052cc;">{{room.room_type}}</h6>
+                        <h5 class="card-title fw-bold" style="color: #343a40;"><i class="bi bi-door-open-fill"></i> Room {{room.room_number}}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{room.room_type}}</h6>
                         <p class="card-text-description">{{ room.description }}</p>
-                        <hr style="border-top: 2px solid #ffb700; opacity: 0.2;">
+                        <hr class="my-3">
                         <p class="card-text mb-4">
                             <span class="price-currency fw-bold">FCFA</span> 
                             <span class="price-tag">{{ "{:,.0f}".format(room.price) }}</span>
@@ -244,11 +202,11 @@
 
                         <div class="mt-auto">
                             {% if current_user.is_authenticated %}
-                                <a href="{{ url_for('new_reservation', room_id=room.id) }}" class="btn btn-book" style="background: linear-gradient(90deg, #0052cc, #003d99); color: white;">
+                                <a href="{{ url_for('new_reservation', room_id=room.id) }}" class="btn btn-primary btn-book">
                                     <i class="bi bi-calendar-check"></i> Book Now
                                 </a>
                             {% else %}
-                                <a href="{{ url_for('login') }}" class="btn btn-book" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d;">
+                                <a href="{{ url_for('login') }}" class="btn btn-warning btn-book">
                                     <i class="bi bi-lightning-fill"></i> Book Instantly
                                 </a>
                             {% endif %}
