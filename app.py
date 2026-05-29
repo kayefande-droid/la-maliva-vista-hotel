@@ -38,7 +38,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
-    registered_on = db.Column(db.DateTime, default=datetime.now(timezone.utc)) # New: Registration timestamp
+    registered_on = db.Column(db.DateTime, default=datetime.now(timezone.UTC)) # New: Registration timestamp
     can_be_monitored_by_admin = db.Column(db.Boolean, default=False) # New: Permission for screen view
 
 class Room(db.Model):
@@ -76,7 +76,7 @@ class Hotel(db.Model):
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.UTC))
     action = db.Column(db.String(255))
     details = db.Column(db.Text, nullable=True)
 
@@ -186,7 +186,7 @@ def create_initial_data():
         try:
             db.create_all()
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True)
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.UTC), can_be_monitored_by_admin=True)
                 db.session.add(admin)
             
             # Clear existing room data to ensure only the new, specified rooms are present
@@ -232,8 +232,8 @@ def create_initial_data():
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
-    return render_template('public_home.html', rooms=all_rooms)
+    rooms = Room.query.order_by(Room.price).all()
+    return render_template('public_home.html', rooms=rooms)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -247,7 +247,7 @@ def signup():
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
-        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), registered_on=datetime.now(timezone.utc)) # Set registered_on
+        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), registered_on=datetime.now(timezone.UTC)) # Set registered_on
         db.session.add(new_user)
         db.session.commit()
         flash('✅ Account created successfully! Please login.', 'success')
@@ -271,14 +271,14 @@ def login():
 @login_required
 @log_activity("Viewed Dashboard") # Log activity
 def dashboard():
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(timezone.UTC).date()
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
     
-    start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
-    end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
+    start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.UTC)
+    end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.UTC)
     
     arrivals = Reservation.query.filter(Reservation.check_in >= start_of_today, Reservation.check_in <= end_of_today).all()
     departures = Reservation.query.filter(Reservation.check_out >= start_of_today, Reservation.check_out <= end_of_today).all()
@@ -298,15 +298,15 @@ def calendar(): return render_template('calendar.html')
 @app.route('/api/rooms')
 @login_required
 def api_rooms():
-    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
-    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in all_rooms])
+    rooms = Room.query.order_by(Room.price).all()
+    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in rooms])
 
 @app.route('/api/reservations')
 @login_required
 def api_reservations():
-    all_reservations = Reservation.query.all() # Renamed to all_reservations
+    reservations = Reservation.query.all()
     events = []
-    for r in all_reservations:
+    for r in reservations:
         guest = Guest.query.get(r.guest_id)
         color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#007bff'
         events.append({'id': r.id, 'resourceId': str(r.room_id), 'title': f"{guest.name} ({r.status})" if guest else 'Reservation', 'start': r.check_in.isoformat(), 'end': r.check_out.isoformat(), 'color': color})
@@ -344,8 +344,8 @@ def new_reservation():
         db.session.add(guest)
         db.session.commit()
         room = Room.query.get(request.form['room_id'])
-        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
-        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
+        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.UTC)
+        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.UTC)
         
         # Set access deadline (e.g., 1 hour after check-in)
         access_deadline = check_in + timedelta(hours=1)
@@ -356,7 +356,7 @@ def new_reservation():
         db.session.add(res)
         
         # If check-in is now or in the past, mark room as occupied
-        if check_in <= datetime.now(timezone.utc):
+        if check_in <= datetime.now(timezone.UTC):
             room.status = 'Occupied'
             res.status = 'Checked-In'
             
@@ -409,7 +409,7 @@ def invoice(res_id):
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
     days = max((res.check_out - res.check_in).total_seconds() / (24 * 3600), 1)
-    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now(timezone.utc))
+    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now(timezone.UTC))
 
 @app.route('/logout')
 @login_required
@@ -423,11 +423,11 @@ def logout():
 @log_activity("Exported Data") # Log activity
 def export_data():
     if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
-    all_guests = Guest.query.all() # Renamed to all_guests
+    guests = Guest.query.all()
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Name', 'Phone', 'Email'])
-    for g in all_guests: writer.writerow([g.name, g.phone, g.email])
+    for g in guests: writer.writerow([g.name, g.phone, g.email])
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='guests.csv')
 
@@ -459,11 +459,11 @@ def users():
             password = request.form['password']
             role = request.form['role']
             if not User.query.filter((User.username == username) | (User.email == email)).first():
-                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.utc))
+                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.UTC))
                 db.session.add(new_user)
                 db.session.commit()
                 flash(f'✅ User {username} added successfully!', 'info')
-                _perform_log(f"Added User {username}") # Log successful add
+                log_activity(f"Added User {username}") # Log successful add
             else:
                 flash(f'❌ User {username} or email already exists!', 'error')
         elif action == 'delete':
@@ -474,7 +474,7 @@ def users():
                 db.session.delete(user)
                 db.session.commit()
                 flash(f'✅ User {username} deleted.', 'info')
-                _perform_log(f"Deleted User {username}") # Log successful delete
+                log_activity(f"Deleted User {username}") # Log successful delete
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
@@ -499,7 +499,7 @@ def edit_user(user_id):
             
         db.session.commit()
         flash(f'✅ User {user.username} updated successfully!', 'success')
-        _perform_log(f"Updated User {user.username}") # Log successful update
+        log_activity(f"Updated User {user.username}") # Log successful update
         return redirect(url_for('users'))
     return render_template('edit_user.html', user=user)
 
@@ -521,11 +521,11 @@ def restore():
             try:
                 file.save(db_path)
                 flash('✅ Database restored successfully!', 'success')
-                _perform_log("Successfully Restored Database") # Log successful restore
+                log_activity("Successfully Restored Database") # Log successful restore
                 return redirect(url_for('dashboard'))
             except Exception as e:
                 flash(f'❌ Restore failed: {str(e)}', 'error')
-                _perform_log(f"Failed Database Restore: {str(e)}") # Log failed restore
+                log_activity(f"Failed Database Restore: {str(e)}") # Log failed restore
     return render_template('restore.html')
 
 @app.route('/about')
@@ -535,7 +535,7 @@ def about(): return render_template('about.html')
 @login_required
 @log_activity("Viewed Today's Arrivals") # Log activity
 def todays_arrivals():
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(timezone.UTC).date()
     arrivals = Reservation.query.filter(db.func.date(Reservation.check_in) == today).all()
     return render_template('arrivals.html', arrivals=arrivals, today=today)
 
@@ -543,7 +543,7 @@ def todays_arrivals():
 @login_required
 @log_activity("Viewed Today's Departures") # Log activity
 def todays_departures():
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(timezone.UTC).date()
     departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
     
     if request.args.get('json'):
@@ -563,8 +563,8 @@ def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
-    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
-    return render_template('occupancy.html', rooms=all_rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
+    rooms = Room.query.order_by(Room.price).all()
+    return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 
 @app.route('/admin_monitoring')
 @login_required
