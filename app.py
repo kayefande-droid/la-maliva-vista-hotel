@@ -3,7 +3,7 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 import os
 import io
 import csv
@@ -38,7 +38,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
     role = db.Column(db.String(20), default='user')
-    registered_on = db.Column(db.DateTime, default=datetime.utcnow) # New: Registration timestamp
+    registered_on = db.Column(db.DateTime, default=datetime.now(timezone.utc)) # New: Registration timestamp
     can_be_monitored_by_admin = db.Column(db.Boolean, default=False) # New: Permission for screen view
 
 class Room(db.Model):
@@ -48,6 +48,7 @@ class Room(db.Model):
     price = db.Column(db.Float)
     status = db.Column(db.String(20), default='Available')
     description = db.Column(db.String(255), nullable=True)
+    image_url = db.Column(db.String(255), nullable=True) # New: Image URL for the room
 
 class Guest(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,7 +76,7 @@ class Hotel(db.Model):
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     action = db.Column(db.String(255))
     details = db.Column(db.Text, nullable=True)
 
@@ -85,19 +86,24 @@ class ActivityLog(db.Model): # New ActivityLog Model
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# ===================== ACTIVITY LOGGING DECORATOR =====================
+# ===================== ACTIVITY LOGGING =====================
+def _perform_log(action, details=None):
+    """Internal helper to log activity if monitoring is enabled."""
+    if current_user.is_authenticated and current_user.role == 'staff' and current_user.can_be_monitored_by_admin:
+        log_entry = ActivityLog(
+            user_id=current_user.id,
+            action=action,
+            details=details or f"Accessed {request.path} with method {request.method}"
+        )
+        db.session.add(log_entry)
+        db.session.commit()
+
 def log_activity(action_description):
+    """Decorator for logging route access."""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            if current_user.is_authenticated and current_user.role == 'staff' and current_user.can_be_monitored_by_admin:
-                log_entry = ActivityLog(
-                    user_id=current_user.id,
-                    action=action_description,
-                    details=f"Accessed {request.path} with method {request.method}"
-                )
-                db.session.add(log_entry)
-                db.session.commit()
+            _perform_log(action_description)
             return f(*args, **kwargs)
         return decorated_function
     return decorator
@@ -180,7 +186,7 @@ def create_initial_data():
         try:
             db.create_all()
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.utcnow(), can_be_monitored_by_admin=True)
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True)
                 db.session.add(admin)
             
             # Clear existing room data to ensure only the new, specified rooms are present
@@ -189,22 +195,22 @@ def create_initial_data():
 
             rooms_data = [
                 # Standard Rooms
-                {'number': '101', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort'},
-                {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view'},
-                {'number': '103', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view'},
-                {'number': '104', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort'},
+                {'number': '101', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '103', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '104', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
                 
                 # Deluxe Rooms
-                {'number': '201', 'type': 'Deluxe', 'price': 25000, 'description': 'With fridge, couch, and large space'},
-                {'number': '202', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
-                {'number': '203', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space'},
-                {'number': '204', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space'},
-                {'number': '205', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
-                {'number': '206', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
-                {'number': '207', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
-                {'number': '208', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort'},
-                {'number': '209', 'type': 'Deluxe', 'price': 20000, 'description': 'With fridge and couch'},
-                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV'}
+                {'number': '201', 'type': 'Deluxe', 'price': 25000, 'description': 'With fridge, couch, and large space', 'image_url': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '202', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '203', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '204', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '205', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '206', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '207', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '208', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '209', 'type': 'Deluxe', 'price': 20000, 'description': 'With fridge and couch', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'}
             ]
 
             for r_data in rooms_data:
@@ -213,7 +219,8 @@ def create_initial_data():
                     room_type=r_data['type'],
                     price=r_data['price'],
                     status='Available',
-                    description=r_data['description']
+                    description=r_data['description'],
+                    image_url=r_data['image_url'] # Assign image URL
                 )
                 db.session.add(new_room)
 
@@ -225,8 +232,8 @@ def create_initial_data():
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    rooms = Room.query.order_by(Room.price).all()
-    return render_template('public_home.html', rooms=rooms)
+    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
+    return render_template('public_home.html', rooms=all_rooms)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -240,7 +247,7 @@ def signup():
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
-        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), registered_on=datetime.utcnow()) # Set registered_on
+        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), registered_on=datetime.now(timezone.utc)) # Set registered_on
         db.session.add(new_user)
         db.session.commit()
         flash('✅ Account created successfully! Please login.', 'success')
@@ -264,14 +271,14 @@ def login():
 @login_required
 @log_activity("Viewed Dashboard") # Log activity
 def dashboard():
-    today = datetime.today().date()
+    today = datetime.now(timezone.utc).date()
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
     
-    start_of_today = datetime.combine(today, datetime.min.time())
-    end_of_today = datetime.combine(today, datetime.max.time())
+    start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
+    end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
     
     arrivals = Reservation.query.filter(Reservation.check_in >= start_of_today, Reservation.check_in <= end_of_today).all()
     departures = Reservation.query.filter(Reservation.check_out >= start_of_today, Reservation.check_out <= end_of_today).all()
@@ -291,15 +298,15 @@ def calendar(): return render_template('calendar.html')
 @app.route('/api/rooms')
 @login_required
 def api_rooms():
-    rooms = Room.query.order_by(Room.price).all()
-    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in rooms])
+    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
+    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in all_rooms])
 
 @app.route('/api/reservations')
 @login_required
 def api_reservations():
-    reservations = Reservation.query.all()
+    all_reservations = Reservation.query.all() # Renamed to all_reservations
     events = []
-    for r in reservations:
+    for r in all_reservations:
         guest = Guest.query.get(r.guest_id)
         color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#007bff'
         events.append({'id': r.id, 'resourceId': str(r.room_id), 'title': f"{guest.name} ({r.status})" if guest else 'Reservation', 'start': r.check_in.isoformat(), 'end': r.check_out.isoformat(), 'color': color})
@@ -337,8 +344,8 @@ def new_reservation():
         db.session.add(guest)
         db.session.commit()
         room = Room.query.get(request.form['room_id'])
-        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M')
-        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M')
+        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
+        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
         
         # Set access deadline (e.g., 1 hour after check-in)
         access_deadline = check_in + timedelta(hours=1)
@@ -349,13 +356,13 @@ def new_reservation():
         db.session.add(res)
         
         # If check-in is now or in the past, mark room as occupied
-        if check_in <= datetime.now():
+        if check_in <= datetime.now(timezone.utc):
             room.status = 'Occupied'
             res.status = 'Checked-In'
             
         db.session.commit()
         flash('✅ Reservation created successfully! Please ensure customer arrives by deadline.', 'success')
-        log_activity("Created New Reservation") # Log successful creation
+        _perform_log("Created New Reservation", details=f"Reservation ID: {res.id} for Room {room.room_number}")
         return redirect(url_for('calendar'))
     available_rooms = Room.query.filter_by(status='Available').order_by(Room.price).all()
     return render_template('new_reservation.html', rooms=available_rooms, selected_room_id=selected_room_id)
@@ -375,7 +382,7 @@ def checkin(res_id):
         room.status = 'Occupied'
         db.session.commit()
         flash('✅ Guest checked in and payment confirmed!', 'success')
-        log_activity(f"Checked-in Reservation {res.id}") # Log successful check-in
+        _perform_log(f"Checked-in Reservation {res.id}")
     else:
         flash('❌ You do not have permission to perform this action.', 'error')
     return redirect(url_for('calendar'))
@@ -391,7 +398,7 @@ def checkout(res_id):
     room.status = 'Available'
     db.session.commit()
     flash('✅ Guest checked out!', 'success')
-    log_activity(f"Checked-out Reservation {res.id}") # Log successful check-out
+    _perform_log(f"Checked-out Reservation {res.id}")
     return redirect(url_for('calendar'))
 
 @app.route('/invoice/<int:res_id>')
@@ -402,7 +409,7 @@ def invoice(res_id):
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
     days = max((res.check_out - res.check_in).total_seconds() / (24 * 3600), 1)
-    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now())
+    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now(timezone.utc))
 
 @app.route('/logout')
 @login_required
@@ -416,11 +423,11 @@ def logout():
 @log_activity("Exported Data") # Log activity
 def export_data():
     if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
-    guests = Guest.query.all()
+    all_guests = Guest.query.all() # Renamed to all_guests
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Name', 'Phone', 'Email'])
-    for g in guests: writer.writerow([g.name, g.phone, g.email])
+    for g in all_guests: writer.writerow([g.name, g.phone, g.email])
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='guests.csv')
 
@@ -452,11 +459,11 @@ def users():
             password = request.form['password']
             role = request.form['role']
             if not User.query.filter((User.username == username) | (User.email == email)).first():
-                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.utcnow())
+                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.utc))
                 db.session.add(new_user)
                 db.session.commit()
                 flash(f'✅ User {username} added successfully!', 'info')
-                log_activity(f"Added User {username}") # Log successful add
+                _perform_log(f"Added User {username}") # Log successful add
             else:
                 flash(f'❌ User {username} or email already exists!', 'error')
         elif action == 'delete':
@@ -467,7 +474,7 @@ def users():
                 db.session.delete(user)
                 db.session.commit()
                 flash(f'✅ User {username} deleted.', 'info')
-                log_activity(f"Deleted User {username}") # Log successful delete
+                _perform_log(f"Deleted User {username}") # Log successful delete
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
@@ -492,7 +499,7 @@ def edit_user(user_id):
             
         db.session.commit()
         flash(f'✅ User {user.username} updated successfully!', 'success')
-        log_activity(f"Updated User {user.username}") # Log successful update
+        _perform_log(f"Updated User {user.username}") # Log successful update
         return redirect(url_for('users'))
     return render_template('edit_user.html', user=user)
 
@@ -514,11 +521,11 @@ def restore():
             try:
                 file.save(db_path)
                 flash('✅ Database restored successfully!', 'success')
-                log_activity("Successfully Restored Database") # Log successful restore
+                _perform_log("Successfully Restored Database") # Log successful restore
                 return redirect(url_for('dashboard'))
             except Exception as e:
                 flash(f'❌ Restore failed: {str(e)}', 'error')
-                log_activity(f"Failed Database Restore: {str(e)}") # Log failed restore
+                _perform_log(f"Failed Database Restore: {str(e)}") # Log failed restore
     return render_template('restore.html')
 
 @app.route('/about')
@@ -528,7 +535,7 @@ def about(): return render_template('about.html')
 @login_required
 @log_activity("Viewed Today's Arrivals") # Log activity
 def todays_arrivals():
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     arrivals = Reservation.query.filter(db.func.date(Reservation.check_in) == today).all()
     return render_template('arrivals.html', arrivals=arrivals, today=today)
 
@@ -536,8 +543,17 @@ def todays_arrivals():
 @login_required
 @log_activity("Viewed Today's Departures") # Log activity
 def todays_departures():
-    today = date.today()
+    today = datetime.now(timezone.utc).date()
     departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
+    
+    if request.args.get('json'):
+        return jsonify([{
+            'id': d.id,
+            'guest_name': Guest.query.get(d.guest_id).name if Guest.query.get(d.guest_id) else f"Guest #{d.guest_id}",
+            'room': Room.query.get(d.room_id).room_number if Room.query.get(d.room_id) else 'N/A',
+            'status': d.status
+        } for d in departures])
+        
     return render_template('departures.html', departures=departures, today=today)
 
 @app.route('/occupancy_report')
@@ -547,8 +563,8 @@ def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
-    rooms = Room.query.order_by(Room.price).all()
-    return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
+    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
+    return render_template('occupancy.html', rooms=all_rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 
 @app.route('/admin_monitoring')
 @login_required
@@ -586,7 +602,7 @@ def send_message():
         # In a real application, you would integrate with a messaging service (e.g., email, SMS, internal notification system)
         # For this example, we'll just flash a message.
         flash(f'✅ Message sent to {user.username}: "{message_content}"', 'success')
-        log_activity(f"Admin sent message to {user.username}: '{message_content[:50]}...'") # Log message content
+        _perform_log(f"Admin sent message to {user.username}", details=message_content)
     else:
         flash('❌ User not found.', 'error')
         
@@ -607,4 +623,4 @@ def service_worker():
 if __name__ == '__main__':
     with app.app_context():
         create_initial_data()
-    app.run(debug=True)
+    app.run(debug=False)
