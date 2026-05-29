@@ -10,6 +10,7 @@ import csv
 import random
 import re
 from functools import wraps # Import wraps for decorator
+from fpdf import FPDF # Import FPDF for PDF generation
 
 app = Flask(__name__)
 CORS(app)
@@ -37,8 +38,8 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(80), unique=True)
     email = db.Column(db.String(120), unique=True)
     password_hash = db.Column(db.String(128))
-    role = db.Column(db.String(20), default='user')
-    registered_on = db.Column(db.DateTime, default=datetime.now(timezone.UTC)) # New: Registration timestamp
+    role = db.Column(db.String(20), default='user') # 'user', 'staff', 'admin'
+    registered_on = db.Column(db.DateTime, default=datetime.now(timezone.utc)) # New: Registration timestamp
     can_be_monitored_by_admin = db.Column(db.Boolean, default=False) # New: Permission for screen view
 
 class Room(db.Model):
@@ -46,7 +47,7 @@ class Room(db.Model):
     room_number = db.Column(db.String(10), unique=True)
     room_type = db.Column(db.String(50))
     price = db.Column(db.Float)
-    status = db.Column(db.String(20), default='Available')
+    status = db.Column(db.String(20), default='Available') # Available, Occupied, Maintenance
     description = db.Column(db.String(255), nullable=True)
     image_url = db.Column(db.String(255), nullable=True) # New: Image URL for the room
 
@@ -62,7 +63,7 @@ class Reservation(db.Model):
     room_id = db.Column(db.Integer, db.ForeignKey('room.id'))
     check_in = db.Column(db.DateTime)
     check_out = db.Column(db.DateTime)
-    status = db.Column(db.String(20), default='Confirmed')
+    status = db.Column(db.String(20), default='Confirmed') # Confirmed, Checked-In, Checked-Out, Cancelled
     amount = db.Column(db.Float)
     access_deadline = db.Column(db.DateTime, nullable=True) # New: Deadline for room access
     customer_arrived_paid = db.Column(db.Boolean, default=False) # New: Checkbox for arrival/payment
@@ -76,7 +77,7 @@ class Hotel(db.Model):
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.UTC))
+    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.utc))
     action = db.Column(db.String(255))
     details = db.Column(db.Text, nullable=True)
 
@@ -89,6 +90,7 @@ def load_user(user_id):
 # ===================== ACTIVITY LOGGING =====================
 def _perform_log(action, details=None):
     """Internal helper to log activity if monitoring is enabled."""
+    # Only log if the user is authenticated, is staff, and has monitoring enabled
     if current_user.is_authenticated and current_user.role == 'staff' and current_user.can_be_monitored_by_admin:
         log_entry = ActivityLog(
             user_id=current_user.id,
@@ -108,7 +110,9 @@ def log_activity(action_description):
         return decorated_function
     return decorator
 
-# ===================== CHATBOT LOGIC =====================
+# ===================== CHATBOT LOGIC (AI for Users) =====================
+# This is a simple rule-based chatbot. A true AI for user problem-solving
+# would require integration with a more advanced NLP/ML service.
 INTENTS = {
     "greeting": {
         "patterns": ["hello", "hi", "hey", "good morning", "good evening", "greetings", "bonjour", "salut", "hola"],
@@ -147,11 +151,17 @@ INTENTS = {
             "We are located opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon."
         ]
     },
+    "support": {
+        "patterns": ["help", "support", "contact", "issue", "problem"],
+        "responses": [
+            "For immediate support, please call us at (+237) 679-915-967. Our staff is ready to assist you."
+        ]
+    },
     "fallback": {
         "patterns": [],
         "responses": [
-            "I'm not sure I understand. Could you rephrase? You can ask me about room prices, amenities, or check-in times.",
-            "I'm your digital assistant. For complex questions, please call reception at (+237) 679-915-967."
+            "I'm not sure I understand. Could you rephrase? You can ask me about room prices, amenities, or check-in times. For direct assistance, please call (+237) 679-915-967.",
+            "I'm your digital assistant. For complex questions or issues, please call reception at (+237) 679-915-967."
         ]
     }
 }
@@ -186,7 +196,7 @@ def create_initial_data():
         try:
             db.create_all()
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.UTC), can_be_monitored_by_admin=True)
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True)
                 db.session.add(admin)
             
             # Clear existing room data to ensure only the new, specified rooms are present
@@ -232,8 +242,8 @@ def create_initial_data():
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    rooms = Room.query.order_by(Room.price).all()
-    return render_template('public_home.html', rooms=rooms)
+    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
+    return render_template('public_home.html', rooms=all_rooms)
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
@@ -241,13 +251,17 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
+        
+        # Basic validation
         if not email.endswith('@gmail.com'):
-            flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed!', 'error')
+            flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed for user registration!', 'error')
             return redirect(url_for('signup'))
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
-        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), registered_on=datetime.now(timezone.UTC)) # Set registered_on
+        
+        # Default role for new signups is 'user'
+        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role='user', registered_on=datetime.now(timezone.utc))
         db.session.add(new_user)
         db.session.commit()
         flash('✅ Account created successfully! Please login.', 'success')
@@ -262,6 +276,7 @@ def login():
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
         if user and check_password_hash(user.password_hash, password):
             login_user(user)
+            flash(f'Welcome, {user.username}!', 'success') # Welcome message for all users
             return redirect(url_for('dashboard'))
         else:
             flash('❌ Invalid username/email or password.', 'error')
@@ -271,14 +286,14 @@ def login():
 @login_required
 @log_activity("Viewed Dashboard") # Log activity
 def dashboard():
-    today = datetime.now(timezone.UTC).date()
+    today = datetime.now(timezone.utc).date()
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
     
-    start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.UTC)
-    end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.UTC)
+    start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
+    end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
     
     arrivals = Reservation.query.filter(Reservation.check_in >= start_of_today, Reservation.check_in <= end_of_today).all()
     departures = Reservation.query.filter(Reservation.check_out >= start_of_today, Reservation.check_out <= end_of_today).all()
@@ -298,15 +313,15 @@ def calendar(): return render_template('calendar.html')
 @app.route('/api/rooms')
 @login_required
 def api_rooms():
-    rooms = Room.query.order_by(Room.price).all()
-    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in rooms])
+    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
+    return jsonify([{'id': str(r.id), 'title': f'Room {r.room_number} ({r.room_type})', 'extendedProps': {'status': r.status}} for r in all_rooms])
 
 @app.route('/api/reservations')
 @login_required
 def api_reservations():
-    reservations = Reservation.query.all()
+    all_reservations = Reservation.query.all() # Renamed to all_reservations
     events = []
-    for r in reservations:
+    for r in all_reservations:
         guest = Guest.query.get(r.guest_id)
         color = '#28a745' if r.status == 'Checked-In' else '#6c757d' if r.status == 'Checked-Out' else '#007bff'
         events.append({'id': r.id, 'resourceId': str(r.room_id), 'title': f"{guest.name} ({r.status})" if guest else 'Reservation', 'start': r.check_in.isoformat(), 'end': r.check_out.isoformat(), 'color': color})
@@ -330,7 +345,10 @@ def reservations():
 @login_required
 @log_activity("Viewed Guests List") # Log activity
 def guests():
-    if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
+    # Only admin and staff can view guests list
+    if current_user.role not in ['admin', 'staff']:
+        flash('❌ Access denied. Only staff and administrators can view guests.', 'error')
+        return redirect(url_for('dashboard'))
     guest_list = Guest.query.all()
     return render_template('guests.html', guests=guest_list)
 
@@ -344,19 +362,27 @@ def new_reservation():
         db.session.add(guest)
         db.session.commit()
         room = Room.query.get(request.form['room_id'])
-        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.UTC)
-        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.UTC)
         
-        # Set access deadline (e.g., 1 hour after check-in)
-        access_deadline = check_in + timedelta(hours=1)
+        # Parse check-in/out dates and times
+        check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
+        check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
         
+        # Set access deadline (e.g., 24 hours after check-in)
+        access_deadline = check_in + timedelta(hours=24) 
+        
+        # Basic validation
+        if check_out <= check_in:
+            flash('❌ Check-out date must be after check-in date.', 'error')
+            db.session.rollback() # Rollback guest creation
+            return redirect(url_for('new_reservation', room_id=selected_room_id))
+
         days = max((check_out - check_in).total_seconds() / (24 * 3600), 1)
         amount = room.price * days
         res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed', access_deadline=access_deadline, customer_arrived_paid=False)
         db.session.add(res)
         
         # If check-in is now or in the past, mark room as occupied
-        if check_in <= datetime.now(timezone.UTC):
+        if check_in <= datetime.now(timezone.utc):
             room.status = 'Occupied'
             res.status = 'Checked-In'
             
@@ -372,19 +398,34 @@ def new_reservation():
 @log_activity("Attempted Check-in") # Log activity
 def checkin(res_id):
     res = Reservation.query.get_or_404(res_id)
-    if res.status == 'Checked-In': return redirect(url_for('calendar'))
     
     # Check if current user is admin or staff to allow setting customer_arrived_paid
-    if current_user.role in ['admin', 'staff']:
-        res.customer_arrived_paid = True # Mark as arrived and paid
-        res.status = 'Checked-In'
+    if current_user.role not in ['admin', 'staff']:
+        flash('❌ Access denied. You do not have permission to perform this action.', 'error')
+        return redirect(url_for('calendar'))
+
+    if res.status == 'Checked-In':
+        flash('ℹ️ Guest is already checked in.', 'info')
+        return redirect(url_for('calendar'))
+    
+    # Check if access deadline has passed
+    if res.access_deadline and datetime.now(timezone.utc) > res.access_deadline and res.status == 'Confirmed':
+        res.status = 'Cancelled' # Automatically cancel if deadline passed and not checked in
         room = Room.query.get(res.room_id)
-        room.status = 'Occupied'
+        if room.status == 'Occupied': # Only if it was marked occupied by this reservation
+            room.status = 'Available'
         db.session.commit()
-        flash('✅ Guest checked in and payment confirmed!', 'success')
-        _perform_log(f"Checked-in Reservation {res.id}")
-    else:
-        flash('❌ You do not have permission to perform this action.', 'error')
+        flash('❌ Reservation automatically cancelled: Access deadline passed.', 'error')
+        _perform_log(f"Reservation {res.id} cancelled due to deadline.")
+        return redirect(url_for('calendar'))
+
+    res.customer_arrived_paid = True # Mark as arrived and paid
+    res.status = 'Checked-In'
+    room = Room.query.get(res.room_id)
+    room.status = 'Occupied'
+    db.session.commit()
+    flash('✅ Guest checked in and payment confirmed!', 'success')
+    _perform_log(f"Checked-in Reservation {res.id}")
     return redirect(url_for('calendar'))
 
 @app.route('/checkout/<int:res_id>')
@@ -392,7 +433,15 @@ def checkin(res_id):
 @log_activity("Attempted Check-out") # Log activity
 def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
-    if res.status == 'Checked-Out': return redirect(url_for('calendar'))
+    
+    if current_user.role not in ['admin', 'staff']:
+        flash('❌ Access denied. You do not have permission to perform this action.', 'error')
+        return redirect(url_for('calendar'))
+
+    if res.status == 'Checked-Out':
+        flash('ℹ️ Guest is already checked out.', 'info')
+        return redirect(url_for('calendar'))
+        
     res.status = 'Checked-Out'
     room = Room.query.get(res.room_id)
     room.status = 'Available'
@@ -409,25 +458,75 @@ def invoice(res_id):
     guest = Guest.query.get(res.guest_id)
     room = Room.query.get(res.room_id)
     days = max((res.check_out - res.check_in).total_seconds() / (24 * 3600), 1)
-    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now(timezone.UTC))
+    return render_template('invoice.html', res=res, guest=guest, room=room, days=days, now=datetime.now(timezone.utc))
+
+@app.route('/download_booking_proof/<int:res_id>')
+@login_required
+@log_activity("Downloaded Booking Proof") # Log activity
+def download_booking_proof(res_id):
+    res = Reservation.query.get_or_404(res_id)
+    guest = Guest.query.get(res.guest_id)
+    room = Room.query.get(res.room_id)
+    hotel = Hotel.query.first()
+
+    if not guest or not room or not hotel:
+        flash('❌ Could not generate booking proof due to missing data.', 'error')
+        return redirect(url_for('reservations'))
+
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    pdf.cell(200, 10, txt=f"{hotel.name} - Booking Confirmation", ln=True, align="C")
+    pdf.ln(10)
+
+    pdf.set_font("Arial", size=10)
+    pdf.cell(200, 7, txt=f"Reservation ID: {res.id}", ln=True)
+    pdf.cell(200, 7, txt=f"Guest Name: {guest.name}", ln=True)
+    pdf.cell(200, 7, txt=f"Guest Email: {guest.email}", ln=True)
+    pdf.cell(200, 7, txt=f"Guest Phone: {guest.phone}", ln=True)
+    pdf.ln(5)
+
+    pdf.cell(200, 7, txt=f"Room Number: {room.room_number} ({room.room_type})", ln=True)
+    pdf.cell(200, 7, txt=f"Check-in: {res.check_in.strftime('%Y-%m-%d %H:%M')}", ln=True)
+    pdf.cell(200, 7, txt=f"Check-out: {res.check_out.strftime('%Y-%m-%d %H:%M')}", ln=True)
+    pdf.cell(200, 7, txt=f"Total Amount: FCFA {res.amount:,.0f}", ln=True)
+    pdf.cell(200, 7, txt=f"Status: {res.status}", ln=True)
+    pdf.ln(5)
+
+    pdf.cell(200, 7, txt=f"Hotel Address: {hotel.address}", ln=True)
+    pdf.cell(200, 7, txt=f"Support Contact: (+237) 679-915-967", ln=True)
+    pdf.ln(10)
+    pdf.cell(200, 7, txt="Thank you for choosing La-Maliva Vista Hotel!", ln=True, align="C")
+
+    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    response.headers.set('Content-Disposition', 'attachment', filename=f'booking_proof_res_{res.id}.pdf')
+    response.headers.set('Content-Type', 'application/pdf')
+    
+    _perform_log(f"Generated booking proof for Reservation {res.id}")
+    return response
 
 @app.route('/logout')
 @login_required
 @log_activity("Logged Out") # Log activity
 def logout():
     logout_user()
+    flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
 
 @app.route('/export_data')
 @login_required
 @log_activity("Exported Data") # Log activity
 def export_data():
-    if current_user.role not in ['admin', 'staff']: return redirect(url_for('dashboard'))
-    guests = Guest.query.all()
+    if current_user.role not in ['admin', 'staff']:
+        flash('❌ Access denied. Only staff and administrators can export data.', 'error')
+        return redirect(url_for('dashboard'))
+    
+    all_guests = Guest.query.all() # Renamed to all_guests
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(['Name', 'Phone', 'Email'])
-    for g in guests: writer.writerow([g.name, g.phone, g.email])
+    for g in all_guests: writer.writerow([g.name, g.phone, g.email])
     output.seek(0)
     return send_file(io.BytesIO(output.getvalue().encode('utf-8')), mimetype='text/csv', as_attachment=True, download_name='guests.csv')
 
@@ -435,7 +534,9 @@ def export_data():
 @login_required
 @log_activity("Viewed/Edited Settings") # Log activity
 def settings():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Only administrators can change settings.', 'error')
+        return redirect(url_for('dashboard'))
     hotel = Hotel.query.first()
     if request.method == 'POST':
         hotel.name = request.form['name']
@@ -443,6 +544,7 @@ def settings():
         hotel.tax_rate = float(request.form['tax_rate'])
         db.session.commit()
         flash('✅ Hotel settings updated successfully!', 'success')
+        _perform_log("Updated Hotel Settings")
         return redirect(url_for('settings'))
     return render_template('settings.html', hotel=hotel)
 
@@ -450,7 +552,9 @@ def settings():
 @login_required
 @log_activity("Viewed/Managed Users") # Log activity
 def users():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Only administrators can manage users.', 'error')
+        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
@@ -458,23 +562,25 @@ def users():
             email = request.form['email']
             password = request.form['password']
             role = request.form['role']
-            if not User.query.filter((User.username == username) | (User.email == email)).first():
-                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.UTC))
+            if User.query.filter((User.username == username) | (User.email == email)).first():
+                flash(f'❌ User {username} or email already exists!', 'error')
+            else:
+                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.utc))
                 db.session.add(new_user)
                 db.session.commit()
                 flash(f'✅ User {username} added successfully!', 'info')
-                log_activity(f"Added User {username}") # Log successful add
-            else:
-                flash(f'❌ User {username} or email already exists!', 'error')
+                _perform_log(f"Added User {username} with role {role}")
         elif action == 'delete':
             user_id = request.form.get('user_id')
-            user = User.query.get(user_id)
-            if user and user.id != current_user.id:
-                username = user.username
-                db.session.delete(user)
+            user_to_delete = User.query.get(user_id)
+            if user_to_delete and user_to_delete.id != current_user.id: # Admin cannot delete themselves
+                username = user_to_delete.username
+                db.session.delete(user_to_delete)
                 db.session.commit()
                 flash(f'✅ User {username} deleted.', 'info')
-                log_activity(f"Deleted User {username}") # Log successful delete
+                _perform_log(f"Deleted User {username}")
+            else:
+                flash('❌ Cannot delete this user (admin cannot delete themselves or user not found).', 'error')
         return redirect(url_for('users'))
     users_list = User.query.all()
     return render_template('users.html', users=users_list)
@@ -483,49 +589,56 @@ def users():
 @login_required
 @log_activity("Viewed/Edited User Profile") # Log activity
 def edit_user(user_id):
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
-    user = User.query.get_or_404(user_id)
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Only administrators can edit user profiles.', 'error')
+        return redirect(url_for('dashboard'))
+    user_to_edit = User.query.get_or_404(user_id)
     if request.method == 'POST':
-        user.username = request.form['username']
-        user.email = request.form['email']
-        if request.form.get('password'): user.password_hash = generate_password_hash(request.form.get('password'))
-        user.role = request.form['role']
+        user_to_edit.username = request.form['username']
+        user_to_edit.email = request.form['email']
+        if request.form.get('password'):
+            user_to_edit.password_hash = generate_password_hash(request.form.get('password'))
+        user_to_edit.role = request.form['role']
         
         # Update can_be_monitored_by_admin only for staff roles
-        if user.role == 'staff':
-            user.can_be_monitored_by_admin = 'can_be_monitored_by_admin' in request.form
+        if user_to_edit.role == 'staff':
+            user_to_edit.can_be_monitored_by_admin = 'can_be_monitored_by_admin' in request.form
         else:
-            user.can_be_monitored_by_admin = False # Non-staff cannot be monitored
+            user_to_edit.can_be_monitored_by_admin = False # Non-staff cannot be monitored
             
         db.session.commit()
-        flash(f'✅ User {user.username} updated successfully!', 'success')
-        log_activity(f"Updated User {user.username}") # Log successful update
+        flash(f'✅ User {user_to_edit.username} updated successfully!', 'success')
+        _perform_log(f"Updated User {user_to_edit.username}")
         return redirect(url_for('users'))
-    return render_template('edit_user.html', user=user)
+    return render_template('edit_user.html', user=user_to_edit)
 
 @app.route('/backup')
 @login_required
 @log_activity("Performed Database Backup") # Log activity
 def backup():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Only administrators can perform backups.', 'error')
+        return redirect(url_for('dashboard'))
     return send_file(db_path, as_attachment=True, download_name='lamaliva_backup.db')
 
 @app.route('/restore', methods=['GET', 'POST'])
 @login_required
 @log_activity("Attempted Database Restore") # Log activity
 def restore():
-    if current_user.role != 'admin': return redirect(url_for('dashboard'))
+    if current_user.role != 'admin':
+        flash('❌ Access denied. Only administrators can restore databases.', 'error')
+        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         file = request.files['backup_file']
         if file and file.filename != '':
             try:
                 file.save(db_path)
-                flash('✅ Database restored successfully!', 'success')
-                log_activity("Successfully Restored Database") # Log successful restore
+                flash('✅ Database restored successfully! Restart application for changes to take full effect.', 'success')
+                _perform_log("Successfully Restored Database")
                 return redirect(url_for('dashboard'))
             except Exception as e:
                 flash(f'❌ Restore failed: {str(e)}', 'error')
-                log_activity(f"Failed Database Restore: {str(e)}") # Log failed restore
+                _perform_log(f"Failed Database Restore: {str(e)}")
     return render_template('restore.html')
 
 @app.route('/about')
@@ -535,7 +648,7 @@ def about(): return render_template('about.html')
 @login_required
 @log_activity("Viewed Today's Arrivals") # Log activity
 def todays_arrivals():
-    today = datetime.now(timezone.UTC).date()
+    today = datetime.now(timezone.utc).date()
     arrivals = Reservation.query.filter(db.func.date(Reservation.check_in) == today).all()
     return render_template('arrivals.html', arrivals=arrivals, today=today)
 
@@ -543,7 +656,7 @@ def todays_arrivals():
 @login_required
 @log_activity("Viewed Today's Departures") # Log activity
 def todays_departures():
-    today = datetime.now(timezone.UTC).date()
+    today = datetime.now(timezone.utc).date()
     departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
     
     if request.args.get('json'):
@@ -563,8 +676,8 @@ def occupancy_report():
     total_rooms = Room.query.count()
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     occupancy_rate = (occupied_rooms / total_rooms * 100) if total_rooms > 0 else 0
-    rooms = Room.query.order_by(Room.price).all()
-    return render_template('occupancy.html', rooms=rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
+    all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
+    return render_template('occupancy.html', rooms=all_rooms, total=total_rooms, occupied=occupied_rooms, rate=occupancy_rate)
 
 @app.route('/admin_monitoring')
 @login_required
@@ -577,12 +690,13 @@ def admin_monitoring():
     users_with_logs = []
     all_users = User.query.all()
     for user in all_users:
+        # Only show staff accounts that can be monitored
         if user.role == 'staff' and user.can_be_monitored_by_admin:
-            # Fetch logs for this specific staff member
             logs = ActivityLog.query.filter_by(user_id=user.id).order_by(ActivityLog.timestamp.desc()).limit(10).all()
             users_with_logs.append({'user': user, 'logs': logs})
-        else:
-            users_with_logs.append({'user': user, 'logs': []}) # No logs for non-monitored or non-staff
+        # Do not show logs for 'user' role or staff without monitoring permission
+        elif user.role != 'user': # Still list non-monitored staff/admins, but without logs
+             users_with_logs.append({'user': user, 'logs': []})
 
     return render_template('admin_monitoring.html', users_with_logs=users_with_logs)
 
@@ -598,13 +712,13 @@ def send_message():
     message_content = request.form.get('message_content')
     
     user = User.query.get(user_id)
-    if user:
+    if user and user.role == 'staff': # Only allow sending messages to staff
         # In a real application, you would integrate with a messaging service (e.g., email, SMS, internal notification system)
         # For this example, we'll just flash a message.
         flash(f'✅ Message sent to {user.username}: "{message_content}"', 'success')
         _perform_log(f"Admin sent message to {user.username}", details=message_content)
     else:
-        flash('❌ User not found.', 'error')
+        flash('❌ User not found or not a staff member.', 'error')
         
     return redirect(url_for('admin_monitoring'))
 
