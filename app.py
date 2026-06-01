@@ -1,16 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 import os
 import io
 import csv
 import random
 import re
 from functools import wraps # Import wraps for decorator
-from fpdf import FPDF # Import FPDF for PDF generation
+from fpdf2 import FPDF # Corrected import for FPDF generation
 
 app = Flask(__name__)
 CORS(app)
