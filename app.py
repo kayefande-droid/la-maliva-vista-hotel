@@ -10,7 +10,11 @@ import csv
 import random
 import re
 from functools import wraps # Import wraps for decorator
-from fpdf2 import FPDF # Corrected import for FPDF generation
+
+# ReportLab imports
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
 
 app = Flask(__name__)
 CORS(app)
@@ -473,33 +477,43 @@ def download_booking_proof(res_id):
         flash('❌ Could not generate booking proof due to missing data.', 'error')
         return redirect(url_for('reservations'))
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    buffer = io.BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    width, height = letter
 
-    pdf.cell(200, 10, txt=f"{hotel.name} - Booking Confirmation", ln=True, align="C")
-    pdf.ln(10)
+    # Header
+    p.setFont("Helvetica-Bold", 16)
+    p.drawCentredString(width / 2.0, height - 50, f"{hotel.name} - Booking Confirmation")
+    p.line(30, height - 60, width - 30, height - 60) # Separator line
 
-    pdf.set_font("Arial", size=10)
-    pdf.cell(200, 7, txt=f"Reservation ID: {res.id}", ln=True)
-    pdf.cell(200, 7, txt=f"Guest Name: {guest.name}", ln=True)
-    pdf.cell(200, 7, txt=f"Guest Email: {guest.email}", ln=True)
-    pdf.cell(200, 7, txt=f"Guest Phone: {guest.phone}", ln=True)
-    pdf.ln(5)
+    # Reservation Details
+    p.setFont("Helvetica", 12)
+    textobject = p.beginText(inch, height - 100)
+    textobject.textLine(f"Reservation ID: {res.id}")
+    textobject.textLine(f"Guest Name: {guest.name}")
+    textobject.textLine(f"Guest Email: {guest.email}")
+    textobject.textLine(f"Guest Phone: {guest.phone}")
+    textobject.textLine("") # Empty line
+    textobject.textLine(f"Room Number: {room.room_number} ({room.room_type})")
+    textobject.textLine(f"Check-in: {res.check_in.strftime('%Y-%m-%d %H:%M')}")
+    textobject.textLine(f"Check-out: {res.check_out.strftime('%Y-%m-%d %H:%M')}")
+    textobject.textLine(f"Total Amount: FCFA {res.amount:,.0f}")
+    textobject.textLine(f"Status: {res.status}")
+    textobject.textLine("") # Empty line
+    textobject.textLine(f"Hotel Address: {hotel.address}")
+    textobject.textLine(f"Support Contact: (+237) 679-915-967")
+    p.drawText(textobject)
 
-    pdf.cell(200, 7, txt=f"Room Number: {room.room_number} ({room.room_type})", ln=True)
-    pdf.cell(200, 7, txt=f"Check-in: {res.check_in.strftime('%Y-%m-%d %H:%M')}", ln=True)
-    pdf.cell(200, 7, txt=f"Check-out: {res.check_out.strftime('%Y-%m-%d %H:%M')}", ln=True)
-    pdf.cell(200, 7, txt=f"Total Amount: FCFA {res.amount:,.0f}", ln=True)
-    pdf.cell(200, 7, txt=f"Status: {res.status}", ln=True)
-    pdf.ln(5)
+    # Footer
+    p.setFont("Helvetica-Oblique", 10)
+    p.drawCentredString(width / 2.0, 30, "Thank you for choosing La-Maliva Vista Hotel!")
 
-    pdf.cell(200, 7, txt=f"Hotel Address: {hotel.address}", ln=True)
-    pdf.cell(200, 7, txt=f"Support Contact: (+237) 679-915-967", ln=True)
-    pdf.ln(10)
-    pdf.cell(200, 7, txt="Thank you for choosing La-Maliva Vista Hotel!", ln=True, align="C")
+    p.showPage()
+    p.save()
 
-    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    buffer.seek(0) # Rewind the buffer to the beginning
+
+    response = make_response(buffer.getvalue())
     response.headers.set('Content-Disposition', 'attachment', filename=f'booking_proof_res_{res.id}.pdf')
     response.headers.set('Content-Type', 'application/pdf')
     
