@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+    /* Specific styles for settings.html, overriding/extending base.html where needed */
     .settings-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 8px;
@@ -11,19 +12,33 @@
         display: flex;
         align-items: center;
         gap: 15px;
-        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    .settings-header h5 {
+        color: #ffb700; /* Gold text */
+        font-size: 24px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0;
+    }
+    .settings-header small {
+        color: #e0e0e0; /* Lighter text */
+    }
     .settings-form {
-        background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));
-        border: 2px solid #ffb700;
+        background: rgba(255, 255, 255, 0.08); /* Transparent background */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
         padding: 30px;
         border-radius: 8px;
         animation: slideInUp 0.6s ease-out;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
     }
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
@@ -41,85 +56,86 @@
         to { opacity: 1; transform: translateX(0); }
     }
     .form-label {
-        color: #0052cc;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         margin-bottom: 8px;
         display: flex;
         align-items: center;
         gap: 8px;
+        font-size: 16px;
     }
     .form-control, .form-select {
-        border: 2px solid rgba(0, 82, 204, 0.3) !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: #e0e0e0 !important;
         transition: all 0.3s ease;
         font-size: 14px;
     }
     .form-control:focus, .form-select:focus {
         border-color: #ffb700 !important;
         box-shadow: 0 0 10px rgba(255, 183, 0, 0.3) !important;
-        background: white;
+        background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
     }
     .btn-submit {
-        background: linear-gradient(90deg, #0052cc, #003d99);
-        border: none;
-        color: white;
-        font-weight: bold;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        @extend .btn-gold; /* Use the gold gradient button style */
         padding: 12px 30px;
     }
-    .btn-submit:hover {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
-        color: #001a4d;
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0, 82, 204, 0.4);
-    }
     .alert-success {
-        background: linear-gradient(90deg, rgba(40, 167, 69, 0.1), rgba(255, 183, 0, 0.05)) !important;
-        border: 2px solid #28a745 !important;
-        color: #155724 !important;
+        background: rgba(40, 167, 69, 0.2) !important;
+        border: 1px solid #28a745 !important;
+        color: #e0e0e0 !important; /* Lighter text */
+    }
+    .alert-success .btn-close {
+        filter: invert(1); /* White close button */
     }
 </style>
 
-<div class="main-content">
-    <div class="settings-header">
-        <i class="bi bi-gear" style="font-size: 28px;"></i>
-        <div>
-            <h5 class="mb-0" style="font-size: 24px;">Hotel Settings</h5>
-            <small>Manage hotel information and configuration</small>
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="settings-header">
+            <i class="bi bi-gear" style="font-size: 28px; color: #ffb700;"></i>
+            <div>
+                <h5 class="mb-0">Hotel Settings</h5>
+                <small>Manage hotel information and configuration</small>
+            </div>
         </div>
-    </div>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle"></i> {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        <i class="bi bi-{{ 'check-circle' if category == 'success' else 'exclamation-triangle' }}"></i> {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
-    <div class="settings-form">
-        <form method="POST">
-            <div class="form-section">
-                <label for="name" class="form-label"><i class="bi bi-building"></i> Hotel Name</label>
-                <input type="text" class="form-control form-control-lg" id="name" name="name" value="{{ hotel.name }}" required>
-            </div>
+        <div class="settings-form">
+            <form method="POST">
+                <div class="form-section">
+                    <label for="name" class="form-label"><i class="bi bi-building"></i> Hotel Name</label>
+                    <input type="text" class="form-control form-control-lg" id="name" name="name" value="{{ hotel.name }}" required>
+                </div>
 
-            <div class="form-section">
-                <label for="address" class="form-label"><i class="bi bi-geo-alt"></i> Address</label>
-                <textarea class="form-control form-control-lg" id="address" name="address" rows="3" required style="resize: vertical;">{{ hotel.address }}</textarea>
-            </div>
+                <div class="form-section">
+                    <label for="address" class="form-label"><i class="bi bi-geo-alt"></i> Address</label>
+                    <textarea class="form-control form-control-lg" id="address" name="address" rows="3" required style="resize: vertical;">{{ hotel.address }}</textarea>
+                </div>
 
-            <div class="form-section">
-                <label for="tax_rate" class="form-label"><i class="bi bi-percent"></i> Tax Rate (%)</label>
-                <input type="number" step="0.01" class="form-control form-control-lg" id="tax_rate" name="tax_rate" value="{{ hotel.tax_rate }}" required>
-            </div>
+                <div class="form-section">
+                    <label for="tax_rate" class="form-label"><i class="bi bi-percent"></i> Tax Rate (%)</label>
+                    <input type="number" step="0.01" class="form-control form-control-lg" id="tax_rate" name="tax_rate" value="{{ hotel.tax_rate }}" required>
+                </div>
 
-            <button type="submit" class="btn btn-submit btn-lg w-100">
-                <i class="bi bi-check-circle"></i> Save Settings
-            </button>
-        </form>
+                <button type="submit" class="btn btn-submit btn-lg w-100">
+                    <i class="bi bi-check-circle"></i> Save Settings
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

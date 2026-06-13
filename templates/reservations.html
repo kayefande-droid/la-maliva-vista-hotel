@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+    /* Specific styles for reservations.html, overriding/extending base.html where needed */
     .reservations-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 8px;
@@ -11,45 +12,60 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
-    .reservations-container {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 250, 255, 0.9));
-        border: 2px solid #ffb700;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        backdrop-filter: blur(5px);
-        animation: fadeIn 0.6s ease-out;
+    .reservations-header h5 {
+        color: #ffb700; /* Gold text */
+        font-size: 24px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0;
+    }
+    .reservations-header small {
+        color: #e0e0e0; /* Lighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    .reservations-container {
+        background: rgba(255, 255, 255, 0.08); /* Transparent background */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        animation: fadeIn 0.6s ease-out;
     }
     @keyframes fadeIn {
         from { opacity: 0; }
         to { opacity: 1; }
     }
     .reservations-table {
-        border: 2px solid #ffb700 !important;
+        background-color: rgba(255, 255, 255, 0.05) !important; /* Transparent table background */
+        border: 1px solid rgba(255, 183, 0, 0.5) !important; /* Gold border */
         border-radius: 8px;
         overflow: hidden;
         animation: fadeIn 0.6s ease-out;
-        background: white;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        color: #e0e0e0; /* Lighter text */
     }
     .reservations-table thead {
-        background: linear-gradient(90deg, #0052cc, #003d99) !important;
-        color: white;
+        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient header */
+        color: #ffb700; /* Gold text */
         font-weight: bold;
     }
     .reservations-table thead th {
-        border-color: #ffb700 !important;
+        border-color: rgba(255, 183, 0, 0.5) !important; /* Gold border */
         padding: 18px 15px;
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
-        border-bottom: 2px solid #ffb700 !important;
+        border-bottom: 2px solid rgba(255, 183, 0, 0.5) !important;
         position: relative;
     }
     .reservations-table thead th i {
@@ -57,19 +73,20 @@
         color: #ffb700;
     }
     .reservations-table tbody tr {
-        border-bottom: 1px solid rgba(0, 82, 204, 0.2);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
     }
     .reservations-table tbody tr:hover {
-        background: linear-gradient(90deg, rgba(0, 82, 204, 0.08), rgba(255, 183, 0, 0.05));
-        box-shadow: inset 3px 0 0 #ffb700;
+        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover */
+        box-shadow: inset 3px 0 0 #ffb700; /* Gold left border on hover */
         transform: translateX(5px);
+        color: #ffb700; /* Gold text on hover */
     }
     .reservations-table tbody td {
         padding: 16px 15px;
         vertical-align: middle;
-        border-left: 1px solid rgba(0, 82, 204, 0.1);
-        border-right: 1px solid rgba(0, 82, 204, 0.1);
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
     .reservations-table tbody td:first-child {
         border-left: none;
@@ -97,28 +114,31 @@
         box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
     }
     .btn-checkin {
-        background: linear-gradient(90deg, #28a745, #20c997);
-        color: white;
+        @extend .btn-gold; /* Use gold button style */
+        background: linear-gradient(135deg, #28a745, #20c997) !important; /* Green gradient */
+        color: white !important;
     }
     .btn-checkin:hover {
-        background: linear-gradient(90deg, #20c997, #17a2b8);
+        background: linear-gradient(135deg, #20c997, #17a2b8) !important;
     }
     .btn-checkout {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
-        color: #001a4d;
+        @extend .btn-gold; /* Use gold button style */
+        background: linear-gradient(135deg, #ffb700, #ff9500) !important; /* Gold gradient */
+        color: #001a4d !important;
     }
     .btn-checkout:hover {
-        background: linear-gradient(90deg, #ff9500, #ff7c00);
+        background: linear-gradient(135deg, #ff9500, #ff7c00) !important;
     }
     .btn-invoice {
-        background: linear-gradient(90deg, #0052cc, #003d99);
-        color: white;
+        @extend .btn-gold; /* Use gold button style */
+        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient */
+        color: white !important;
     }
     .btn-invoice:hover {
-        background: linear-gradient(90deg, #003d99, #002266);
+        background: linear-gradient(135deg, #003d99, #002266) !important;
     }
     .guest-name {
-        color: #0052cc;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         font-size: 14px;
         display: flex;
@@ -129,7 +149,7 @@
         color: #ffb700;
     }
     .room-badge {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
+        background: linear-gradient(135deg, #ffb700, #ff9500); /* Gold gradient */
         color: #001a4d;
         padding: 6px 12px;
         border-radius: 6px;
@@ -140,16 +160,16 @@
     }
     .datetime-info {
         font-size: 12px;
-        color: #666;
+        color: #e0e0e0; /* Lighter text */
         line-height: 1.4;
     }
     .datetime-info strong {
-        color: #0052cc;
+        color: #ffb700; /* Gold for strong text */
     }
     .no-reservations {
         text-align: center;
         padding: 50px;
-        color: #666;
+        color: #e0e0e0; /* Lighter text */
         font-size: 18px;
     }
     .no-reservations i {
@@ -184,110 +204,112 @@
     }
 </style>
 
-<div class="main-content">
-    <div class="reservations-header">
-        <div>
-            <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-calendar-check"></i> All Reservations</h5>
-            <small>View and manage all guest reservations</small>
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="reservations-header">
+            <div>
+                <h5><i class="bi bi-calendar-check"></i> All Reservations</h5>
+                <small>View and manage all guest reservations</small>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 18px; font-weight: bold; color: #ffb700;">{{ reservations|length }}</div>
+                <small style="color: rgba(255,255,255,0.8);">Total Reservations</small>
+            </div>
         </div>
-        <div style="text-align: right;">
-            <div style="font-size: 18px; font-weight: bold; color: #ffb700;">{{ reservations|length }}</div>
-            <small style="color: rgba(255,255,255,0.8);">Total Reservations</small>
-        </div>
-    </div>
 
-    <div class="reservations-container">
-        <div class="table-responsive">
-            <table class="table table-hover reservations-table mb-0">
-                <thead>
-                    <tr>
-                        <th><i class="bi bi-person"></i> Guest</th>
-                        <th><i class="bi bi-door-open"></i> Room</th>
-                        <th><i class="bi bi-calendar-event"></i> Check-in</th>
-                        <th><i class="bi bi-calendar-event"></i> Check-out</th>
-                        <th><i class="bi bi-hourglass-split"></i> Deadline</th> {# New column #}
-                        <th><i class="bi bi-cash-stack"></i> Paid/Arrived</th> {# New column #}
-                        <th><i class="bi bi-gear"></i> Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for res in reservations %}
-                    <tr>
-                        <td>
-                            <div class="guest-name">
-                                <i class="bi bi-person-circle"></i>
-                                {% set guest = res.guest %}
-                                {{ guest.name if guest else 'N/A' }}
-                            </div>
-                        </td>
-                        <td>
-                            <span class="room-badge">
-                                <i class="bi bi-house-door"></i>
-                                Room {{ res.room.room_number if res.room else res.room_id }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="datetime-info">
-                                <strong>{{ res.check_in.strftime('%d %b %Y') }}</strong><br>
-                                <i class="bi bi-clock"></i> {{ res.check_in.strftime('%H:%M') }}
-                            </div>
-                        </td>
-                        <td>
-                            <div class="datetime-info">
-                                <strong>{{ res.check_out.strftime('%d %b %Y') }}</strong><br>
-                                <i class="bi bi-clock"></i> {{ res.check_out.strftime('%H:%M') }}
-                            </div>
-                        </td>
-                        <td> {# Access Deadline #}
-                            {% if res.access_deadline %}
-                                <div class="datetime-info">
-                                    <strong>{{ res.access_deadline.strftime('%d %b %Y') }}</strong><br>
-                                    <i class="bi bi-clock"></i> {{ res.access_deadline.strftime('%H:%M') }}
+        <div class="reservations-container">
+            <div class="table-responsive">
+                <table class="table table-hover reservations-table mb-0">
+                    <thead>
+                        <tr>
+                            <th><i class="bi bi-person"></i> Guest</th>
+                            <th><i class="bi bi-door-open"></i> Room</th>
+                            <th><i class="bi bi-calendar-event"></i> Check-in</th>
+                            <th><i class="bi bi-calendar-event"></i> Check-out</th>
+                            <th><i class="bi bi-hourglass-split"></i> Deadline</th> {# New column #}
+                            <th><i class="bi bi-cash-stack"></i> Paid/Arrived</th> {# New column #}
+                            <th><i class="bi bi-gear"></i> Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in reservations %}
+                        <tr>
+                            <td>
+                                <div class="guest-name">
+                                    <i class="bi bi-person-circle"></i>
+                                    {% set guest = res.guest %}
+                                    {{ guest.name if guest else 'N/A' }}
                                 </div>
-                                {% if res.access_deadline < datetime.utcnow() and not res.customer_arrived_paid %}
-                                    <span class="badge bg-danger status-badge">Expired</span>
+                            </td>
+                            <td>
+                                <span class="room-badge">
+                                    <i class="bi bi-house-door"></i>
+                                    Room {{ res.room.room_number if res.room else res.room_id }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="datetime-info">
+                                    <strong>{{ res.check_in.strftime('%d %b %Y') }}</strong><br>
+                                    <i class="bi bi-clock"></i> {{ res.check_in.strftime('%H:%M') }}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="datetime-info">
+                                    <strong>{{ res.check_out.strftime('%d %b %Y') }}</strong><br>
+                                    <i class="bi bi-clock"></i> {{ res.check_out.strftime('%H:%M') }}
+                                </div>
+                            </td>
+                            <td> {# Access Deadline #}
+                                {% if res.access_deadline %}
+                                    <div class="datetime-info">
+                                        <strong>{{ res.access_deadline.strftime('%d %b %Y') }}</strong><br>
+                                        <i class="bi bi-clock"></i> {{ res.access_deadline.strftime('%H:%M') }}
+                                    </div>
+                                    {% if res.access_deadline < datetime.utcnow() and not res.customer_arrived_paid %}
+                                        <span class="badge bg-danger status-badge">Expired</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
                                 {% endif %}
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td> {# Paid/Arrived Status #}
-                            {% if res.customer_arrived_paid %}
-                                <span class="badge bg-success status-badge">Yes</span>
-                            {% else %}
-                                <span class="badge bg-warning status-badge">No</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <div class="action-buttons">
-                                {% if not res.customer_arrived_paid %}
-                                <a href="/checkin/{{res.id}}" class="btn btn-sm btn-action btn-checkin">
-                                    <i class="bi bi-box-arrow-down"></i> Check-in
-                                </a>
+                            </td>
+                            <td> {# Paid/Arrived Status #}
+                                {% if res.customer_arrived_paid %}
+                                    <span class="badge bg-success status-badge">Yes</span>
+                                {% else %}
+                                    <span class="badge bg-warning status-badge">No</span>
                                 {% endif %}
-                                <a href="/checkout/{{res.id}}" class="btn btn-sm btn-action btn-checkout">
-                                    <i class="bi bi-box-arrow-up"></i> Check-out
-                                </a>
-                                <a href="/invoice/{{res.id}}" class="btn btn-sm btn-action btn-invoice">
-                                    <i class="bi bi-file-earmark"></i> Invoice
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    {% if not reservations %}
-                    <tr>
-                        <td colspan="7"> {# Updated colspan #}
-                            <div class="no-reservations">
-                                <i class="bi bi-calendar-x"></i>
-                                <div>No reservations found</div>
-                                <small style="color: #999;">Create a new reservation to get started</small>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    {% if not res.customer_arrived_paid %}
+                                    <a href="/checkin/{{res.id}}" class="btn btn-sm btn-action btn-checkin">
+                                        <i class="bi bi-box-arrow-down"></i> Check-in
+                                    </a>
+                                    {% endif %}
+                                    <a href="/checkout/{{res.id}}" class="btn btn-sm btn-action btn-checkout">
+                                        <i class="bi bi-box-arrow-up"></i> Check-out
+                                    </a>
+                                    <a href="/invoice/{{res.id}}" class="btn btn-sm btn-action btn-invoice">
+                                        <i class="bi bi-file-earmark"></i> Invoice
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if not reservations %}
+                        <tr>
+                            <td colspan="7"> {# Updated colspan #}
+                                <div class="no-reservations">
+                                    <i class="bi bi-calendar-x"></i>
+                                    <div>No reservations found</div>
+                                    <small style="color: #999;">Create a new reservation to get started</small>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

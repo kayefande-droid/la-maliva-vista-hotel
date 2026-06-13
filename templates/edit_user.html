@@ -1,57 +1,74 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+    /* Specific styles for edit_user.html, overriding/extending base.html where needed */
     .edit-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 20px;
         border-radius: 8px;
         margin-bottom: 20px;
         animation: slideInDown 0.6s ease-out;
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
     }
+    .edit-header h5 {
+        color: #ffb700; /* Gold text */
+        font-size: 24px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0;
+    }
+    .edit-header small {
+        color: #e0e0e0; /* Lighter text */
+    }
     .edit-form {
-        background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));
-        border: 2px solid #ffb700;
+        background: rgba(255, 255, 255, 0.08); /* Transparent background */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
         padding: 25px;
         border-radius: 8px;
         animation: slideInUp 0.6s ease-out;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
     }
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .form-label {
-        color: #0052cc;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 16px;
     }
     .form-control, .form-select {
-        border: 2px solid rgba(0, 82, 204, 0.3) !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: #e0e0e0 !important;
         transition: all 0.3s ease;
+        font-size: 14px;
     }
     .form-control:focus, .form-select:focus {
         border-color: #ffb700 !important;
         box-shadow: 0 0 10px rgba(255, 183, 0, 0.3) !important;
+        background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
     }
     .btn-submit {
-        background: linear-gradient(90deg, #0052cc, #003d99);
-        border: none;
-        color: white;
-        font-weight: bold;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-    .btn-submit:hover {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
-        color: #001a4d;
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0, 82, 204, 0.4);
+        @extend .btn-gold; /* Use the gold gradient button style */
     }
     .btn-cancel {
-        background: linear-gradient(90deg, #6c757d, #5a6268);
+        background: linear-gradient(135deg, #6c757d, #5a6268); /* Grey gradient */
         border: none;
         color: white;
         font-weight: bold;
@@ -59,7 +76,8 @@
     }
     .btn-cancel:hover {
         transform: translateY(-3px);
-        box-shadow: 0 88px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(135deg, #7c858d, #6c757d);
     }
     .form-section {
         margin-bottom: 20px;
@@ -70,65 +88,74 @@
         to { opacity: 1; transform: translateX(0); }
     }
     small {
-        color: #666;
+        color: #adb5bd; /* Muted text */
         display: block;
         margin-top: 5px;
     }
+    .form-check-label {
+        color: #e0e0e0; /* Lighter text for checkbox label */
+    }
+    .form-check-input:checked {
+        background-color: #ffb700; /* Gold checkbox */
+        border-color: #ffb700;
+    }
 </style>
 
-<div class="main-content">
-    <div class="edit-header">
-        <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-person-gear"></i> Edit User</h5>
-        <small>Update user information and access privileges</small>
-    </div>
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="edit-header">
+            <h5 class="mb-0"><i class="bi bi-person-gear"></i> Edit User</h5>
+            <small>Update user information and access privileges</small>
+        </div>
 
-    <div class="edit-form">
-        <form method="POST">
-            <div class="form-section">
-                <label for="username" class="form-label"><i class="bi bi-person"></i> Username</label>
-                <input type="text" class="form-control form-control-lg" id="username" name="username" value="{{ user.username }}" required>
-            </div>
-
-            <div class="form-section">
-                <label for="email" class="form-label"><i class="bi bi-envelope"></i> Email</label>
-                <input type="email" class="form-control form-control-lg" id="email" name="email" value="{{ user.email }}" required>
-            </div>
-
-            <div class="form-section">
-                <label for="password" class="form-label"><i class="bi bi-key"></i> Password</label>
-                <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="New Password">
-                <small class="text-muted">Leave blank to keep current password</small>
-            </div>
-
-            <div class="form-section">
-                <label for="role" class="form-label"><i class="bi bi-shield-lock"></i> Role</label>
-                <select name="role" class="form-select form-select-lg" required>
-                    <option value="user" {% if user.role == 'user' %}selected{% endif %} style="color: #666;">User (Limited Access)</option>
-                    <option value="staff" {% if user.role == 'staff' %}selected{% endif %} style="color: #666;">Staff (Extended Access)</option>
-                    <option value="admin" {% if user.role == 'admin' %}selected{% endif %} style="color: #666;">Admin (Full Access)</option>
-                </select>
-            </div>
-
-            {# Admin-only permission for staff monitoring #}
-            {% if user.role == 'staff' and current_user.role == 'admin' %}
-            <div class="form-section form-check mt-4">
-                <input type="checkbox" class="form-check-input" id="can_be_monitored_by_admin" name="can_be_monitored_by_admin" {% if user.can_be_monitored_by_admin %}checked{% endif %}>
-                <label class="form-check-label" for="can_be_monitored_by_admin">
-                    Allow Admin Monitoring (Staff's in-app activity)
-                </label>
-                <small class="text-muted">Grants administrator permission to view this staff member's activity within the hotel management system. Staff will not be notified.</small>
-            </div>
-            {% endif %}
-
-            <div class="row mt-4">
-                <div class="col-md-6">
-                    <button type="submit" class="btn btn-submit btn-lg w-100"><i class="bi bi-check-circle"></i> Update User</button>
+        <div class="edit-form">
+            <form method="POST">
+                <div class="form-section">
+                    <label for="username" class="form-label"><i class="bi bi-person"></i> Username</label>
+                    <input type="text" class="form-control form-control-lg" id="username" name="username" value="{{ user.username }}" required>
                 </div>
-                <div class="col-md-6">
-                    <a href="{{ url_for('users') }}" class="btn btn-cancel btn-lg w-100"><i class="bi bi-x-circle"></i> Cancel</a>
+
+                <div class="form-section">
+                    <label for="email" class="form-label"><i class="bi bi-envelope"></i> Email</label>
+                    <input type="email" class="form-control form-control-lg" id="email" name="email" value="{{ user.email }}" required>
                 </div>
-            </div>
-        </form>
+
+                <div class="form-section">
+                    <label for="password" class="form-label"><i class="bi bi-key"></i> Password</label>
+                    <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="New Password">
+                    <small>Leave blank to keep current password</small>
+                </div>
+
+                <div class="form-section">
+                    <label for="role" class="form-label"><i class="bi bi-shield-lock"></i> Role</label>
+                    <select name="role" class="form-select form-select-lg" required>
+                        <option value="user" {% if user.role == 'user' %}selected{% endif %}>User (Limited Access)</option>
+                        <option value="staff" {% if user.role == 'staff' %}selected{% endif %}>Staff (Extended Access)</option>
+                        <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>Admin (Full Access)</option>
+                    </select>
+                </div>
+
+                {# Admin-only permission for staff monitoring #}
+                {% if user.role == 'staff' and current_user.role == 'admin' %}
+                <div class="form-section form-check mt-4">
+                    <input type="checkbox" class="form-check-input" id="can_be_monitored_by_admin" name="can_be_monitored_by_admin" {% if user.can_be_monitored_by_admin %}checked{% endif %}>
+                    <label class="form-check-label" for="can_be_monitored_by_admin">
+                        Allow Admin Monitoring (Staff's in-app activity)
+                    </label>
+                    <small>Grants administrator permission to view this staff member's activity within the hotel management system. Staff will not be notified.</small>
+                </div>
+                {% endif %}
+
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <button type="submit" class="btn btn-submit btn-lg w-100"><i class="bi bi-check-circle"></i> Update User</button>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{{ url_for('users') }}" class="btn btn-cancel btn-lg w-100"><i class="bi bi-x-circle"></i> Cancel</a>
+                    </div>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,15 +1,19 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+    /* Specific styles for about.html, overriding/extending base.html where needed */
     .about-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 40px;
         border-radius: 8px;
         margin-bottom: 30px;
         animation: slideInDown 0.6s ease-out;
         text-align: center;
-        box-shadow: 0 8px 25px rgba(0, 82, 204, 0.3);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
@@ -20,14 +24,14 @@
         font-weight: bold;
         margin-bottom: 10px;
         letter-spacing: 1px;
-        color: #ffb700;
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        color: #ffb700; /* Gold text */
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
     .about-header .tagline {
         font-size: 18px;
         font-style: italic;
         opacity: 0.95;
-        color: white;
+        color: #e0e0e0; /* Lighter text */
     }
     .about-content {
         display: grid;
@@ -36,13 +40,15 @@
         margin-bottom: 30px;
     }
     .info-card {
-        background: linear-gradient(135deg, rgba(0, 82, 204, 0.08), rgba(255, 183, 0, 0.08));
-        border: 2px solid #ffb700;
+        background: rgba(255, 255, 255, 0.08); /* Transparent background */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
         padding: 25px;
         border-radius: 8px;
         animation: fadeInScale 0.6s ease-out forwards;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
         transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
     }
     .info-card:nth-child(1) { animation-delay: 0.1s; }
     .info-card:nth-child(2) { animation-delay: 0.2s; }
@@ -52,11 +58,12 @@
         to { opacity: 1; transform: scale(1); }
     }
     .info-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 24px rgba(255, 183, 0, 0.3);
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 12px 24px rgba(255, 183, 0, 0.4); /* Enhanced gold shadow */
+        background: rgba(255, 183, 0, 0.1); /* Subtle gold hover background */
     }
     .info-card h5 {
-        color: #0052cc;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         margin-bottom: 15px;
         display: flex;
@@ -66,27 +73,29 @@
     }
     .info-card .icon {
         font-size: 24px;
-        color: #ffb700;
+        color: #ffb700; /* Gold icon */
     }
     .info-card p {
-        color: #555;
+        color: #e0e0e0; /* Lighter text for readability */
         line-height: 1.6;
         margin: 8px 0;
     }
     .contact-info {
-        background: linear-gradient(135deg, rgba(0, 82, 204, 0.1), rgba(255, 183, 0, 0.08));
-        border: 3px solid #ffb700;
+        background: rgba(255, 255, 255, 0.08); /* Transparent background */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
         padding: 30px;
         border-radius: 8px;
         animation: slideInUp 0.6s ease-out;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
     }
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .contact-info h5 {
-        color: #0052cc;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         margin-bottom: 20px;
         font-size: 20px;
@@ -101,78 +110,82 @@
         padding: 12px;
         margin-bottom: 10px;
         transition: all 0.3s ease;
+        border-radius: 5px;
     }
     .contact-item:hover {
-        background: rgba(255, 183, 0, 0.1);
+        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover background */
         padding-left: 18px;
-        border-left: 3px solid #ffb700;
+        border-left: 3px solid #ffb700; /* Gold left border on hover */
+        transform: translateX(5px);
     }
     .contact-icon {
-        color: #ffb700;
+        color: #ffb700; /* Gold icon */
         font-size: 20px;
         min-width: 24px;
     }
     .contact-text {
-        color: #555;
+        color: #e0e0e0; /* Lighter text for readability */
         font-weight: 500;
     }
 </style>
 
-<div class="main-content">
-    <div class="about-header">
-        <i class="bi bi-info-circle" style="font-size: 48px; display: block; margin-bottom: 15px;"></i>
-        <h3>LA-MALIVA VISTA HOTEL</h3>
-        <p class="tagline">"A Taste of Paradise"</p>
-    </div>
-
-    <div class="about-content">
-        <div class="info-card">
-            <h5><i class="bi bi-building icon"></i> About Us</h5>
-            <p>Professional Hotel Management System designed for modern hospitality businesses. Our system provides comprehensive management of reservations, rooms, guests, and billing.</p>
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="about-header">
+            <i class="bi bi-info-circle" style="font-size: 48px; display: block; margin-bottom: 15px;"></i>
+            <h3>LA-MALIVA VISTA HOTEL</h3>
+            <p class="tagline">"A Taste of Paradise"</p>
         </div>
 
-        <div class="info-card">
-            <h5><i class="bi bi-rocket icon"></i> Features</h5>
-            <p>Advanced calendar system, invoice generation, role-based access control, comprehensive reporting, database backup & restore, and real-time occupancy tracking.</p>
+        <div class="about-content">
+            <div class="info-card">
+                <h5><i class="bi bi-building icon"></i> About Us</h5>
+                <p>Professional Hotel Management System designed for modern hospitality businesses. Our system provides comprehensive management of reservations, rooms, guests, and billing.</p>
+            </div>
+
+            <div class="info-card">
+                <h5><i class="bi bi-rocket icon"></i> Features</h5>
+                <p>Advanced calendar system, invoice generation, role-based access control, comprehensive reporting, database backup & restore, and real-time occupancy tracking.</p>
+            </div>
+
+            <div class="info-card">
+                <h5><i class="bi bi-person-heart icon"></i> Support</h5>
+                <p>Dedicated support team available to help with system setup, troubleshooting, and optimization. Contact us for any assistance you may need.</p>
+            </div>
         </div>
 
-        <div class="info-card">
-            <h5><i class="bi bi-person-heart icon"></i> Support</h5>
-            <p>Dedicated support team available to help with system setup, troubleshooting, and optimization. Contact us for any assistance you may need.</p>
-        </div>
-    </div>
+        <div class="contact-info">
+            <h5><i class="bi bi-telephone" style="color: #ffb700;"></i> Contact Information</h5>
 
-    <div class="contact-info">
-        <h5><i class="bi bi-telephone" style="color: #ffb700;"></i> Contact Information</h5>
+            <div class="contact-item">
+                <i class="bi bi-geo-alt-fill contact-icon"></i>
+                <span class="contact-text">Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon</span>
+            </div>
 
-        <div class="contact-item">
-            <i class="bi bi-geo-alt-fill contact-icon"></i>
-            <span class="contact-text">Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon</span>
-        </div>
+            <div class="contact-item">
+                <i class="bi bi-telephone-fill contact-icon"></i>
+                <span class="contact-text">(+237) 679-915-967</span>
+            </div>
 
-        <div class="contact-item">
-            <i class="bi bi-telephone-fill contact-icon"></i>
-            <span class="contact-text">(+237) 679-915-967</span>
-        </div>
+            <div class="contact-item">
+                <i class="bi bi-telephone-fill contact-icon"></i>
+                <span class="contact-text">(+237) 678-302-909</span>
+            </div>
 
-        <div class="contact-item">
-            <i class="bi bi-telephone-fill contact-icon"></i>
-            <span class="contact-text">(+237) 678-302-909</span>
-        </div>
+            <div class="contact-item">
+                <i class="bi bi-info-circle contact-icon"></i>
+                <span class="contact-text"><strong>System Version:</strong> 1.0</span>
+            </div>
 
-        <div class="contact-item">
-            <i class="bi bi-info-circle contact-icon"></i>
-            <span class="contact-text"><strong>System Version:</strong> 1.0</span>
-        </div>
+            <div class="contact-item">
+                <i class="bi bi-person-workspace contact-icon"></i>
+                <span class="contact-text"><strong>Developer:</strong> Kayefande-Droid</span>
+            </div>
 
-        <div class="contact-item">
-            <i class="bi bi-person-workspace contact-icon"></i>
-            <span class="contact-text"><strong>Developer:</strong> Kayefande-Droid</span>
-        </div>
-
-        <div class="contact-item">
-            <i class="bi bi-c-circle contact-icon"></i>
-            <span class="contact-text"><strong>© 2026</strong> LA-MALIVA VISTA HOTEL - All Rights Reserved</span>
+            <div class="contact-item">
+                <i class="bi bi-c-circle contact-icon"></i>
+                <span class="contact-text"><strong>© 2026</strong> LA-MALIVA VISTA HOTEL - All Rights Reserved</span>
+            </div>
         </div>
     </div>
 </div>

@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+    /* Specific styles for new_reservation.html, overriding/extending base.html where needed */
     .reservation-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 8px;
@@ -11,34 +12,55 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
-    .reservation-form {
-        background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));
-        border: 2px solid #ffb700;
-        padding: 25px;
-        border-radius: 8px;
-        animation: slideInUp 0.6s ease-out;
+    .reservation-header h5 {
+        color: #ffb700; /* Gold text */
+        font-size: 24px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0;
+    }
+    .reservation-header small {
+        color: #e0e0e0; /* Lighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    .reservation-form {
+        background: rgba(255, 255, 255, 0.08); /* Transparent background */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        padding: 25px;
+        border-radius: 8px;
+        animation: slideInUp 0.6s ease-out;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
     }
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .form-control, .form-select {
-        border: 2px solid rgba(0, 82, 204, 0.3) !important;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+        color: #e0e0e0 !important;
         transition: all 0.3s ease;
         font-weight: 500;
     }
     .form-control:focus, .form-select:focus {
         border-color: #ffb700 !important;
         box-shadow: 0 0 10px rgba(255, 183, 0, 0.3) !important;
-        background: white;
+        background-color: rgba(255, 255, 255, 0.2) !important;
+    }
+    .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
     }
     .form-label {
-        color: #0052cc;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         margin-bottom: 8px;
         display: flex;
@@ -58,24 +80,13 @@
         to { opacity: 1; transform: translateX(0); }
     }
     .submit-btn {
-        background: linear-gradient(90deg, #0052cc, #003d99);
-        border: none;
-        color: white;
-        font-weight: bold;
+        @extend .btn-gold; /* Use the gold gradient button style */
         padding: 15px;
-        transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border-radius: 6px;
         margin-top: 20px;
         font-size: 16px;
     }
-    .submit-btn:hover {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
-        color: #001a4d;
-        transform: translateY(-3px);
-        box-shadow: 0 8px 16px rgba(0, 82, 204, 0.4);
-    }
     .form-section-title {
-        color: #ffb700;
+        color: #ffb700; /* Gold text */
         font-weight: bold;
         font-size: 14px;
         text-transform: uppercase;
@@ -83,101 +94,103 @@
         margin-top: 20px;
         margin-bottom: 15px;
         padding-bottom: 10px;
-        border-bottom: 2px solid #ffb700;
+        border-bottom: 2px solid rgba(255, 183, 0, 0.5); /* Gold border */
     }
-    .icon-guest { color: #0052cc; }
-    .icon-room { color: #ffb700; }
-    .icon-date { color: #28a745; }
+    .icon-guest { color: #ffb700; } /* Gold icon */
+    .icon-room { color: #ffb700; } /* Gold icon */
+    .icon-date { color: #ffb700; } /* Gold icon */
 </style>
 
-<div class="main-content">
-    <div class="reservation-header">
-        <div>
-            <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-plus-circle"></i> New Reservation</h5>
-            <small>Book a luxurious stay at LA-MALIVA VISTA HOTEL</small>
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="reservation-header">
+            <div>
+                <h5><i class="bi bi-plus-circle"></i> New Reservation</h5>
+                <small>Book a luxurious stay at LA-MALIVA VISTA HOTEL</small>
+            </div>
+            <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" style="height: 40px; opacity: 0.8;">
         </div>
-        <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" style="height: 40px; opacity: 0.8;">
-    </div>
 
-    <div class="reservation-form">
-        <form method="POST">
-            <!-- Guest Information -->
-            <div class="form-section-title"><i class="bi bi-person"></i> Guest Information</div>
+        <div class="reservation-form">
+            <form method="POST">
+                <!-- Guest Information -->
+                <div class="form-section-title"><i class="bi bi-person"></i> Guest Information</div>
 
-            <div class="input-group">
-                <label for="name" class="form-label"><i class="bi bi-person-fill icon-guest"></i> Full Name</label>
-                <input type="text" name="name" id="name" class="form-control form-control-lg" placeholder="Enter guest name" required>
-            </div>
+                <div class="input-group">
+                    <label for="name" class="form-label"><i class="bi bi-person-fill icon-guest"></i> Full Name</label>
+                    <input type="text" name="name" id="name" class="form-control form-control-lg" placeholder="Enter guest name" required>
+                </div>
 
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <label for="phone" class="form-label"><i class="bi bi-telephone-fill icon-guest"></i> Phone</label>
-                        <input type="text" name="phone" id="phone" class="form-control form-control-lg" placeholder="Phone (+237)" required>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="phone" class="form-label"><i class="bi bi-telephone-fill icon-guest"></i> Phone</label>
+                            <input type="text" name="phone" id="phone" class="form-control form-control-lg" placeholder="Phone (+237)" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="email" class="form-label"><i class="bi bi-envelope-fill icon-guest"></i> Email</label>
+                            <input type="email" name="email" id="email" class="form-control form-control-lg" placeholder="Email address" required>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <label for="email" class="form-label"><i class="bi bi-envelope-fill icon-guest"></i> Email</label>
-                        <input type="email" name="email" id="email" class="form-control form-control-lg" placeholder="Email address" required>
+
+                <!-- Room Selection -->
+                <div class="form-section-title"><i class="bi bi-door-open"></i> Room Selection</div>
+
+                <div class="input-group">
+                    <label for="room_id" class="form-label"><i class="bi bi-box-seam icon-room"></i> Choose Room</label>
+                    <select name="room_id" id="room_id" class="form-select form-select-lg" required>
+                        <option value="">-- Select a room --</option>
+                        {% for room in rooms %}
+                        <option value="{{room.id}}" {% if room.id == selected_room_id|int %}selected{% endif %}>Room {{room.room_number}} - {{room.room_type}} (FCFA {{ "{:,.0f}".format(room.price) }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Check-in Details -->
+                <div class="form-section-title"><i class="bi bi-box-arrow-down"></i> Check-in Details</div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="check_in_date" class="form-label"><i class="bi bi-calendar-fill icon-date"></i> Date</label>
+                            <input type="date" name="check_in_date" id="check_in_date" class="form-control form-control-lg" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="check_in_time" class="form-label"><i class="bi bi-clock-fill icon-date"></i> Time</label>
+                            <input type="time" name="check_in_time" id="check_in_time" class="form-control form-control-lg" value="14:00" required>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Room Selection -->
-            <div class="form-section-title"><i class="bi bi-door-open"></i> Room Selection</div>
+                <!-- Check-out Details -->
+                <div class="form-section-title"><i class="bi bi-box-arrow-up"></i> Check-out Details</div>
 
-            <div class="input-group">
-                <label for="room_id" class="form-label"><i class="bi bi-box-seam icon-room"></i> Choose Room</label>
-                <select name="room_id" id="room_id" class="form-select form-select-lg" required>
-                    <option value="">-- Select a room --</option>
-                    {% for room in rooms %}
-                    <option value="{{room.id}}">Room {{room.room_number}} - {{room.room_type}} (FCFA {{room.price}})</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Check-in Details -->
-            <div class="form-section-title"><i class="bi bi-box-arrow-down"></i> Check-in Details</div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <label for="check_in_date" class="form-label"><i class="bi bi-calendar-fill icon-date"></i> Date</label>
-                        <input type="date" name="check_in_date" id="check_in_date" class="form-control form-control-lg" required>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="check_out_date" class="form-label"><i class="bi bi-calendar-fill icon-date"></i> Date</label>
+                            <input type="date" name="check_out_date" id="check_out_date" class="form-control form-control-lg" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="check_out_time" class="form-label"><i class="bi bi-clock-fill icon-date"></i> Time</label>
+                            <input type="time" name="check_out_time" id="check_out_time" class="form-control form-control-lg" value="12:00" required>
+                        </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <label for="check_in_time" class="form-label"><i class="bi bi-clock-fill icon-date"></i> Time</label>
-                        <input type="time" name="check_in_time" id="check_in_time" class="form-control form-control-lg" value="14:00" required>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Check-out Details -->
-            <div class="form-section-title"><i class="bi bi-box-arrow-up"></i> Check-out Details</div>
-
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <label for="check_out_date" class="form-label"><i class="bi bi-calendar-fill icon-date"></i> Date</label>
-                        <input type="date" name="check_out_date" id="check_out_date" class="form-control form-control-lg" required>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="input-group">
-                        <label for="check_out_time" class="form-label"><i class="bi bi-clock-fill icon-date"></i> Time</label>
-                        <input type="time" name="check_out_time" id="check_out_time" class="form-control form-control-lg" value="12:00" required>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Submit Button -->
-            <button type="submit" class="btn submit-btn w-100">
-                <i class="bi bi-check-circle"></i> Create Reservation
-            </button>
-        </form>
+                <!-- Submit Button -->
+                <button type="submit" class="btn submit-btn w-100">
+                    <i class="bi bi-check-circle"></i> Create Reservation
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

@@ -1,37 +1,92 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="main-content">
-    <h5><i class="bi bi-arrow-down-circle-fill"></i> Today's Arrivals ({{ today.strftime('%d %b %Y') }})</h5>
-    <div class="card shadow-sm mt-4">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Guest Name</th>
-                        <th>Room</th>
-                        <th>Check-in Time</th>
-                        <th>Status</th>
-                        <th class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for res in arrivals %}
-                    <tr>
-                        <td>{{ res.guest.name }}</td>
-                        <td>{{ res.room.room_number }} ({{ res.room.room_type }})</td>
-                        <td>{{ res.check_in.strftime('%I:%M %p') }}</td>
-                        <td><span class="badge bg-warning text-dark">{{ res.status }}</span></td>
-                        <td class="text-end">
-                            <a href="{{ url_for('checkin', res_id=res.id) }}" class="btn btn-sm btn-success">Check-in</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted p-4">No arrivals scheduled for today.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<style>
+    /* Specific styles for arrivals.html, overriding/extending base.html where needed */
+    .main-content h5 {
+        color: #ffb700; /* Gold text for header */
+        margin-bottom: 20px;
+    }
+    .card {
+        @extend .glass-panel; /* Apply glassmorphism to card */
+        padding: 0; /* Remove default card padding as main-content already has it */
+    }
+    .table {
+        background-color: transparent !important; /* Transparent table background */
+        color: #e0e0e0; /* Lighter text */
+    }
+    .table th, .table td {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    .table thead {
+        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient header */
+        color: #ffb700; /* Gold text */
+    }
+    .table thead th {
+        border-color: rgba(255, 183, 0, 0.5) !important; /* Gold border */
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+    .table tbody tr:hover {
+        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover */
+        color: #ffb700; /* Gold text on hover */
+    }
+    .badge.bg-warning {
+        background-color: #ffb700 !important; /* Gold badge */
+        color: #001a4d !important; /* Dark text for contrast */
+    }
+    .badge.bg-success {
+        background-color: #28a745 !important; /* Green for success */
+        color: white !important;
+    }
+    .btn-checkin {
+        @extend .btn-gold; /* Use gold button style for check-in */
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important; /* Keep green for check-in */
+        color: white !important;
+    }
+    .btn-checkin:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(40, 167, 69, 0.4);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <h5 class="text-gold"><i class="bi bi-arrow-down-circle-fill"></i> Today's Arrivals ({{ today.strftime('%d %b %Y') }})</h5>
+        <div class="card shadow-sm mt-4">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Guest Name</th>
+                            <th>Room</th>
+                            <th>Check-in Time</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in arrivals %}
+                        <tr>
+                            <td>{{ res.guest.name }}</td>
+                            <td>{{ res.room.room_number }} ({{ res.room.room_type }})</td>
+                            <td>{{ res.check_in.strftime('%I:%M %p') }}</td>
+                            <td><span class="badge bg-warning">{{ res.status }}</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('checkin', res_id=res.id) }}" class="btn btn-sm btn-checkin">Check-in</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted p-4">No arrivals scheduled for today.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

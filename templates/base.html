@@ -14,71 +14,125 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <style>
+        /* --- General Body & Background --- */
         body {
-            background-color: #f8f9fa; /* Light gray background */
+            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
+            background-attachment: fixed; /* Keep gradient fixed during scroll */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 14px;
             min-height: 100vh;
-            color: #333;
+            color: #e0e0e0; /* Lighter text for dark background */
         }
 
-        /* Basic card styling */
+        /* --- Glassmorphism Effect for Panels/Cards --- */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+            backdrop-filter: blur(10px); /* Frosted effect */
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
+            border-radius: 0.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            color: #e0e0e0; /* Lighter text */
+        }
+
+        /* --- Accent Colors --- */
+        .text-gold { color: #ffb700 !important; }
+        .bg-gold-gradient {
+            background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%);
+            color: #001a4d; /* Dark text for contrast */
+        }
+        .bg-darkblue-gradient {
+            background: linear-gradient(135deg, #001a4d, #003d99);
+            color: #e0e0e0;
+        }
+
+        /* --- General Card Styling --- */
         .card {
             border-radius: 0.5rem;
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect for cards */
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #e0e0e0;
+        }
+        .card-header {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffb700; /* Gold header text */
+        }
+        .card-body {
+            color: #e0e0e0;
         }
 
-        /* Basic button styling */
+        /* --- Buttons --- */
         .btn {
             border-radius: 0.3rem;
             font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        .btn-gold {
+            @extend .bg-gold-gradient; /* Use the gold gradient */
+            border: none;
+            color: #001a4d;
+        }
+        .btn-gold:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(255, 183, 0, 0.4);
+            color: #001a4d;
+        }
+        .btn-gold:active {
+            transform: translateY(0);
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
         }
 
-        /* Main content area styling */
+        /* --- Main Content Area --- */
         .main-content {
-            background-color: #ffffff;
-            border: 1px solid #e9ecef;
-            border-radius: 0.5rem;
+            @extend .glass-panel;
             padding: 20px;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             margin-top: 15px;
             margin-bottom: 15px;
         }
 
-        /* Headers and titles */
+        /* --- Headers and Titles --- */
         h1, h2, h3, h4, h5, h6 {
-            color: #343a40;
+            color: #ffb700; /* Gold for all headers */
             font-weight: 600;
         }
-        .text-primary { color: #007bff !important; }
-        .text-warning { color: #ffc107 !important; }
+        .text-primary { color: #007bff !important; } /* Keep Bootstrap primary for specific uses */
+        .text-warning { color: #ffb700 !important; } /* Use gold for warning */
         .text-danger { color: #dc3545 !important; }
         .text-success { color: #28a745 !important; }
 
-        /* Badges */
+        /* --- Badges --- */
         .badge {
             padding: 0.4em 0.7em;
             border-radius: 0.3rem;
             font-weight: 500;
         }
 
-        /* Alerts */
+        /* --- Alerts --- */
         .alert {
             border-radius: 0.3rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #e0e0e0;
         }
+        .alert-success { background-color: rgba(40, 167, 69, 0.2); border-color: #28a745; }
+        .alert-info { background-color: rgba(23, 162, 184, 0.2); border-color: #17a2b8; }
+        .alert-warning { background-color: rgba(255, 193, 7, 0.2); border-color: #ffc107; }
+        .alert-danger { background-color: rgba(220, 53, 69, 0.2); border-color: #dc3545; }
 
-        /* SPLASH SCREEN STYLES (kept basic functionality) */
+        /* --- SPLASH SCREEN STYLES --- */
         #pwa-splash {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #007bff; /* Simple background */
+            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
             z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             color: white;
-            transition: opacity 1s ease-out;
+            transition: opacity 1.5s ease-out; /* 1.5s transition */
         }
 
         #pwa-splash.hidden {
@@ -90,7 +144,7 @@
             width: 150px;
             height: 150px;
             border-radius: 50%;
-            background: white;
+            background: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
             padding: 10px;
             object-fit: contain;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
@@ -98,17 +152,22 @@
         }
 
         .splash-title {
-            font-size: 24px;
+            font-size: 2.5rem; /* Larger title */
             font-weight: bold;
+            color: #ffb700; /* Gold title */
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
             margin-bottom: 10px;
+            font-family: 'Cinzel', serif; /* Use Cinzel font */
         }
 
         .splash-motto {
-            font-size: 16px;
-            color: #e9ecef;
+            font-size: 1.2rem;
+            color: #e0e0e0; /* Lighter text */
+            font-family: 'Dancing Script', cursive; /* Use Dancing Script font */
+            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
 
-        /* CHATBOT WIDGET STYLES (kept basic functionality) */
+        /* --- CHATBOT WIDGET STYLES --- */
         #chatbot-widget {
             position: fixed;
             bottom: 20px;
@@ -117,15 +176,14 @@
             display: block !important;
         }
         #chatbot-toggle {
-            background-color: #007bff;
-            color: white;
-            border: none;
+            @extend .btn-gold; /* Gold gradient button */
             border-radius: 50%;
             width: 50px;
             height: 50px;
             font-size: 24px;
             cursor: pointer;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            color: #001a4d; /* Dark text for contrast */
         }
         #chatbot-window {
             position: fixed;
@@ -133,24 +191,21 @@
             right: 20px;
             width: 300px;
             max-width: calc(100% - 40px);
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            @extend .glass-panel; /* Glassmorphism for chatbot window */
             display: none;
             flex-direction: column;
-            border: 1px solid #ddd;
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, sans-serif;
             z-index: 10001;
         }
         #chatbot-header {
-            background-color: #007bff;
-            color: white;
+            @extend .bg-darkblue-gradient; /* Dark blue gradient header */
             padding: 10px 15px;
             font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         }
         #chatbot-close {
             background: none;
@@ -163,7 +218,7 @@
             height: 250px;
             overflow-y: auto;
             padding: 10px;
-            background: #f8f9fa;
+            background: rgba(0, 0, 0, 0.1); /* Slightly darker transparent background */
             display: flex;
             flex-direction: column;
             gap: 8px;
@@ -176,37 +231,39 @@
             line-height: 1.4;
         }
         .user-message {
-            background: #007bff;
-            color: white;
+            @extend .bg-darkblue-gradient; /* Dark blue gradient for user messages */
             align-self: flex-end;
             border-bottom-right-radius: 3px;
         }
         .bot-message {
-            background: #e9ecef;
-            color: #333;
+            background: rgba(255, 255, 255, 0.2); /* Lighter transparent for bot messages */
+            color: #e0e0e0;
             align-self: flex-start;
             border-bottom-left-radius: 3px;
-            border: 1px solid #ddd;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
         #chatbot-input-area {
             display: flex;
-            border-top: 1px solid #ddd;
-            background: white;
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.2); /* Darker transparent input area */
             padding: 8px;
         }
         #chatbot-input {
             flex: 1;
-            border: 1px solid #ddd;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 15px;
             padding: 6px 10px;
             outline: none;
             font-size: 12px;
             margin-right: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+        #chatbot-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
         }
         #chatbot-send {
-            background: #007bff;
-            color: white;
-            border: none;
+            @extend .btn-gold; /* Gold gradient send button */
             width: 35px;
             height: 35px;
             border-radius: 50%;
@@ -217,83 +274,125 @@
             justify-content: center;
         }
 
-        /* Top Menu */
+        /* --- Top Menu --- */
         .top-menu {
-            background-color: #343a40; /* Dark background */
+            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
             color: white;
             padding: 8px 15px;
-            border-bottom: 1px solid #dee2e6;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
         }
         .top-menu .navbar-nav .nav-link {
             color: white !important;
             font-weight: 500;
             padding: 0.5rem 1rem;
+            border-radius: 0.3rem;
+            transition: all 0.3s ease;
         }
         .top-menu .navbar-nav .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 183, 0, 0.2); /* Gold transparent hover */
+            color: #ffb700 !important; /* Gold text on hover */
+            transform: translateY(-2px);
         }
         .top-menu .dropdown-menu {
-            background-color: #fff;
-            border: 1px solid #ddd;
+            @extend .glass-panel; /* Glassmorphism for dropdowns */
+            border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 0.25rem;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            padding: 0;
+            overflow: hidden;
         }
         .top-menu .dropdown-item {
-            color: #343a40;
+            color: #e0e0e0; /* Lighter text */
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
         }
         .top-menu .dropdown-item:hover {
-            background-color: #f8f9fa;
+            background-color: rgba(255, 183, 0, 0.2); /* Gold transparent hover */
+            color: #ffb700; /* Gold text on hover */
         }
         .top-menu .dropdown-item i {
             margin-right: 8px;
-            color: #6c757d;
+            color: #ffb700; /* Gold icons */
         }
 
-        /* Sidebar */
+        /* --- Sidebar --- */
         .sidebar {
-            background-color: #ffffff;
-            border-right: 1px solid #dee2e6;
+            @extend .glass-panel;
             padding: 20px;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
             width: 220px;
+        }
+        .sidebar h6 {
+            color: #ffb700; /* Gold for sidebar titles */
         }
         .sidebar .btn-outline-primary, .sidebar .btn-outline-success, .sidebar .btn-outline-warning {
             border-width: 1px;
             font-weight: 500;
+            color: #e0e0e0;
+            border-color: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
         }
+        .sidebar .btn-outline-primary:hover, .sidebar .btn-outline-success:hover, .sidebar .btn-outline-warning:hover {
+            background-color: rgba(255, 183, 0, 0.2);
+            color: #ffb700;
+            border-color: #ffb700;
+            transform: translateY(-2px);
+        }
+        .sidebar .text-success { color: #28a745 !important; } /* Keep success green */
 
-        /* Right Panel */
+        /* --- Right Panel --- */
         .right-panel {
-            background-color: #ffffff;
-            border-left: 1px solid #dee2e6;
-            padding: 20px;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            @extend .glass-panel;
             width: 270px;
         }
+        .right-panel h6 {
+            color: #ffb700; /* Gold for right panel titles */
+        }
+        .right-panel p {
+            color: #e0e0e0;
+        }
 
-        /* Toolbar */
+        /* --- Toolbar --- */
         .toolbar {
-            background-color: #ffffff;
+            @extend .glass-panel;
             padding: 10px 15px;
-            border-radius: 0.5rem;
             margin: 10px 15px 0 15px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-            border: 1px solid #dee2e6;
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on smaller screens */
+            gap: 8px; /* Space between buttons */
         }
         .toolbar .btn {
-            margin-right: 8px;
+            @extend .btn-gold; /* Apply gold gradient to toolbar buttons */
             font-size: 13px;
             padding: 8px 15px;
         }
+        .toolbar .btn-light { /* Override for specific light buttons if needed */
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .toolbar .btn-light:hover {
+            background-color: rgba(255, 183, 0, 0.2);
+            color: #ffb700;
+            border-color: #ffb700;
+        }
 
-        /* Mobile Menu */
+
+        /* --- Mobile Menu --- */
         .mobile-offcanvas {
-            background-color: #343a40;
+            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
             color: white;
             width: 280px;
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .mobile-offcanvas .offcanvas-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .mobile-offcanvas .offcanvas-title {
+            color: #ffb700; /* Gold title */
+        }
+        .mobile-offcanvas .btn-close {
+            filter: invert(1); /* Keep close button visible */
         }
         .mobile-offcanvas a {
             color: white !important;
@@ -303,36 +402,68 @@
             align-items: center;
             gap: 10px;
             text-decoration: none;
+            transition: all 0.3s ease;
         }
         .mobile-offcanvas a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 183, 0, 0.2); /* Gold transparent hover */
+            color: #ffb700 !important; /* Gold text on hover */
+            transform: translateX(5px);
         }
         .mobile-offcanvas small {
             color: #adb5bd !important;
         }
+        .mobile-offcanvas .list-group-flush .list-group-item {
+            background-color: transparent;
+            color: white;
+        }
+        .mobile-offcanvas .list-group-flush .list-group-item:hover {
+            background-color: rgba(255, 183, 0, 0.2);
+            color: #ffb700;
+        }
+        .mobile-offcanvas .text-muted {
+            color: #ffb700 !important; /* Gold for admin tools label */
+        }
 
-        /* PWA Install Button */
+        /* --- PWA Install Button --- */
         #pwa-install-btn {
             display: none;
             position: fixed;
             bottom: 20px;
             right: 100px;
             z-index: 9999;
-            background-color: #007bff;
-            color: white;
-            border: none;
+            @extend .btn-gold; /* Gold gradient button */
             border-radius: 50px;
             padding: 10px 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             font-weight: bold;
         }
 
+        /* --- Media Queries --- */
         @media (max-width: 992px) {
             .mobile-menu-btn { display: block; background: none; border: none; color: white; font-size: 24px; margin-right: 15px; }
             .navbar-collapse, .sidebar { display: none !important; }
             .toolbar { display: flex; overflow-x: auto; padding-bottom: 15px; }
             .toolbar button { flex: 0 0 auto; }
             .main-content { margin: 10px; padding: 15px; }
+        }
+
+        /* --- Floating Shapes for Splash Screen --- */
+        .floating-shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 10s infinite ease-in-out;
+            z-index: -1;
+        }
+        .floating-shape:nth-child(1) { animation-delay: 0s; }
+        .floating-shape:nth-child(2) { animation-delay: 2s; }
+        .floating-shape:nth-child(3) { animation-delay: 4s; }
+        @keyframes float {
+            0% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.5; }
+            25% { transform: translateY(-20px) translateX(10px) scale(1.05); opacity: 0.6; }
+            50% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.5; }
+            75% { transform: translateY(20px) translateX(-10px) scale(0.95); opacity: 0.4; }
+            100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.5; }
         }
     </style>
     <!-- Fonts for Splash -->
@@ -393,52 +524,52 @@
                 <ul class="navbar-nav me-auto">
                     <!-- File -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">File</a>
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">File</a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}">New Reservation</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="window.print()">Print</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer"></i> Print</a></li>
                             {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-                            <li><a class="dropdown-item" href="{{ url_for('export_data') }}">Export Data</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a></li>
                             {% endif %}
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Logout</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
                         </ul>
                     </li>
 
                     <!-- Tools (STRICTLY ADMIN ONLY) -->
                     {% if current_user.is_authenticated and current_user.role == 'admin' %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Tools</a>
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Tools</a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('settings') }}">Settings (Hotel Info)</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('users') }}">User Management</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_monitoring') }}">Admin Monitoring</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('backup') }}">Backup Database</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('restore') }}">Restore Database</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings (Hotel Info)</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a></li>
                         </ul>
                     </li>
                     {% endif %}
 
                     <!-- View -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">View</a>
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">View</a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('calendar') }}">Calendar</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('rooms') }}">Room List</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i> Room List</a></li>
                             {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-                            <li><a class="dropdown-item" href="{{ url_for('guests') }}">Guest List</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest List</a></li>
                             {% endif %}
-                            <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()">Full Screen</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()"><i class="bi bi-arrows-fullscreen"></i> Full Screen</a></li>
                         </ul>
                     </li>
 
                     <!-- Help -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white" href="#" data-bs-toggle="dropdown">Help</a>
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Help</a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('user_manual') }}">User Manual</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('about') }}">About</a></li>
-                            <li><a class="dropdown-item" href="tel:+237678302909">Contact Support</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a></li>
+                            <li><a class="dropdown-item" href="tel:+237679915967"><i class="bi bi-telephone"></i> Contact Support</a></li>
                         </ul>
                     </li>
                 </ul>
@@ -450,8 +581,8 @@
 <!-- MOBILE MENU (Restricted by Role) -->
 <div class="offcanvas offcanvas-start mobile-offcanvas" tabindex="-1" id="mobileMenu">
     <div class="offcanvas-header">
-        <h5 class="offcanvas-title text-white">Menu</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" style="filter: invert(1);"></button>
+        <h5 class="offcanvas-title">Menu</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
     </div>
     <div class="offcanvas-body p-0">
         <div class="list-group list-group-flush bg-transparent">
@@ -468,7 +599,7 @@
             <!-- ADMIN TOOLS (Hidden for non-admins) -->
             {% if current_user.is_authenticated and current_user.role == 'admin' %}
             <div class="border-top my-2 border-secondary"></div>
-            <small class="text-muted ms-3 fw-bold" style="color: #adb5bd !important;">ADMIN TOOLS</small>
+            <small class="text-muted ms-3 fw-bold">ADMIN TOOLS</small>
             <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
             <a href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
             <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
@@ -484,7 +615,7 @@
 
             <div class="border-top my-2 border-secondary"></div>
             <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
-            <a href="tel:+237678302909"><i class="bi bi-telephone"></i> Support</a>
+            <a href="tel:+237679915967"><i class="bi bi-telephone"></i> Support</a>
             <a href="{{ url_for('logout') }}" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
         </div>
     </div>
@@ -534,18 +665,17 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // SPLASH SCREEN LOGIC (8 Seconds Delay)
+    // SPLASH SCREEN LOGIC (1.5 Seconds Delay)
     window.addEventListener('load', function() {
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            const splash = document.getElementById('pwa-splash');
+        const splash = document.getElementById('pwa-splash');
+        // Only show splash if not already hidden (e.g., by previous navigation)
+        if (splash && splash.style.display !== 'none') {
             setTimeout(() => {
                 splash.classList.add('hidden');
                 setTimeout(() => {
                     splash.style.display = 'none';
-                }, 1000);
-            }, 8000);
-        } else {
-            document.getElementById('pwa-splash').style.display = 'none';
+                }, 1500); // Match CSS transition duration
+            }, 1500); // 1.5 seconds delay
         }
     });
 
