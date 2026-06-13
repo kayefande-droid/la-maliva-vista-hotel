@@ -1,38 +1,98 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="main-content">
-    <h5><i class="bi bi-arrow-up-circle-fill"></i> Today's Departures ({{ today.strftime('%d %b %Y') }})</h5>
-    <div class="card shadow-sm mt-4">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Guest Name</th>
-                        <th>Room</th>
-                        <th>Check-out Time</th>
-                        <th>Status</th>
-                        <th class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for res in departures %}
-                    <tr>
-                        <td>{{ res.guest.name }}</td>
-                        <td>{{ res.room.room_number }} ({{ res.room.room_type }})</td>
-                        <td>{{ res.check_out.strftime('%I:%M %p') }}</td>
-                        <td><span class="badge bg-info">{{ res.status }}</span></td>
-                        <td class="text-end">
-                            <a href="{{ url_for('invoice', res_id=res.id) }}" class="btn btn-sm btn-primary me-1">Invoice</a>
-                            <a href="{{ url_for('checkout', res_id=res.id) }}" class="btn btn-sm btn-warning">Checkout</a>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="5" class="text-center text-muted p-4">No departures scheduled for today.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<style>
+    /* Specific styles for departures.html, overriding/extending base.html where needed */
+    .main-content h5 {
+        color: #ffb700; /* Gold text for header */
+        margin-bottom: 20px;
+    }
+    .card {
+        @extend .glass-panel; /* Apply glassmorphism to card */
+        padding: 0; /* Remove default card padding as main-content already has it */
+    }
+    .table {
+        background-color: transparent !important; /* Transparent table background */
+        color: #e0e0e0; /* Lighter text */
+    }
+    .table th, .table td {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    .table thead {
+        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient header */
+        color: #ffb700; /* Gold text */
+    }
+    .table thead th {
+        border-color: rgba(255, 183, 0, 0.5) !important; /* Gold border */
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+    .table tbody tr {
+        transition: all 0.3s ease;
+    }
+    .table tbody tr:hover {
+        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover */
+        color: #ffb700; /* Gold text on hover */
+    }
+    .badge.bg-info {
+        background-color: #17a2b8 !important; /* Cyan badge */
+        color: white !important;
+    }
+    .btn-invoice {
+        @extend .btn-gold; /* Use gold button style for invoice */
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important; /* Keep blue for invoice */
+        color: white !important;
+    }
+    .btn-invoice:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+    }
+    .btn-checkout {
+        @extend .btn-gold; /* Use gold button style for checkout */
+        background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%) !important; /* Gold gradient for checkout */
+        color: #001a4d !important; /* Dark text for contrast */
+    }
+    .btn-checkout:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(255, 183, 0, 0.4);
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <h5 class="text-gold"><i class="bi bi-arrow-up-circle-fill"></i> Today's Departures ({{ today.strftime('%d %b %Y') }})</h5>
+        <div class="card shadow-sm mt-4">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Guest Name</th>
+                            <th>Room</th>
+                            <th>Check-out Time</th>
+                            <th>Status</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for res in departures %}
+                        <tr>
+                            <td>{{ res.guest.name }}</td>
+                            <td>{{ res.room.room_number }} ({{ res.room.room_type }})</td>
+                            <td>{{ res.check_out.strftime('%I:%M %p') }}</td>
+                            <td><span class="badge bg-info">{{ res.status }}</span></td>
+                            <td class="text-end">
+                                <a href="{{ url_for('invoice', res_id=res.id) }}" class="btn btn-sm btn-invoice me-1">Invoice</a>
+                                <a href="{{ url_for('checkout', res_id=res.id) }}" class="btn btn-sm btn-checkout">Checkout</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted p-4">No departures scheduled for today.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

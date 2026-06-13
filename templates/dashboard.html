@@ -1,24 +1,37 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
+    /* Specific styles for dashboard.html, overriding/extending base.html where needed */
     .dashboard-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 8px;
         margin-bottom: 20px;
-        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
         animation: slideInDown 0.6s ease-out;
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
+    }
+    .dashboard-header h5 {
+        color: #ffb700; /* Gold text */
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .dashboard-header small {
+        color: #e0e0e0; /* Lighter text */
     }
     .stat-card {
         position: relative;
         overflow: hidden;
         transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         animation: fadeInScale 0.6s ease-out forwards;
+        @extend .glass-panel; /* Apply glassmorphism to stat cards */
+        padding: 15px; /* Adjust padding for card-body */
     }
     .stat-card:nth-child(1) { animation-delay: 0.1s; }
     .stat-card:nth-child(2) { animation-delay: 0.2s; }
@@ -43,44 +56,57 @@
     }
     .stat-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 12px 24px rgba(255, 183, 0, 0.4); /* Gold shadow on hover */
     }
     .stat-card-occupied {
-        background: linear-gradient(135deg, #0052cc, #003d99) !important;
-        border-left: 5px solid #ffb700;
+        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient */
+        border-left: 5px solid #ffb700; /* Gold accent */
     }
     .stat-card-available {
-        background: linear-gradient(135deg, #28a745, #20c997) !important;
-        border-left: 5px solid #ffb700;
+        background: linear-gradient(135deg, #28a745, #20c997) !important; /* Green gradient */
+        border-left: 5px solid #ffb700; /* Gold accent */
     }
     .stat-card-occupancy {
-        background: linear-gradient(135deg, #ffb700, #ff9500) !important;
-        border-left: 5px solid #0052cc;
+        background: linear-gradient(135deg, #ffb700, #ff9500) !important; /* Gold gradient */
+        border-left: 5px solid #001a4d; /* Dark blue accent */
+        color: #001a4d !important; /* Dark text for contrast */
     }
     .stat-card-arrivals {
-        background: linear-gradient(135deg, #17a2b8, #138496) !important;
-        border-left: 5px solid #ffb700;
+        background: linear-gradient(135deg, #17a2b8, #138496) !important; /* Cyan gradient */
+        border-left: 5px solid #ffb700; /* Gold accent */
     }
     .stat-icon {
         font-size: 28px;
         margin-right: 12px;
         opacity: 0.8;
+        color: #ffb700; /* Gold icon */
+    }
+    .stat-card-occupancy .stat-icon {
+        color: #001a4d; /* Dark icon for contrast on gold */
     }
     .stat-number {
         font-size: 32px;
         font-weight: bold;
         margin-bottom: 5px;
+        color: white;
+    }
+    .stat-card-occupancy .stat-number {
+        color: #001a4d; /* Dark text for contrast */
     }
     .stat-label {
         font-size: 14px;
         opacity: 0.9;
+        color: #e0e0e0; /* Lighter text */
+    }
+    .stat-card-occupancy .stat-label {
+        color: #001a4d; /* Dark text for contrast */
     }
     /* Hotel-themed image animation */
     .hotel-image-animated {
         max-width: 100%;
         border-radius: 8px;
         animation: imageFloat 4s ease-in-out infinite;
-        box-shadow: 0 8px 16px rgba(0, 82, 204, 0.2);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     }
     .chart-container {
         position: relative;
@@ -89,6 +115,8 @@
         margin: 0 auto;
         border-radius: 8px;
         overflow: hidden;
+        background: rgba(255, 255, 255, 0.05); /* Transparent chart background */
+        border: 1px solid rgba(255, 255, 255, 0.2);
     }
     .chart-container canvas {
         width: 100% !important;
@@ -120,151 +148,137 @@
             font-size: 24px;
         }
     }
+
+    /* Tabs Styling */
+    .nav-tabs {
+        border-bottom: none !important;
+    }
+    .nav-tabs .nav-link {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: #e0e0e0;
+        border-radius: 8px 8px 0 0;
+        margin-right: 5px;
+        transition: all 0.3s ease;
+    }
+    .nav-tabs .nav-link:hover {
+        background: rgba(255, 183, 0, 0.15);
+        color: #ffb700;
+        border-color: #ffb700;
+    }
+    .nav-tabs .nav-link.active {
+        background: linear-gradient(135deg, #001a4d, #003d99) !important;
+        color: #ffb700 !important;
+        border-color: #ffb700 !important;
+        border-bottom-color: transparent !important;
+    }
+    .tab-content .card {
+        @extend .glass-panel; /* Apply glassmorphism to tab content cards */
+        padding: 0;
+    }
+    .tab-content table {
+        background-color: transparent !important;
+        color: #e0e0e0;
+    }
+    .tab-content table th, .tab-content table td {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    .tab-content table thead tr {
+        background: linear-gradient(135deg, #001a4d, #003d99) !important;
+        color: #ffb700 !important;
+    }
+    .tab-content table tbody tr:hover {
+        background: rgba(255, 183, 0, 0.15);
+        color: #ffb700;
+    }
+    .tab-content table tbody tr td strong {
+        color: #ffb700;
+    }
+    .tab-content table tbody tr td span.badge {
+        background: linear-gradient(135deg, #ffb700, #ff9500) !important;
+        color: #001a4d !important;
+    }
+    .tab-content table tbody tr td .btn-primary {
+        @extend .btn-gold; /* Gold button for check-in */
+        background: linear-gradient(135deg, #28a745, #20c997) !important; /* Green for check-in */
+        color: white !important;
+    }
+    .tab-content table tbody tr td .btn-danger {
+        @extend .btn-gold; /* Gold button for check-out */
+        background: linear-gradient(135deg, #dc3545, #c82333) !important; /* Red for check-out */
+        color: white !important;
+    }
+    .tab-content table tbody tr td .text-success {
+        color: #28a745 !important;
+    }
+    .tab-content .text-muted {
+        color: #adb5bd !important;
+    }
 </style>
 
-<div class="main-content">
-    <div class="dashboard-header">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h5 class="mb-0" style="font-size: 28px; display: flex; align-items: center; gap: 12px; text-shadow: 0 2px 4px rgba(0,0,0,0.1); letter-spacing: 0.5px; text-transform: uppercase;">
-                    <i class="bi bi-building-fill"></i> LA-MALIVA VISTA HOTEL
-                </h5>
-                <small class="opacity-75">Welcome Back, {{ current_user.username }}! Real-time Hotel Management Dashboard</small>
-            </div>
-            <div class="col-md-4 text-end">
-                <img src="https://cdn-icons-png.flaticon.com/512/1524/1524816.png" alt="Hotel" style="height: 50px; opacity: 0.8; animation: spin 20s linear infinite;">
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="mb-0"><i class="bi bi-building-fill"></i> LA-MALIVA VISTA HOTEL</h5>
+                    <small>Welcome Back, {{ current_user.username }}! Real-time Hotel Management Dashboard</small>
+                </div>
+                <div class="col-md-4 text-end">
+                    <img src="https://cdn-icons-png.flaticon.com/512/1524/1524816.png" alt="Hotel" style="height: 50px; opacity: 0.8; animation: spin 20s linear infinite;">
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="row">
-        <!-- Stats Cards -->
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card stat-card-occupied text-white">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-door-closed stat-icon"></i>
-                        <div>
-                            <div class="stat-number">{{ occupied }}</div>
-                            <div class="stat-label">Occupied Rooms</div>
+        <div class="row">
+            <!-- Stats Cards -->
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card stat-card-occupied text-white">
+                    <div class="card-body position-relative">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-door-closed stat-icon"></i>
+                            <div>
+                                <div class="stat-number">{{ occupied }}</div>
+                                <div class="stat-label">Occupied Rooms</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card stat-card-available text-white">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-door-open stat-icon"></i>
-                        <div>
-                            <div class="stat-number">{{ free }}</div>
-                            <div class="stat-label">Available Rooms</div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card stat-card-available text-white">
+                    <div class="card-body position-relative">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-door-open stat-icon"></i>
+                            <div>
+                                <div class="stat-number">{{ free }}</div>
+                                <div class="stat-label">Available Rooms</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card stat-card-occupancy text-white">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-percent stat-icon"></i>
-                        <div>
-                            <div class="stat-number">{{ occupancy_rate }}%</div>
-                            <div class="stat-label">Occupancy Rate</div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card stat-card-occupancy">
+                    <div class="card-body position-relative">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-percent stat-icon"></i>
+                            <div>
+                                <div class="stat-number">{{ occupancy_rate }}%</div>
+                                <div class="stat-label">Occupancy Rate</div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card stat-card stat-card-arrivals text-white">
-                <div class="card-body position-relative">
-                    <div class="d-flex align-items-center">
-                        <i class="bi bi-person-check stat-icon"></i>
-                        <div>
-                            <div class="stat-number">{{ arrivals|selectattr('status', 'equalto', 'Confirmed')|list|length }}</div>
-                            <div class="stat-label">Pending Arrivals</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <!-- Arrivals & Departures Tabs -->
-        <div class="col-md-7">
-            <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist" style="border-bottom: 2px solid #0052cc;">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold text-uppercase" id="arrivals-tab" data-bs-toggle="tab" data-bs-target="#arrivals" type="button" role="tab" style="color: #0052cc; border: none; border-bottom: 3px solid #0052cc;">
-                        <i class="bi bi-arrow-down-circle"></i> Arrivals
-                    </button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-uppercase" id="departures-tab" data-bs-toggle="tab" data-bs-target="#departures" type="button" role="tab" style="color: #666; border: none;">
-                        <i class="bi bi-arrow-up-circle"></i> Departures
-                    </button>
-                </li>
-            </ul>
-
-            <div class="tab-content" id="dashboardTabsContent">
-                <!-- Arrivals Pane -->
-                <div class="tab-pane fade show active" id="arrivals" role="tabpanel">
-                    <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15);">
-                        <div class="card-body p-0">
-                            <table class="table table-striped mb-0">
-                                <thead>
-                                    <tr style="background: linear-gradient(90deg, #0052cc, #003d99); color: white;">
-                                        <th><i class="bi bi-person"></i> Guest Name</th>
-                                        <th><i class="bi bi-door-open"></i> Room No.</th>
-                                        <th><i class="bi bi-info-circle"></i> Status</th>
-                                        <th><i class="bi bi-gear"></i> Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% if arrivals %}
-                                        {% for res in arrivals %}
-                                        <tr style="transition: all 0.3s ease;">
-                                            <td>
-                                                <strong>
-                                                    <i class="bi bi-person-circle"></i> 
-                                                    {{ res.guest.name if res.guest else 'Guest #' ~ res.guest_id }}
-                                                </strong>
-                                            </td>
-                                            <td>
-                                                <span style="background: linear-gradient(90deg, #0052cc, #003d99); padding: 4px 10px; border-radius: 20px; color: white; font-weight: bold; font-size: 11px;">
-                                                    <i class="bi bi-door-closed"></i> {{ res.room.room_number if res.room else 'N/A' }}
-                                                </span>
-                                            </td>
-                                            <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700); color: #001a4d;">{{ res.status }}</span></td>
-                                            <td>
-                                                {% if res.status != 'Checked-In' %}
-                                                <a href="/checkin/{{ res.id }}" class="btn btn-sm btn-primary" style="background: linear-gradient(90deg, #0052cc, #003d99); border: none;"><i class="bi bi-check2-circle"></i> Check-in</a>
-                                                {% else %}
-                                                <span class="text-success fw-bold"><i class="bi bi-check-all"></i> Arrived</span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                        {% endfor %}
-                                    {% else %}
-                                        <tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-inbox"></i> No arrivals scheduled for today.</td></tr>
-                                    {% endif %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Departures Pane -->
-                <div class="tab-pane fade" id="departures" role="tabpanel">
-                    <div class="card" style="border: 2px solid #0052cc; box-shadow: 0 8px 20px rgba(0, 82, 204, 0.1);">
-                        <div class="card-body p-0" id="departures-container">
-                            <div class="text-center py-4">
-                                <div class="spinner-border text-primary" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
+            <div class="col-md-3 mb-3">
+                <div class="card stat-card stat-card-arrivals text-white">
+                    <div class="card-body position-relative">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-person-check stat-icon"></i>
+                            <div>
+                                <div class="stat-number">{{ arrivals|selectattr('status', 'equalto', 'Confirmed')|list|length }}</div>
+                                <div class="stat-label">Pending Arrivals</div>
                             </div>
                         </div>
                     </div>
@@ -272,47 +286,121 @@
             </div>
         </div>
 
-        <!-- Chart & Hotel Image -->
-        <div class="col-md-5">
-            <div class="card" style="border: 2px solid #ffb700; box-shadow: 0 8px 20px rgba(255, 183, 0, 0.15); border-radius: 12px; overflow: hidden;">
-                <div class="card-header" style="background: linear-gradient(90deg, #ffb700, #ff9500); color: #001a4d; border-bottom: 3px solid #0052cc; padding: 15px; display: flex; align-items: center; gap: 10px;">
-                    <h6 class="mb-0" style="font-size: 18px; display: flex; align-items: center; gap: 10px;">
-                        <i class="bi bi-graph-up" style="color: #001a4d; font-size: 20px;"></i> LIVE OCCUPANCY
-                    </h6>
-                </div>
-                <div class="card-body" style="padding: 20px;">
-                    <div class="chart-container" style="position: relative; width: 100%; height: 280px; margin: 0 auto;">
-                        <canvas id="dashboardChart" style="width: 100% !important; height: 100% !important;"></canvas>
-                    </div>
-                    <div style="text-align: center; margin-top: 15px;">
-                        <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" class="hotel-image-animated" style="height: 40px;">
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+        <div class="row mt-4">
+            <!-- Arrivals & Departures Tabs -->
+            <div class="col-md-7">
+                <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold text-uppercase" id="arrivals-tab" data-bs-toggle="tab" data-bs-target="#arrivals" type="button" role="tab">
+                            <i class="bi bi-arrow-down-circle"></i> Arrivals
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold text-uppercase" id="departures-tab" data-bs-toggle="tab" data-bs-target="#departures" type="button" role="tab">
+                            <i class="bi bi-arrow-up-circle"></i> Departures
+                        </button>
+                    </li>
+                </ul>
 
-    <!-- Hotel-themed Info Section -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card" style="border: 2px solid #ffb700; overflow: hidden;">
-                <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&h=300&fit=crop" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
-                <div class="card-body" style="background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));">
-                    <h6 style="color: #ffb700; font-size: 18px; display: flex; align-items: center; gap: 10px;">
-                        <i class="bi bi-star-fill" style="color: #ffb700; font-size: 20px;"></i> PREMIUM EXPERIENCE
-                    </h6>
-                    <p class="small text-muted">Discover luxury accommodations with world-class amenities and exceptional service.</p>
+                <div class="tab-content" id="dashboardTabsContent">
+                    <!-- Arrivals Pane -->
+                    <div class="tab-pane fade show active" id="arrivals" role="tabpanel">
+                        <div class="card shadow-sm mt-4">
+                            <div class="card-body p-0">
+                                <table class="table table-striped mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th><i class="bi bi-person"></i> Guest Name</th>
+                                            <th><i class="bi bi-door-open"></i> Room No.</th>
+                                            <th><i class="bi bi-info-circle"></i> Status</th>
+                                            <th><i class="bi bi-gear"></i> Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if arrivals %}
+                                            {% for res in arrivals %}
+                                            <tr style="transition: all 0.3s ease;">
+                                                <td>
+                                                    <strong>
+                                                        <i class="bi bi-person-circle"></i>
+                                                        {{ res.guest.name if res.guest else 'Guest #' ~ res.guest_id }}
+                                                    </strong>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-darkblue-gradient">
+                                                        <i class="bi bi-door-closed"></i> {{ res.room.room_number if res.room else 'N/A' }}
+                                                    </span>
+                                                </td>
+                                                <td><span class="badge bg-gold-gradient">{{ res.status }}</span></td>
+                                                <td>
+                                                    {% if res.status != 'Checked-In' %}
+                                                    <a href="/checkin/{{ res.id }}" class="btn btn-sm btn-success"><i class="bi bi-check2-circle"></i> Check-in</a>
+                                                    {% else %}
+                                                    <span class="text-success fw-bold"><i class="bi bi-check-all"></i> Arrived</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr><td colspan="4" class="text-center text-muted py-3"><i class="bi bi-inbox"></i> No arrivals scheduled for today.</td></tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Departures Pane -->
+                    <div class="tab-pane fade" id="departures" role="tabpanel">
+                        <div class="card shadow-sm mt-4">
+                            <div class="card-body p-0" id="departures-container">
+                                <div class="text-center py-4">
+                                    <div class="spinner-border text-gold" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart & Hotel Image -->
+            <div class="col-md-5">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="bi bi-graph-up"></i> LIVE OCCUPANCY</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="dashboardChart"></canvas>
+                        </div>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" class="hotel-image-animated" style="height: 40px;">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6">
-            <div class="card" style="border: 2px solid #0052cc; overflow: hidden;">
-                <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=500&h=300&fit=crop" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
-                <div class="card-body" style="background: linear-gradient(135deg, rgba(0, 82, 204, 0.05), rgba(255, 183, 0, 0.05));">
-                    <h6 style="color: #0052cc; font-size: 18px; display: flex; align-items: center; gap: 10px;">
-                        <i class="bi bi-cup-hot" style="color: #ffb700; font-size: 20px;"></i> FINE DINING
-                    </h6>
-                    <p class="small text-muted">Experience culinary excellence with our award-winning restaurant and bar.</p>
+
+        <!-- Hotel-themed Info Section -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&h=300&fit=crop" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
+                    <div class="card-body">
+                        <h6><i class="bi bi-star-fill"></i> PREMIUM EXPERIENCE</h6>
+                        <p class="small text-muted">Discover luxury accommodations with world-class amenities and exceptional service.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=500&h=300&fit=crop" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
+                    <div class="card-body">
+                        <h6><i class="bi bi-cup-hot"></i> FINE DINING</h6>
+                        <p class="small text-muted">Experience culinary excellence with our award-winning restaurant and bar.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -341,11 +429,11 @@
                             labels: ['Occupied', 'Available'],
                             datasets: [{
                                 data: [occupiedCount, freeCount],
-                                backgroundColor: ['#0052cc', '#ffb700'],
-                                borderColor: '#fff',
+                                backgroundColor: ['#003d99', '#ffb700'], /* Dark blue and Gold */
+                                borderColor: 'rgba(255, 255, 255, 0.5)',
                                 borderWidth: 3,
                                 hoverBorderWidth: 5,
-                                hoverBorderColor: '#fff'
+                                hoverBorderColor: 'white'
                             }]
                         },
                         options: {
@@ -355,7 +443,7 @@
                                 legend: {
                                     position: 'bottom',
                                     labels: {
-                                        color: '#0052cc',
+                                        color: '#e0e0e0', /* Lighter text for legend */
                                         font: { weight: 'bold', size: 14 },
                                         padding: 15,
                                         usePointStyle: true
@@ -407,7 +495,7 @@
                         return;
                     }
 
-                    let html = '<table class="table table-striped mb-0"><thead><tr style="background: linear-gradient(90deg, #001a4d, #003d99); color: white;">' +
+                    let html = '<table class="table table-striped mb-0"><thead><tr class="bg-darkblue-gradient">' +
                                '<th><i class="bi bi-person"></i> Guest Name</th><th><i class="bi bi-door-open"></i> Room No.</th><th><i class="bi bi-info-circle"></i> Status</th><th><i class="bi bi-gear"></i> Action</th></tr></thead><tbody>';
                     
                     data.forEach(d => {
@@ -415,13 +503,13 @@
                             html += `<tr style="transition: all 0.3s ease;">
                                 <td><strong><i class="bi bi-person-circle"></i> ${d.guest_name}</strong></td>
                                 <td>
-                                    <span style="background: linear-gradient(90deg, #0052cc, #003d99); padding: 4px 10px; border-radius: 20px; color: white; font-weight: bold; font-size: 11px;">
+                                    <span class="badge bg-darkblue-gradient">
                                         <i class="bi bi-door-closed"></i> ${d.room}
                                     </span>
                                 </td>
-                                <td><span class="badge" style="background: linear-gradient(90deg, #ffc107, #ffb700); color: #001a4d;">${d.status}</span></td>
+                                <td><span class="badge bg-gold-gradient">${d.status}</span></td>
                                 <td>
-                                    <a href="/checkout/${d.id}" class="btn btn-sm btn-danger" style="background: linear-gradient(90deg, #dc3545, #b02a37); border: none;"><i class="bi bi-box-arrow-right"></i> Check-out</a>
+                                    <a href="/checkout/${d.id}" class="btn btn-sm btn-danger"><i class="bi bi-box-arrow-right"></i> Check-out</a>
                                 </td>
                             </tr>`;
                         }

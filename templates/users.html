@@ -1,74 +1,144 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="main-content">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h5><i class="bi bi-people-fill"></i> User Management</h5>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
-            <i class="bi bi-person-plus-fill"></i> Add User
-        </button>
-    </div>
+<style>
+    /* Specific styles for users.html, overriding/extending base.html where needed */
+    .table {
+        background-color: rgba(255, 255, 255, 0.05); /* Transparent table background */
+        border-color: rgba(255, 255, 255, 0.2);
+        color: #e0e0e0; /* Lighter text */
+    }
+    .table th, .table td {
+        border-color: rgba(255, 255, 255, 0.1);
+    }
+    .table-hover tbody tr:hover {
+        background-color: rgba(255, 183, 0, 0.1); /* Subtle gold hover */
+        color: #ffb700; /* Gold text on hover */
+    }
+    .table-light {
+        background-color: rgba(0, 26, 77, 0.5) !important; /* Dark blue header */
+        color: #ffb700; /* Gold text */
+    }
+    .table-light th {
+        color: #ffb700; /* Gold text */
+    }
+    .badge.bg-danger { background-color: #dc3545 !important; }
+    .badge.bg-primary { background-color: #007bff !important; }
+    .badge.bg-success { background-color: #28a745 !important; }
+    .badge.bg-secondary { background-color: #6c757d !important; }
 
-    {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-info">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-    {% endwith %}
+    /* Modal specific styling */
+    .modal-content {
+        @extend .glass-panel; /* Apply glassmorphism to modal content */
+        color: #e0e0e0;
+    }
+    .modal-header {
+        background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient header */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        color: #ffb700; /* Gold text */
+    }
+    .modal-header .modal-title {
+        color: #ffb700 !important; /* Gold title */
+    }
+    .modal-header .btn-close {
+        filter: invert(1); /* White close button */
+    }
+    .modal-body .form-label {
+        color: #e0e0e0; /* Lighter label text */
+    }
+    .modal-body .form-control, .modal-body .form-select {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #e0e0e0;
+    }
+    .modal-body .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    .modal-body .form-control:focus, .modal-body .form-select:focus {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #ffb700;
+        box-shadow: 0 0 0 0.25rem rgba(255, 183, 0, 0.25);
+        color: #e0e0e0;
+    }
+    .modal-footer {
+        background-color: rgba(0, 0, 0, 0.2); /* Darker transparent footer */
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+</style>
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-hover mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Username</th>
-                        <th>Email</th>
-                        <th>Role</th>
-                        <th>Registered On</th> {# New column #}
-                        <th>Monitored</th> {# New column #}
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td class="align-middle fw-bold">{{ user.username }}</td>
-                        <td class="align-middle">{{ user.email }}</td>
-                        <td class="align-middle">
-                            <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
-                                {{ user.role|upper }}
-                            </span>
-                        </td>
-                        <td class="align-middle">{{ user.registered_on.strftime('%Y-%m-%d %H:%M') }}</td> {# Display registered_on #}
-                        <td class="align-middle">
-                            {% if user.role == 'staff' %}
-                                {% if user.can_be_monitored_by_admin %}
-                                    <span class="badge bg-success">Yes</span>
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="text-gold"><i class="bi bi-people-fill"></i> User Management</h5>
+            <button class="btn btn-gold" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                <i class="bi bi-person-plus-fill"></i> Add User
+            </button>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Registered On</th>
+                            <th>Monitored</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td class="align-middle fw-bold text-gold">{{ user.username }}</td>
+                            <td class="align-middle">{{ user.email }}</td>
+                            <td class="align-middle">
+                                <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
+                                    {{ user.role|upper }}
+                                </span>
+                            </td>
+                            <td class="align-middle">{{ user.registered_on.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td class="align-middle">
+                                {% if user.role == 'staff' %}
+                                    {% if user.can_be_monitored_by_admin %}
+                                        <span class="badge bg-success">Yes</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">No</span>
+                                    {% endif %}
                                 {% else %}
-                                    <span class="badge bg-secondary">No</span>
+                                    <span class="text-muted">N/A</span>
                                 {% endif %}
-                            {% else %}
-                                <span class="text-muted">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-outline-secondary me-1">
-                                <i class="bi bi-pencil-square"></i>
-                            </a>
-                            {% if user.id != current_user.id %}
-                            <form action="{{ url_for('users') }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this user?');">
-                                <input type="hidden" name="action" value="delete">
-                                <input type="hidden" name="user_id" value="{{ user.id }}">
-                                <button class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('edit_user', user_id=user.id) }}" class="btn btn-sm btn-gold me-1">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                {% if user.id != current_user.id %}
+                                <form action="{{ url_for('users') }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this user?');">
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                    <button class="btn btn-sm btn-danger">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>
@@ -77,9 +147,9 @@
 <div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title text-white mb-0"><i class="bi bi-person-plus"></i> Add New User</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><i class="bi bi-person-plus"></i> Add New User</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST">
                 <div class="modal-body">
@@ -106,7 +176,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create User</button>
+                    <button type="submit" class="btn btn-gold">Create User</button>
                 </div>
             </form>
         </div>

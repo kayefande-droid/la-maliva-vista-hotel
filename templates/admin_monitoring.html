@@ -2,36 +2,61 @@
 
 {% block content %}
 <style>
+    /* Specific styles for admin_monitoring.html, overriding/extending base.html where needed */
     .monitoring-header {
-        background: linear-gradient(135deg, #0052cc 0%, #003d99 50%, #ffb700 100%);
+        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 8px;
         margin-bottom: 25px;
-        box-shadow: 0 6px 20px rgba(0, 82, 204, 0.3);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        animation: slideInDown 0.6s ease-out;
+        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    .monitoring-header h5 {
+        color: #ffb700; /* Gold text */
+        font-size: 24px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        margin-bottom: 0;
+    }
+    .monitoring-header small {
+        color: #e0e0e0; /* Lighter text */
     }
     .info-card {
-        border: 2px solid #ffb700;
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 8px;
+        @extend .glass-panel; /* Apply glassmorphism */
+        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+    }
+    .info-card .card-header {
+        background-color: rgba(0, 0, 0, 0.2); /* Darker transparent header */
+        color: #ffb700; /* Gold text */
+        border-bottom: 1px solid rgba(255, 183, 0, 0.5);
+    }
+    .info-card .card-body p {
+        color: #e0e0e0; /* Lighter text */
     }
     .user-card {
-        border: 1px solid rgba(0, 82, 204, 0.2);
+        @extend .glass-panel; /* Apply glassmorphism */
+        border: 1px solid rgba(255, 255, 255, 0.2);
         transition: all 0.3s ease;
     }
     .user-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 8px 15px rgba(255, 183, 0, 0.4); /* Gold shadow on hover */
         border-color: #ffb700;
     }
-    .btn-send {
-        background: linear-gradient(90deg, #0052cc, #003d99);
-        border: none;
-        color: white;
+    .user-card h5 {
+        color: #ffb700; /* Gold title */
     }
-    .btn-send:hover {
-        background: linear-gradient(90deg, #ffb700, #ff9500);
-        color: #001a4d;
+    .user-card h6 {
+        color: #e0e0e0; /* Lighter text */
+    }
+    .user-card p {
+        color: #e0e0e0; /* Lighter text */
+    }
+    .btn-send {
+        @extend .btn-gold; /* Use gold gradient button */
     }
     .monitoring-status-badge {
         font-size: 0.85em;
@@ -41,17 +66,17 @@
     .activity-log-container {
         max-height: 150px;
         overflow-y: auto;
-        border: 1px solid #e0e0e0;
+        border: 1px solid rgba(255, 255, 255, 0.3);
         border-radius: 5px;
         padding: 10px;
-        background-color: #f9f9f9;
+        background-color: rgba(0, 0, 0, 0.1); /* Darker transparent background */
         font-size: 0.8em;
-        color: #555;
+        color: #e0e0e0; /* Lighter text */
     }
     .activity-log-item {
         margin-bottom: 5px;
         padding-bottom: 5px;
-        border-bottom: 1px dashed #eee;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
     }
     .activity-log-item:last-child {
         border-bottom: none;
@@ -60,121 +85,175 @@
     }
     .log-timestamp {
         font-weight: bold;
-        color: #0052cc;
+        color: #ffb700; /* Gold timestamp */
+    }
+    .alert-info {
+        background: rgba(23, 162, 184, 0.2) !important;
+        border: 1px solid #17a2b8 !important;
+        color: #e0e0e0 !important;
+    }
+    .alert-info .alert-heading {
+        color: #ffb700; /* Gold heading */
+    }
+    .alert-info p {
+        color: #e0e0e0; /* Lighter text */
+    }
+
+    /* Modal specific styling */
+    .modal-content {
+        @extend .glass-panel; /* Apply glassmorphism to modal content */
+        color: #e0e0e0;
+    }
+    .modal-header {
+        background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient header */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        color: #ffb700; /* Gold text */
+    }
+    .modal-header .modal-title {
+        color: #ffb700 !important; /* Gold title */
+    }
+    .modal-header .btn-close {
+        filter: invert(1); /* White close button */
+    }
+    .modal-body .form-label {
+        color: #ffb700; /* Gold label text */
+    }
+    .modal-body .form-control {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #e0e0e0;
+    }
+    .modal-body .form-control::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+    }
+    .modal-body .form-control:focus {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-color: #ffb700;
+        box-shadow: 0 0 0 0.25rem rgba(255, 183, 0, 0.25);
+        color: #e0e0e0;
+    }
+    .modal-footer {
+        background-color: rgba(0, 0, 0, 0.2); /* Darker transparent footer */
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .modal-footer .btn-primary {
+        @extend .btn-gold; /* Gold button */
     }
 </style>
 
-<div class="main-content">
-    <div class="monitoring-header">
-        <h5 class="mb-0" style="font-size: 24px;"><i class="bi bi-display"></i> Admin Monitoring System</h5>
-        <small>Monitor staff activity and manage communications</small>
-    </div>
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ 'success' if category == 'success' else 'info' if category == 'info' else 'danger' }} alert-dismissible fade show" role="alert">
-            <i class="bi {{ 'bi-check-circle' if category == 'success' else 'bi-info-circle' }}"></i> {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    <div class="card info-card mb-4">
-        <div class="card-header bg-transparent fw-bold" style="color: #0052cc;">
-            <i class="bi bi-info-circle-fill"></i> Company Information
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="monitoring-header">
+            <h5 class="mb-0"><i class="bi bi-display"></i> Admin Monitoring System</h5>
+            <small>Monitor staff activity and manage communications</small>
         </div>
-        <div class="card-body">
-            <p class="mb-1"><strong>Company Phone:</strong> 679915967</p>
-            <p class="mb-1"><strong>Support Number:</strong> 679915967</p>
-            <p class="mb-0"><strong>Other Info:</strong> La-Maliva Vista Hotel, dedicated to providing excellent service.</p>
-        </div>
-    </div>
 
-    <h5 class="mb-3" style="color: #0052cc;"><i class="bi bi-people"></i> Manage Users</h5>
-    <div class="row">
-        {% for user_data in users_with_logs %}
-        {% set user = user_data.user %}
-        {% set logs = user_data.logs %}
-        <div class="col-md-4 mb-3">
-            <div class="card user-card h-100">
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title" style="color: #003d99;">{{ user.username }}</h5>
-                    <h6 class="card-subtitle mb-2 text-muted small">{{ user.email }}</h6>
-                    <p class="card-text mb-1">
-                        Role: <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
-                            {{ user.role|upper }}
-                        </span>
-                    </p>
-                    <p class="card-text mb-3">
-                        Monitoring:
-                        {% if user.role == 'staff' %}
-                            {% if user.can_be_monitored_by_admin %}
-                                <span class="badge bg-success monitoring-status-badge">Allowed</span>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ 'success' if category == 'success' else 'info' if category == 'info' else 'danger' }} alert-dismissible fade show" role="alert">
+                <i class="bi {{ 'bi-check-circle' if category == 'success' else 'bi-info-circle' }}"></i> {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <div class="card info-card mb-4">
+            <div class="card-header fw-bold">
+                <i class="bi bi-info-circle-fill"></i> Company Information
+            </div>
+            <div class="card-body">
+                <p class="mb-1"><strong>Company Phone:</strong> 679915967</p>
+                <p class="mb-1"><strong>Support Number:</strong> 679915967</p>
+                <p class="mb-0"><strong>Other Info:</strong> La-Maliva Vista Hotel, dedicated to providing excellent service.</p>
+            </div>
+        </div>
+
+        <h5 class="mb-3 text-gold"><i class="bi bi-people"></i> Manage Users</h5>
+        <div class="row">
+            {% for user_data in users_with_logs %}
+            {% set user = user_data.user %}
+            {% set logs = user_data.logs %}
+            <div class="col-md-4 mb-3">
+                <div class="card user-card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title">{{ user.username }}</h5>
+                        <h6 class="card-subtitle mb-2 small">{{ user.email }}</h6>
+                        <p class="card-text mb-1">
+                            Role: <span class="badge {{ 'bg-danger' if user.role == 'admin' else 'bg-primary' }}">
+                                {{ user.role|upper }}
+                            </span>
+                        </p>
+                        <p class="card-text mb-3">
+                            Monitoring:
+                            {% if user.role == 'staff' %}
+                                {% if user.can_be_monitored_by_admin %}
+                                    <span class="badge bg-success monitoring-status-badge">Allowed</span>
+                                {% else %}
+                                    <span class="badge bg-warning monitoring-status-badge">Not Allowed</span>
+                                {% endif %}
                             {% else %}
-                                <span class="badge bg-warning monitoring-status-badge">Not Allowed</span>
+                                <span class="badge bg-secondary monitoring-status-badge">N/A</span>
                             {% endif %}
-                        {% else %}
-                            <span class="badge bg-secondary monitoring-status-badge">N/A</span>
-                        {% endif %}
-                    </p>
+                        </p>
 
-                    {% if user.role == 'staff' and user.can_be_monitored_by_admin %}
-                    <h6 class="mt-2 mb-2" style="color: #0052cc;">Recent Activity:</h6>
-                    <div class="activity-log-container mb-3">
-                        {% if logs %}
-                            {% for log in logs %}
-                                <div class="activity-log-item">
-                                    <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>: {{ log.action }}
-                                </div>
-                            {% endfor %}
-                        {% else %}
-                            <p class="text-muted mb-0">No recent activity logged.</p>
+                        {% if user.role == 'staff' and user.can_be_monitored_by_admin %}
+                        <h6 class="mt-2 mb-2 text-gold">Recent Activity:</h6>
+                        <div class="activity-log-container mb-3">
+                            {% if logs %}
+                                {% for log in logs %}
+                                    <div class="activity-log-item">
+                                        <span class="log-timestamp">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>: {{ log.action }}
+                                    </div>
+                                {% endfor %}
+                            {% else %}
+                                <p class="text-muted mb-0">No recent activity logged.</p>
+                            {% endif %}
+                        </div>
                         {% endif %}
+
+                        <div class="mt-auto">
+                            <button class="btn btn-send btn-sm w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-userid="{{ user.id }}" data-username="{{ user.username }}">
+                                <i class="bi bi-envelope"></i> Send Message
+                            </button>
+                        </div>
                     </div>
-                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
 
-                    <div class="mt-auto">
-                        <button class="btn btn-send btn-sm w-100" data-bs-toggle="modal" data-bs-target="#sendMessageModal" data-userid="{{ user.id }}" data-username="{{ user.username }}">
-                            <i class="bi bi-envelope"></i> Send Message
+        <div class="alert alert-info mt-4">
+            <h6 class="alert-heading"><i class="bi bi-exclamation-circle"></i> Note on Monitoring:</h6>
+            <p class="mb-0">The "Monitoring" status indicates if an administrator has permission to view this staff member's activity *within the hotel management system website*. This is implemented as an activity log, recording actions performed by the staff member. This flag only grants the *permission* for such a system to operate, it does not implement direct screen sharing. Staff will not be explicitly notified when this permission is granted or when monitoring is active.</p>
+        </div>
+    </div>
+
+    <!-- Send Message Modal -->
+    <div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendMessageModalLabel">Send Message to <span id="modalUsername"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ url_for('send_message') }}" method="POST">
+                    <div class="modal-body">
+                        <input type="hidden" name="user_id" id="modalUserId">
+                        <div class="mb-3">
+                            <label for="messageContent" class="form-label fw-bold">Message Content</label>
+                            <textarea class="form-control" id="messageContent" name="message_content" rows="5" placeholder="Type your instruction or message here..." required></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-gold">
+                            <i class="bi bi-send"></i> Dispatch Message
                         </button>
                     </div>
-                </div>
+                </form>
             </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    <div class="alert alert-info mt-4">
-        <h6 class="alert-heading"><i class="bi bi-exclamation-circle"></i> Note on Monitoring:</h6>
-        <p class="mb-0">The "Monitoring" status indicates if an administrator has permission to view this staff member's activity *within the hotel management system website*. This is implemented as an activity log, recording actions performed by the staff member. This flag only grants the *permission* for such a system to operate, it does not implement direct screen sharing. Staff will not be explicitly notified when this permission is granted or when monitoring is active.</p>
-    </div>
-</div>
-
-<!-- Send Message Modal -->
-<div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title text-white" id="sendMessageModalLabel">Send Message to <span id="modalUsername"></span></h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="{{ url_for('send_message') }}" method="POST">
-                <div class="modal-body">
-                    <input type="hidden" name="user_id" id="modalUserId">
-                    <div class="mb-3">
-                        <label for="messageContent" class="form-label fw-bold">Message Content</label>
-                        <textarea class="form-control" id="messageContent" name="message_content" rows="5" placeholder="Type your instruction or message here..." required></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary bg-primary border-0">
-                        <i class="bi bi-send"></i> Dispatch Message
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
