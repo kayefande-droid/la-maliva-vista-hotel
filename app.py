@@ -12,9 +12,15 @@ import re
 from functools import wraps
 
 # ReportLab imports (optional; may require package in requirements)
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import inch
+try:
+    from reportlab.lib.pagesizes import letter
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import inch
+except Exception:
+    # ReportLab may not be installed in some environments; PDF features will be disabled if missing
+    letter = None
+    canvas = None
+    inch = None
 
 app = Flask(__name__)
 CORS(app)
@@ -172,8 +178,18 @@ def create_initial_data():
 # ===================== ROUTES =====================
 @app.route('/')
 def public_home():
-    all_rooms = Room.query.order_by(Room.price).all()
-    return render_template('public_home.html', rooms=all_rooms)
+    # Guard database/template errors so the homepage returns a friendly page instead of 500
+    try:
+        all_rooms = Room.query.order_by(Room.price).all()
+    except Exception as e:
+        print(f"public_home DB/Rendering error: {e}")
+        all_rooms = []
+    try:
+        return render_template('public_home.html', rooms=all_rooms)
+    except Exception as e:
+        # If rendering fails, return a minimal fallback HTML to avoid Internal Server Error
+        print(f"public_home template render error: {e}")
+        return "<html><body><h1>LA-MALIVA VISTA HOTEL</h1><p>Sorry, the site is temporarily unavailable.</p></body></html>", 200
 
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
