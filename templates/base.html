@@ -7,7 +7,6 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0052cc">
-    <meta name="google-site-verification" content="3rRXefg_LYfyIPKcJgeXbLXBLkHx9zKOUlWcX7Fm6Tg" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <!-- Using FullCalendar Scheduler for Resource Timeline View -->
@@ -17,123 +16,147 @@
     <style>
         /* --- General Body & Background --- */
         body {
-            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper, richer dark blue gradient */
             background-attachment: fixed; /* Keep gradient fixed during scroll */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 14px;
             min-height: 100vh;
-            color: #e0e0e0; /* Lighter text for dark background */
+            color: #f0f0f0; /* Brighter text for better visibility */
         }
 
         /* --- Glassmorphism Effect for Panels/Cards --- */
         .glass-panel {
             background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-            backdrop-filter: blur(10px); /* Frosted effect */
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
-            border-radius: 0.5rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            color: #e0e0e0; /* Lighter text */
+            backdrop-filter: blur(12px); /* Stronger frosted effect */
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4); /* More prominent light border */
+            border-radius: 0.75rem; /* Slightly more rounded */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
+            color: #f0f0f0; /* Lighter text */
         }
 
         /* --- Accent Colors --- */
-        .text-gold { color: #ffb700 !important; }
+        .text-gold { color: #ffc107 !important; } /* Brighter gold */
         .bg-gold-gradient {
-            background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%);
-            color: #001a4d; /* Dark text for contrast */
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); /* Brighter gold gradient */
+            color: #001533; /* Dark text for contrast */
         }
         .bg-darkblue-gradient {
-            background: linear-gradient(135deg, #001a4d, #003d99);
-            color: #e0e0e0;
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
+            color: #f0f0f0;
+        }
+        .bg-teal-gradient { /* New Teal Gradient */
+            background: linear-gradient(135deg, #008080 0%, #006666 100%);
+            color: #f0f0f0;
         }
 
         /* --- General Card Styling --- */
         .card {
-            border-radius: 0.5rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border-radius: 0.75rem; /* Slightly more rounded */
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
             background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect for cards */
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            color: #e0e0e0;
+            border: 1px solid rgba(255, 255, 255, 0.25); /* Slightly more prominent border */
+            color: #f0f0f0;
         }
         .card-header {
-            background-color: rgba(255, 255, 255, 0.05);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            color: #ffb700; /* Gold header text */
+            background-color: rgba(255, 255, 255, 0.08); /* Slightly more opaque */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffc107; /* Brighter gold header text */
         }
         .card-body {
-            color: #e0e0e0;
+            color: #f0f0f0;
         }
 
         /* --- Buttons --- */
         .btn {
-            border-radius: 0.3rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
+            border-radius: 0.5rem; /* Slightly more rounded */
+            font-weight: 600; /* Bolder text */
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Enhanced animation */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .btn-gold {
             @extend .bg-gold-gradient; /* Use the gold gradient */
             border: none;
-            color: #001a4d;
+            color: #001533; /* Dark text for contrast */
         }
         .btn-gold:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 10px rgba(255, 183, 0, 0.4);
-            color: #001a4d;
+            transform: translateY(-3px); /* More pronounced lift */
+            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.5); /* Enhanced gold shadow */
+            color: #001533;
         }
         .btn-gold:active {
             transform: translateY(0);
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.4); /* Deeper pressed feel */
         }
+        .btn-teal { /* New Teal Button Style */
+            @extend .bg-teal-gradient;
+            border: none;
+            color: #f0f0f0;
+        }
+        .btn-teal:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 128, 128, 0.5);
+            color: #f0f0f0;
+        }
+        .btn-teal:active {
+            transform: translateY(0);
+            box-shadow: inset 0 3px 8px rgba(0,0,0,0.4);
+        }
+
 
         /* --- Main Content Area --- */
         .main-content {
             @extend .glass-panel;
-            padding: 20px;
-            margin-top: 15px;
-            margin-bottom: 15px;
+            padding: 25px; /* Slightly more padding */
+            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         /* --- Headers and Titles --- */
         h1, h2, h3, h4, h5, h6 {
-            color: #ffb700; /* Gold for all headers */
-            font-weight: 600;
+            color: #ffc107; /* Brighter gold for all headers */
+            font-weight: 700; /* Bolder */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Subtle text shadow */
         }
         .text-primary { color: #007bff !important; } /* Keep Bootstrap primary for specific uses */
-        .text-warning { color: #ffb700 !important; } /* Use gold for warning */
+        .text-warning { color: #ffc107 !important; } /* Use brighter gold for warning */
         .text-danger { color: #dc3545 !important; }
         .text-success { color: #28a745 !important; }
 
         /* --- Badges --- */
         .badge {
-            padding: 0.4em 0.7em;
-            border-radius: 0.3rem;
-            font-weight: 500;
+            padding: 0.5em 0.8em; /* Slightly larger */
+            border-radius: 0.4rem;
+            font-weight: 600;
         }
 
         /* --- Alerts --- */
         .alert {
-            border-radius: 0.3rem;
-            background-color: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: #e0e0e0;
+            border-radius: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.15); /* Slightly more opaque */
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #f0f0f0;
         }
-        .alert-success { background-color: rgba(40, 167, 69, 0.2); border-color: #28a745; }
-        .alert-info { background-color: rgba(23, 162, 184, 0.2); border-color: #17a2b8; }
-        .alert-warning { background-color: rgba(255, 193, 7, 0.2); border-color: #ffc107; }
-        .alert-danger { background-color: rgba(220, 53, 69, 0.2); border-color: #dc3545; }
+        .alert-success { background-color: rgba(40, 167, 69, 0.25); border-color: #28a745; }
+        .alert-info { background-color: rgba(23, 162, 184, 0.25); border-color: #17a2b8; }
+        .alert-warning { background-color: rgba(255, 193, 7, 0.25); border-color: #ffc107; }
+        .alert-danger { background-color: rgba(220, 53, 69, 0.25); border-color: #dc3545; }
+        .alert .btn-close { filter: invert(1); } /* Ensure close button is visible */
+
 
         /* --- SPLASH SCREEN STYLES --- */
         #pwa-splash {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
             z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             color: white;
-            transition: opacity 1.5s ease-out; /* 1.5s transition */
+            transition: opacity 1.35s ease-out; /* 1.35s transition */
         }
 
         #pwa-splash.hidden {
@@ -142,30 +165,30 @@
         }
 
         .splash-logo {
-            width: 150px;
-            height: 150px;
+            width: 160px; /* Slightly larger logo */
+            height: 160px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.9); /* Slightly transparent white */
-            padding: 10px;
+            background: rgba(255, 255, 255, 0.95); /* More opaque white */
+            padding: 12px;
             object-fit: contain;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            margin-bottom: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
+            margin-bottom: 25px;
         }
 
         .splash-title {
-            font-size: 2.5rem; /* Larger title */
+            font-size: 3rem; /* Even larger title */
             font-weight: bold;
-            color: #ffb700; /* Gold title */
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
-            margin-bottom: 10px;
-            font-family: 'Cinzel', serif; /* Use Cinzel font */
+            color: #ffc107; /* Brighter gold title */
+            text-shadow: 0 3px 8px rgba(0,0,0,0.6); /* More pronounced shadow */
+            margin-bottom: 15px;
+            font-family: 'Cinzel', serif;
         }
 
         .splash-motto {
-            font-size: 1.2rem;
-            color: #e0e0e0; /* Lighter text */
-            font-family: 'Dancing Script', cursive; /* Use Dancing Script font */
-            text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+            font-size: 1.4rem; /* Larger motto */
+            color: #f0f0f0; /* Lighter text */
+            font-family: 'Dancing Script', cursive;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
         }
 
         /* --- CHATBOT WIDGET STYLES --- */
@@ -179,18 +202,18 @@
         #chatbot-toggle {
             @extend .btn-gold; /* Gold gradient button */
             border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
+            width: 55px; /* Slightly larger */
+            height: 55px;
+            font-size: 26px;
             cursor: pointer;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            color: #001a4d; /* Dark text for contrast */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            color: #001533; /* Dark text for contrast */
         }
         #chatbot-window {
             position: fixed;
-            bottom: 80px;
+            bottom: 90px; /* Adjusted position */
             right: 20px;
-            width: 300px;
+            width: 320px; /* Slightly wider */
             max-width: calc(100% - 40px);
             @extend .glass-panel; /* Glassmorphism for chatbot window */
             display: none;
@@ -200,138 +223,587 @@
             z-index: 10001;
         }
         #chatbot-header {
-            @extend .bg-darkblue-gradient; /* Dark blue gradient header */
-            padding: 10px 15px;
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient header */
+            padding: 12px 18px; /* More padding */
             font-weight: bold;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
         }
         #chatbot-close {
             background: none;
             border: none;
             color: white;
-            font-size: 18px;
+            font-size: 20px;
             cursor: pointer;
         }
         #chatbot-messages {
-            height: 250px;
+            height: 280px; /* Taller */
             overflow-y: auto;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.1); /* Slightly darker transparent background */
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.15); /* Slightly darker transparent background */
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px; /* More space between messages */
         }
         .message {
-            max-width: 80%;
-            padding: 8px 12px;
-            border-radius: 15px;
-            font-size: 12px;
-            line-height: 1.4;
+            max-width: 85%; /* Wider messages */
+            padding: 10px 15px;
+            border-radius: 18px; /* More rounded */
+            font-size: 13px;
+            line-height: 1.5;
         }
         .user-message {
-            @extend .bg-darkblue-gradient; /* Dark blue gradient for user messages */
+            background: linear-gradient(135deg, #002a66, #001533); /* Dark blue gradient for user messages */
+            color: #f0f0f0;
             align-self: flex-end;
-            border-bottom-right-radius: 3px;
+            border-bottom-right-radius: 5px;
         }
         .bot-message {
-            background: rgba(255, 255, 255, 0.2); /* Lighter transparent for bot messages */
-            color: #e0e0e0;
+            background: rgba(255, 255, 255, 0.25); /* Lighter transparent for bot messages */
+            color: #f0f0f0;
             align-self: flex-start;
-            border-bottom-left-radius: 3px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-bottom-left-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
         }
         #chatbot-input-area {
             display: flex;
-            border-top: 1px solid rgba(255, 255, 255, 0.3);
-            background: rgba(0, 0, 0, 0.2); /* Darker transparent input area */
-            padding: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(0, 0, 0, 0.25); /* Darker transparent input area */
+            padding: 10px;
         }
         #chatbot-input {
             flex: 1;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 15px;
-            padding: 6px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px; /* More rounded */
+            padding: 8px 15px;
             outline: none;
-            font-size: 12px;
-            margin-right: 5px;
-            background: rgba(255, 255, 255, 0.1);
+            font-size: 13px;
+            margin-right: 8px;
+            background: rgba(255, 255, 255, 0.15);
             color: white;
         }
         #chatbot-input::placeholder {
-            color: rgba(255, 255, 255, 0.6);
+            color: rgba(255, 255, 255, 0.7);
         }
         #chatbot-send {
             @extend .btn-gold; /* Gold gradient send button */
-            width: 35px;
-            height: 35px;
+            width: 40px; /* Slightly larger */
+            height: 40px;
             border-radius: 50%;
             cursor: pointer;
             font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
+            font-size: 18px;
         }
 
         /* --- Top Menu --- */
         .top-menu {
-            background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient */
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
             color: white;
-            padding: 8px 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 10px 20px; /* More padding */
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4); /* Enhanced shadow */
         }
         .top-menu .navbar-nav .nav-link {
-            color: white !important;
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            border-radius: 0.3rem;
+            color: #f0f0f0 !important; /* Brighter text */
+            font-weight: 600;
+            padding: 0.6rem 1.2rem; /* More padding */
+            border-radius: 0.4rem;
             transition: all 0.3s ease;
         }
         .top-menu .navbar-nav .nav-link:hover {
-            background-color: rgba(255, 183, 0, 0.2); /* Gold transparent hover */
-            color: #ffb700 !important; /* Gold text on hover */
-            transform: translateY(-2px);
+            background-color: rgba(255, 193, 7, 0.25); /* Brighter gold transparent hover */
+            color: #ffc107 !important; /* Brighter gold text on hover */
+            transform: translateY(-3px);
         }
         .top-menu .dropdown-menu {
             @extend .glass-panel; /* Glassmorphism for dropdowns */
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 0.25rem;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 0.5rem; /* More rounded */
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
             padding: 0;
             overflow: hidden;
         }
         .top-menu .dropdown-item {
-            color: #e0e0e0; /* Lighter text */
-            padding: 0.5rem 1rem;
+            color: #f0f0f0; /* Lighter text */
+            padding: 0.75rem 1.25rem; /* More padding */
             transition: all 0.2s ease;
         }
         .top-menu .dropdown-item:hover {
-            background-color: rgba(255, 183, 0, 0.2); /* Gold transparent hover */
-            color: #ffb700; /* Gold text on hover */
+            background-color: rgba(255, 193, 7, 0.25); /* Brighter gold transparent hover */
+            color: #ffc107; /* Brighter gold text on hover */
         }
         .top-menu .dropdown-item i {
-            margin-right: 8px;
-            color: #ffb700; /* Gold icons */
+            margin-right: 10px;
+            color: #ffc107; /* Brighter gold icons */
         }
 
         /* --- Sidebar --- */
         .sidebar {
             @extend .glass-panel;
-            padding: 20px;
-            width: 220px;
+            padding: 25px;
+            width: 240px; /* Slightly wider */
         }
         .sidebar h6 {
-            color: #ffb700; /* Gold for sidebar titles */
+            color: #ffc107; /* Brighter gold for sidebar titles */
+            font-weight: 700;
         }
         .sidebar .btn-outline-primary, .sidebar .btn-outline-success, .sidebar .btn-outline-warning {
-            border-width: 1px;
-            font-weight: 500;
-            color: #e0e0e0;
-            border-color: rgba(255, 255, 255, 0.3);
+            border-width: 2px; /* Thicker border */
+            font-weight: 600;
+            color: #f0f0f0;
+            border-color: rgba(255, 255, 255, 0.4);
             transition: all 0.3s ease;
+            border-radius: 0.5rem;
         }
         .sidebar .btn-outline-primary:hover, .sidebar .btn-outline-success:hover, .sidebar .btn-outline-warning:hover {
-            background-color: rgba(255, 183, 0, 0.2);
+            background-color: rgba(255, 193, 7, 0.25);
+            color: #ffc107;
+            border-color: #ffc107;
+            transform: translateY(-3px);
+        }
+        .sidebar .text-success { color: #28a745 !important; } /* Keep success green */
+
+        /* --- Right Panel --- */
+        .right-panel {
+            @extend .glass-panel;
+            width: 280px; /* Slightly wider */
+        }
+        .right-panel h6 {
+            color: #ffc107; /* Brighter gold for right panel titles */
+            font-weight: 700;
+        }
+        .right-panel p {
+            color: #f0f0f0;
+        }
+
+        /* --- Toolbar --- */
+        .toolbar {
+            @extend .glass-panel;
+            padding: 12px 18px;
+            margin: 15px 20px 0 20px; /* Adjusted margin */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* More space between buttons */
+        }
+        .toolbar .btn {
+            @extend .btn-gold; /* Apply gold gradient to toolbar buttons */
+            font-size: 14px;
+            padding: 10px 18px;
+        }
+        .toolbar .btn-light { /* Override for specific light buttons if needed */
+            background-color: rgba(255, 255, 255, 0.15);
+            color: #f0f0f0;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .toolbar .btn-light:hover {
+            background-color: rgba(255, 193, 7, 0.25);
+            color: #ffc107;
+            border-color: #ffc107;
+        }
+        .btn-create-reservation { /* New style for Create Reservation button */
+            @extend .btn-teal;
+        }
+
+
+        /* --- Mobile Menu --- */
+        .mobile-offcanvas {
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
+            color: white;
+            width: 280px;
+            border-right: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .mobile-offcanvas .offcanvas-header {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        }
+        .mobile-offcanvas .offcanvas-title {
+            color: #ffc107; /* Brighter gold title */
+        }
+        .mobile-offcanvas .btn-close {
+            filter: invert(1);
+        }
+        .mobile-offcanvas a {
+            color: #f0f0f0 !important; /* Brighter text */
+            padding: 15px 20px; /* More padding */
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        .mobile-offcanvas a:hover {
+            background-color: rgba(255, 193, 7, 0.25); /* Brighter gold transparent hover */
+            color: #ffc107 !important; /* Brighter gold text on hover */
+            transform: translateX(8px); /* More pronounced slide */
+        }
+        .mobile-offcanvas small {
+            color: #b0b0b0 !important; /* Slightly brighter muted text */
+        }
+        .mobile-offcanvas .list-group-flush .list-group-item {
+            background-color: transparent;
+            color: #f0f0f0;
+        }
+        .mobile-offcanvas .list-group-flush .list-group-item:hover {
+            background-color: rgba(255, 193, 7, 0.25);
+            color: #ffc107;
+        }
+        .mobile-offcanvas .text-muted {
+            color: #ffc107 !important; /* Brighter gold for admin tools label */
+        }
+
+        /* --- PWA Install Button --- */
+        #pwa-install-btn {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            right: 100px;
+            z-index: 9999;
+            @extend .btn-gold; /* Gold gradient button */
+            border-radius: 50px;
+            padding: 12px 25px; /* More padding */
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            font-weight: bold;
+        }
+
+        /* --- Media Queries --- */
+        @media (max-width: 992px) {
+            .mobile-menu-btn-container {
+                display: block;
+                margin-right: 15px;
+            }
+            .navbar-collapse, .sidebar { display: none !important; }
+            .toolbar { display: flex; overflow-x: auto; padding-bottom: 15px; }
+            .toolbar button { flex: 0 0 auto; }
+            .main-content { margin: 10px; padding: 15px; }
+        }
+
+        /* --- Mobile Menu Button Redesign --- */
+        .mobile-menu-btn {
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            position: relative;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            padding: 0;
+            transition: all 0.3s ease;
+        }
+        .mobile-menu-btn .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background-color: #ffc107; /* Gold lines */
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .mobile-menu-btn:hover .hamburger-line {
+            background-color: #f0f0f0; /* White on hover */
+        }
+        .mobile-menu-btn.active .hamburger-line:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+        .mobile-menu-btn.active .hamburger-line:nth-child(2) {
+            opacity: 0;
+        }
+        .mobile-menu-btn.active .hamburger-line:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+
+        /* --- Floating Shapes for Splash Screen --- */
+        .floating-shape {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.15); /* Slightly more opaque */
+            border-radius: 50%;
+            animation: float 12s infinite ease-in-out; /* Slower, smoother float */
+            z-index: -1;
+        }
+        .floating-shape:nth-child(1) { animation-delay: 0s; width: 120px; height: 120px; left: 15%; top: 10%; }
+        .floating-shape:nth-child(2) { animation-delay: 3s; width: 80px; height: 80px; right: 20%; bottom: 15%; }
+        .floating-shape:nth-child(3) { animation-delay: 6s; width: 180px; height: 180px; left: 5%; bottom: 5%; }
+        .floating-shape:nth-child(4) { animation-delay: 9s; width: 100px; height: 100px; right: 10%; top: 5%; }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.6; }
+            25% { transform: translateY(-25px) translateX(15px) scale(1.05); opacity: 0.7; }
+            50% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.6; }
+            75% { transform: translateY(25px) translateX(-15px) scale(0.95); opacity: 0.5; }
+        }
+    </style>
+    <!-- Fonts for Splash -->
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- SPLASH SCREEN (Only shows on PWA launch or first visit) -->
+<div id="pwa-splash">
+    <!-- Floating background shapes -->
+    <div class="floating-shape"></div>
+    <div class="floating-shape"></div>
+    <div class="floating-shape"></div>
+    <div class="floating-shape"></div>
+
+    <img src="{{ url_for('static', filename='logo.png') }}" class="splash-logo" alt="Logo">
+    <div class="splash-title">LA-MALIVA VISTA</div>
+    <div class="splash-motto">A Taste of Paradise</div>
+</div>
+
+<!-- CHATBOT WIDGET START -->
+<div id="chatbot-widget">
+    <button id="chatbot-toggle" title="Chat with Assistant" onclick="toggleChat()"><i class="bi bi-chat-dots-fill"></i></button>
+    <div id="chatbot-window">
+        <div id="chatbot-header">
+            <span>LaMalaVista Assistant</span>
+            <button id="chatbot-close" onclick="toggleChat()"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div id="chatbot-messages">
+            <div class="message bot-message">Hello! I'm your digital concierge. Ask me about rooms, prices, or amenities!</div>
+        </div>
+        <div id="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Type your message..." autocomplete="off" onkeypress="if(event.key === 'Enter') sendChat()">
+            <button id="chatbot-send" onclick="sendChat()"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
+</div>
+<!-- CHATBOT WIDGET END -->
+
+<button id="pwa-install-btn"><i class="bi bi-download"></i> Install App</button>
+
+<nav class="top-menu navbar navbar-expand-lg">
+    <div class="container-fluid p-0">
+        <div class="d-flex align-items-center w-100">
+            <div class="mobile-menu-btn-container">
+                <button class="mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                    <div class="hamburger-line"></div>
+                </button>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 40px; width: auto; border-radius: 6px;">
+                <div style="color: white; line-height: 1.2;">
+                    <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
+                    <small style="color: #b0b0b0; font-size: 10px;">Paradise in Buea</small>
+                </div>
+            </div>
+
+            <!-- DESKTOP MENU -->
+            <div class="collapse navbar-collapse ms-4">
+                <ul class="navbar-nav me-auto">
+                    <!-- File -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">File</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer"></i> Print</a></li>
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+                            <li><a class="dropdown-item" href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Tools (STRICTLY ADMIN ONLY) -->
+                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Tools</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings (Hotel Info)</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a></li>
+                        </ul>
+                    </li>
+                    {% endif %}
+
+                    <!-- View -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">View</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i> Room List</a></li>
+                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+                            <li><a class="dropdown-item" href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest List</a></li>
+                            {% endif %}
+                            <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()"><i class="bi bi-arrows-fullscreen"></i> Full Screen</a></li>
+                        </ul>
+                    </li>
+
+                    <!-- Help -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Help</a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a></li>
+                            <li><a class="dropdown-item" href="tel:+237679915967"><i class="bi bi-telephone"></i> Contact Support</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- MOBILE MENU (Restricted by Role) -->
+<div class="offcanvas offcanvas-start mobile-offcanvas" tabindex="-1" id="mobileMenu">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title">Menu</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        <div class="list-group list-group-flush bg-transparent">
+            <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+
+            <!-- Quick Actions -->
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('todays_arrivals') }}"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
+            <a href="{{ url_for('todays_departures') }}"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+
+            <!-- ADMIN TOOLS (Hidden for non-admins) -->
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <div class="border-top my-2 border-secondary"></div>
+            <small class="text-muted ms-3 fw-bold">ADMIN TOOLS</small>
+            <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
+            <a href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
+            <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
+            <a href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup DB</a>
+            {% endif %}
+
+            <!-- STAFF TOOLS (Hidden for Guests) -->
+            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest Database</a>
+            <a href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a>
+            {% endif %}
+
+            <div class="border-top my-2 border-secondary"></div>
+            <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
+            <a href="tel:+237679915967"><i class="bi bi-telephone"></i> Support</a>
+            <a href="{{ url_for('logout') }}" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
+        </div>
+    </div>
+</div>
+
+<div class="toolbar d-none d-lg-block">
+    <button onclick="window.location.href='/dashboard'" class="btn btn-sm btn-light me-1"><i class="bi bi-house-door"></i> Dashboard</button>
+    <button onclick="window.location.href='/calendar'" class="btn btn-sm btn-light me-1"><i class="bi bi-calendar3"></i> Calendar</button>
+    <button onclick="window.location.href='/rooms'" class="btn btn-sm btn-light me-1"><i class="bi bi-door-open"></i> Rooms</button>
+    {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
+    <button onclick="window.location.href='/guests'" class="btn btn-sm btn-light me-1"><i class="bi bi-people"></i> Guests</button>
+    <button onclick="window.location.href='/reservations'" class="btn btn-sm btn-light me-1"><i class="bi bi-list"></i> Reservations</button>
+    {% endif %}
+    <button onclick="window.location.href='/new_reservation'" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> New Booking</button>
+</div>
+
+<div class="container-fluid mt-2">
+    <div class="row">
+        <!-- LEFT SIDEBAR (Desktop Only) -->
+        <div class="col-md-auto sidebar d-none d-lg-block">
+            <h6 class="mb-3"><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
+            <a href="/todays_arrivals" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
+            <a href="/todays_departures" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Departures</a>
+            <a href="/occupancy_report" class="btn btn-sm btn-outline-success w-100 mb-2"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+            <a href="/new_reservation" class="btn btn-sm btn-outline-warning w-100"><i class="bi bi-plus-lg"></i> New Booking</a>
+            <hr>
+            <small><i class="bi bi-door-open"></i> Free Rooms: <span id="freeRoomsCount" class="text-success fw-bold">...</span></small>
+        </div>
+
+        <!-- MAIN AREA -->
+        <div class="col p-0">
+            {% block content %}{% endblock %}
+        </div>
+
+        <!-- RIGHT PANEL (Desktop Only) -->
+        <div class="col-md-auto d-none d-lg-block" style="width:270px; background-color: #ffffff; border-left: 1px solid #dee2e6; padding: 20px; border-radius: 0.5rem;">
+            <h6 style="color: #343a40; margin-bottom: 15px;"><i class="bi bi-pie-chart"></i> Occupancy</h6>
+            <div style="position: relative; height: 200px;">
+                <canvas id="sidebarChart"></canvas>
+            </div>
+            <p class="text-center mt-3" style="font-weight: bold; color: #343a40; font-size: 14px;">
+                <span id="occupancyPercent">0</span>% Occupied
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // SPLASH SCREEN LOGIC (1.5 Seconds Delay)
+    window.addEventListener('load', function() {
+        const splash = document.getElementById('pwa-splash');
+        // Only show splash if not already hidden (e.g., by previous navigation)
+        if (splash && splash.style.display !== 'none') {
+            setTimeout(() => {
+                splash.classList.add('hidden');
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                }, 1500); // Match CSS transition duration
+            }, 1500); // 1.5 seconds delay
+        }
+    });
+
+    // --- CHATBOT JS ---
+    function toggleChat() {
+        const box = document.getElementById('chatbot-window');
+        if (box.style.display === 'none' || box.style.display === '') {
+            box.style.display = 'flex';
+            document.getElementById('chatbot-input').focus();
+        } else {
+            box.style.display = 'none';
+        }
+    }
+
+    function addMessage(text, type) {
+        const div = document.createElement('div');
+        div.className = 'message ' + (type === 'user' ? 'user-message' : 'bot-message');
+        div.textContent = text;
+        const container = document.getElementById('chatbot-messages');
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+    }
+
+    function sendChat() {
+        const input = document.getElementById('chatbot-input');
+        const text = input.value.trim();
+        if (!text) return;
+        addMessage(text, 'user');
+        input.value = '';
+        fetch('/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: text})
+        })
+        .then(r => r.json()).then(data => addMessage(data.response, 'bot'))
+        .catch(() => addMessage("I'm sorry, I'm having trouble connecting right now.", 'bot'));
+    }
+
+    // PWA & Stats Logic
+    let deferredPrompt;
+    const installBtn = document.getElementById('pwa-install-btn');
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault(); deferredPrompt = e;
+        installBtn.style.display = 'block';
+    });
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.style.display = 'none';
+            deferredPrompt = null;
+        }
+    });
+</script>
+</body>
+</html>

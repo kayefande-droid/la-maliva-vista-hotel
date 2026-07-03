@@ -3,41 +3,41 @@
 <style>
     /* Specific styles for reservations.html, overriding/extending base.html where needed */
     .reservations-header {
-        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
+        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         margin-bottom: 25px;
         animation: slideInDown 0.6s ease-out;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
     .reservations-header h5 {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .reservations-header small {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .reservations-container {
-        background: rgba(255, 255, 255, 0.08); /* Transparent background */
-        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
-        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
+        border-radius: 0.75rem;
         padding: 20px;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         animation: fadeIn 0.6s ease-out;
     }
     @keyframes fadeIn {
@@ -45,48 +45,48 @@
         to { opacity: 1; }
     }
     .reservations-table {
-        background-color: rgba(255, 255, 255, 0.05) !important; /* Transparent table background */
-        border: 1px solid rgba(255, 183, 0, 0.5) !important; /* Gold border */
-        border-radius: 8px;
+        background-color: rgba(255, 255, 255, 0.08) !important; /* Transparent table background */
+        border: 1px solid rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
+        border-radius: 0.75rem;
         overflow: hidden;
         animation: fadeIn 0.6s ease-out;
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
-        color: #e0e0e0; /* Lighter text */
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        color: #f0f0f0; /* Brighter text */
     }
     .reservations-table thead {
-        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient header */
-        color: #ffb700; /* Gold text */
+        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient header */
+        color: #ffc107 !important; /* Brighter gold text */
         font-weight: bold;
     }
     .reservations-table thead th {
-        border-color: rgba(255, 183, 0, 0.5) !important; /* Gold border */
+        border-color: rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
         padding: 18px 15px;
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
-        border-bottom: 2px solid rgba(255, 183, 0, 0.5) !important;
+        border-bottom: 2px solid rgba(255, 193, 7, 0.5) !important;
         position: relative;
     }
     .reservations-table thead th i {
         margin-right: 8px;
-        color: #ffb700;
+        color: #ffc107;
     }
     .reservations-table tbody tr {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
         transition: all 0.3s ease;
     }
     .reservations-table tbody tr:hover {
-        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover */
-        box-shadow: inset 3px 0 0 #ffb700; /* Gold left border on hover */
+        background: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover */
+        box-shadow: inset 3px 0 0 #ffc107; /* Brighter gold left border on hover */
         transform: translateX(5px);
-        color: #ffb700; /* Gold text on hover */
+        color: #ffc107; /* Brighter gold text on hover */
     }
     .reservations-table tbody td {
         padding: 16px 15px;
         vertical-align: middle;
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+        border-right: 1px solid rgba(255, 255, 255, 0.15);
     }
     .reservations-table tbody td:first-child {
         border-left: none;
@@ -105,40 +105,45 @@
         font-size: 12px;
         font-weight: 600;
         padding: 6px 12px;
-        border-radius: 6px;
+        border-radius: 0.5rem;
         border: none;
         min-width: 80px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .btn-action:hover {
         transform: translateY(-3px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
     }
     .btn-checkin {
-        @extend .btn-gold; /* Use gold button style */
-        background: linear-gradient(135deg, #28a745, #20c997) !important; /* Green gradient */
+        @extend .btn-teal; /* Use teal button style */
+        background: linear-gradient(135deg, #28a745, #20c997) !important; /* Keep green for check-in */
         color: white !important;
     }
     .btn-checkin:hover {
-        background: linear-gradient(135deg, #20c997, #17a2b8) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.5);
     }
     .btn-checkout {
-        @extend .btn-gold; /* Use gold button style */
-        background: linear-gradient(135deg, #ffb700, #ff9500) !important; /* Gold gradient */
-        color: #001a4d !important;
+        @extend .btn-teal; /* Use teal button style */
+        background: linear-gradient(135deg, #dc3545, #c82333) !important; /* Keep red for check-out */
+        color: white !important;
     }
     .btn-checkout:hover {
-        background: linear-gradient(135deg, #ff9500, #ff7c00) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(220, 53, 69, 0.5);
     }
     .btn-invoice {
-        @extend .btn-gold; /* Use gold button style */
-        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient */
+        @extend .btn-teal; /* Use teal button style */
+        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue for invoice */
         color: white !important;
     }
     .btn-invoice:hover {
-        background: linear-gradient(135deg, #003d99, #002266) !important;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 21, 51, 0.5);
     }
     .guest-name {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: bold;
         font-size: 14px;
         display: flex;
@@ -146,35 +151,35 @@
         gap: 8px;
     }
     .guest-name i {
-        color: #ffb700;
+        color: #ffc107;
     }
     .room-badge {
-        background: linear-gradient(135deg, #ffb700, #ff9500); /* Gold gradient */
-        color: #001a4d;
+        background: linear-gradient(135deg, #ffc107, #ff9800); /* Brighter gold gradient */
+        color: #001533;
         padding: 6px 12px;
-        border-radius: 6px;
+        border-radius: 0.5rem;
         font-weight: bold;
         display: inline-block;
         font-size: 12px;
-        border: 2px solid #ff7c00;
+        border: 2px solid #ff9800;
     }
     .datetime-info {
         font-size: 12px;
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
         line-height: 1.4;
     }
     .datetime-info strong {
-        color: #ffb700; /* Gold for strong text */
+        color: #ffc107; /* Brighter gold for strong text */
     }
     .no-reservations {
         text-align: center;
         padding: 50px;
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
         font-size: 18px;
     }
     .no-reservations i {
         font-size: 48px;
-        color: #ffb700;
+        color: #ffc107;
         margin-bottom: 20px;
     }
     .status-badge {
@@ -212,8 +217,8 @@
                 <small>View and manage all guest reservations</small>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 18px; font-weight: bold; color: #ffb700;">{{ reservations|length }}</div>
-                <small style="color: rgba(255,255,255,0.8);">Total Reservations</small>
+                <div style="font-size: 18px; font-weight: bold; color: #ffc107;">{{ reservations|length }}</div>
+                <small style="color: rgba(240,240,240,0.8);">Total Reservations</small>
             </div>
         </div>
 
@@ -302,7 +307,7 @@
                                 <div class="no-reservations">
                                     <i class="bi bi-calendar-x"></i>
                                     <div>No reservations found</div>
-                                    <small style="color: #999;">Create a new reservation to get started</small>
+                                    <small style="color: #b0b0b0;">Create a new reservation to get started</small>
                                 </div>
                             </td>
                         </tr>

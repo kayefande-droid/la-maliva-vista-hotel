@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for arrivals.html, overriding/extending base.html where needed */
     .main-content h5 {
-        color: #ffb700; /* Gold text for header */
+        color: #ffc107; /* Brighter gold text for header */
         margin-bottom: 20px;
     }
     .card {
@@ -12,17 +12,17 @@
     }
     .table {
         background-color: transparent !important; /* Transparent table background */
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .table th, .table td {
-        border-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.15);
     }
     .table thead {
-        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient header */
-        color: #ffb700; /* Gold text */
+        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient header */
+        color: #ffc107 !important; /* Brighter gold text */
     }
     .table thead th {
-        border-color: rgba(255, 183, 0, 0.5) !important; /* Gold border */
+        border-color: rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
@@ -31,25 +31,25 @@
         transition: all 0.3s ease;
     }
     .table tbody tr:hover {
-        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover */
-        color: #ffb700; /* Gold text on hover */
+        background: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover */
+        color: #ffc107; /* Brighter gold text on hover */
     }
     .badge.bg-warning {
-        background-color: #ffb700 !important; /* Gold badge */
-        color: #001a4d !important; /* Dark text for contrast */
+        background-color: #ffc107 !important; /* Brighter gold badge */
+        color: #001533 !important; /* Dark text for contrast */
     }
     .badge.bg-success {
         background-color: #28a745 !important; /* Green for success */
         color: white !important;
     }
     .btn-checkin {
-        @extend .btn-gold; /* Use gold button style for check-in */
+        @extend .btn-teal; /* Use teal button style for check-in */
         background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important; /* Keep green for check-in */
         color: white !important;
     }
     .btn-checkin:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px rgba(40, 167, 69, 0.4);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(40, 167, 69, 0.5);
     }
 </style>
 
@@ -71,8 +71,8 @@
                     <tbody>
                         {% for res in arrivals %}
                         <tr>
-                            <td>{{ res.guest.name }}</td>
-                            <td>{{ res.room.room_number }} ({{ res.room.room_type }})</td>
+                            <td>{{ res.guest.name if res.guest else 'N/A' }}</td> {# Safely access guest name #}
+                            <td>{{ res.room.room_number if res.room else 'N/A' }} ({{ res.room.room_type if res.room else 'N/A' }})</td> {# Safely access room details #}
                             <td>{{ res.check_in.strftime('%I:%M %p') }}</td>
                             <td><span class="badge bg-warning">{{ res.status }}</span></td>
                             <td class="text-end">

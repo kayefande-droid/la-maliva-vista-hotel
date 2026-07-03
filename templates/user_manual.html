@@ -5,84 +5,90 @@
     .user-manual-header {
         text-align: center;
         margin-bottom: 40px;
-        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
+        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        border-radius: 0.75rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
     .user-manual-header h2 {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: bold;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 10px;
     }
     .user-manual-header p {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
         opacity: 0.9;
     }
 
     .list-group-item {
-        background-color: rgba(255, 255, 255, 0.08); /* Transparent background */
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        color: #e0e0e0; /* Lighter text */
+        background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent background */
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        color: #f0f0f0; /* Brighter text */
         transition: all 0.3s ease;
+        border-radius: 0.5rem;
+        margin-bottom: 5px;
     }
     .list-group-item:hover {
-        background-color: rgba(255, 183, 0, 0.15); /* Subtle gold hover */
-        color: #ffb700; /* Gold text on hover */
-        border-color: #ffb700;
-        transform: translateX(3px);
+        background-color: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover */
+        color: #ffc107; /* Brighter gold text on hover */
+        border-color: #ffc107;
+        transform: translateX(5px);
     }
     .list-group-item.active {
-        background: linear-gradient(135deg, #001a4d, #003d99) !important; /* Dark blue gradient active */
-        border-color: #ffb700 !important; /* Gold border */
-        color: #ffb700 !important; /* Gold text */
+        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient active */
+        border-color: #ffc107 !important; /* Brighter gold border */
+        color: #ffc107 !important; /* Brighter gold text */
     }
 
     section h4 {
-        color: #ffb700; /* Gold for section titles */
-        border-bottom: 2px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        color: #ffc107; /* Brighter gold for section titles */
+        border-bottom: 2px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
         padding-bottom: 8px;
         margin-bottom: 20px;
     }
     section p, section ul, section ol {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     section li strong {
-        color: #ffb700; /* Gold for strong text */
+        color: #ffc107; /* Brighter gold for strong text */
     }
     .card {
         @extend .glass-panel; /* Apply glassmorphism to cards */
         padding: 15px;
     }
     .card h6 {
-        color: #ffb700; /* Gold for card titles */
+        color: #ffc107; /* Brighter gold for card titles */
     }
     .card p {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .alert-info {
-        background: rgba(23, 162, 184, 0.2) !important;
+        background: rgba(23, 162, 184, 0.25) !important;
         border: 1px solid #17a2b8 !important;
-        color: #e0e0e0 !important;
+        color: #f0f0f0 !important;
     }
     .badge.bg-danger { background-color: #dc3545 !important; }
     .badge.bg-primary { background-color: #007bff !important; }
     .badge.bg-success { background-color: #28a745 !important; }
     .btn-outline-primary {
-        color: #ffb700;
-        border-color: #ffb700;
-        transition: all 0.3s ease;
+        color: #ffc107;
+        border-color: #ffc107;
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border-radius: 0.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
     .btn-outline-primary:hover {
-        background-color: #ffb700;
-        color: #001a4d;
-        box-shadow: 0 4px 10px rgba(255, 183, 0, 0.4);
-        transform: translateY(-2px);
+        background-color: #ffc107;
+        color: #001533;
+        box-shadow: 0 8px 20px rgba(255, 193, 7, 0.5);
+        transform: translateY(-3px);
     }
 </style>
 
