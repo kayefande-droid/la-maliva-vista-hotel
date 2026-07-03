@@ -4,56 +4,56 @@
 <style>
     /* Specific styles for admin_monitoring.html, overriding/extending base.html where needed */
     .monitoring-header {
-        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
+        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         margin-bottom: 25px;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         animation: slideInDown 0.6s ease-out;
-        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
     .monitoring-header h5 {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .monitoring-header small {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .info-card {
         @extend .glass-panel; /* Apply glassmorphism */
-        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
     }
     .info-card .card-header {
-        background-color: rgba(0, 0, 0, 0.2); /* Darker transparent header */
-        color: #ffb700; /* Gold text */
-        border-bottom: 1px solid rgba(255, 183, 0, 0.5);
+        background-color: rgba(0, 0, 0, 0.25); /* Darker transparent header */
+        color: #ffc107; /* Brighter gold text */
+        border-bottom: 1px solid rgba(255, 193, 7, 0.5);
     }
     .info-card .card-body p {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .user-card {
         @extend .glass-panel; /* Apply glassmorphism */
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.25);
         transition: all 0.3s ease;
     }
     .user-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 8px 15px rgba(255, 183, 0, 0.4); /* Gold shadow on hover */
-        border-color: #ffb700;
+        box-shadow: 0 8px 15px rgba(255, 193, 7, 0.4); /* Brighter gold shadow on hover */
+        border-color: #ffc107;
     }
     .user-card h5 {
-        color: #ffb700; /* Gold title */
+        color: #ffc107; /* Brighter gold title */
     }
     .user-card h6 {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .user-card p {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .btn-send {
         @extend .btn-gold; /* Use gold gradient button */
@@ -66,17 +66,17 @@
     .activity-log-container {
         max-height: 150px;
         overflow-y: auto;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 0.5rem;
         padding: 10px;
-        background-color: rgba(0, 0, 0, 0.1); /* Darker transparent background */
+        background-color: rgba(0, 0, 0, 0.15); /* Darker transparent background */
         font-size: 0.8em;
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .activity-log-item {
         margin-bottom: 5px;
         padding-bottom: 5px;
-        border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
     }
     .activity-log-item:last-child {
         border-bottom: none;
@@ -85,56 +85,57 @@
     }
     .log-timestamp {
         font-weight: bold;
-        color: #ffb700; /* Gold timestamp */
+        color: #ffc107; /* Brighter gold timestamp */
     }
     .alert-info {
-        background: rgba(23, 162, 184, 0.2) !important;
+        background: rgba(23, 162, 184, 0.25) !important;
         border: 1px solid #17a2b8 !important;
-        color: #e0e0e0 !important;
+        color: #f0f0f0 !important;
     }
     .alert-info .alert-heading {
-        color: #ffb700; /* Gold heading */
+        color: #ffc107; /* Brighter gold heading */
     }
     .alert-info p {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
 
     /* Modal specific styling */
     .modal-content {
         @extend .glass-panel; /* Apply glassmorphism to modal content */
-        color: #e0e0e0;
+        color: #f0f0f0;
     }
     .modal-header {
-        background: linear-gradient(135deg, #001a4d, #003d99); /* Dark blue gradient header */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-        color: #ffb700; /* Gold text */
+        background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient header */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+        color: #ffc107; /* Brighter gold text */
     }
     .modal-header .modal-title {
-        color: #ffb700 !important; /* Gold title */
+        color: #ffc107 !important; /* Brighter gold title */
     }
     .modal-header .btn-close {
         filter: invert(1); /* White close button */
     }
     .modal-body .form-label {
-        color: #ffb700; /* Gold label text */
+        color: #ffc107; /* Brighter gold label text */
     }
     .modal-body .form-control {
-        background-color: rgba(255, 255, 255, 0.1);
-        border-color: rgba(255, 255, 255, 0.3);
-        color: #e0e0e0;
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.4);
+        color: #f0f0f0;
+        border-radius: 0.5rem;
     }
     .modal-body .form-control::placeholder {
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(255, 255, 255, 0.7);
     }
     .modal-body .form-control:focus {
-        background-color: rgba(255, 255, 255, 0.2);
-        border-color: #ffb700;
-        box-shadow: 0 0 0 0.25rem rgba(255, 183, 0, 0.25);
-        color: #e0e0e0;
+        background-color: rgba(255, 255, 255, 0.25);
+        border-color: #ffc107;
+        box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+        color: #f0f0f0;
     }
     .modal-footer {
-        background-color: rgba(0, 0, 0, 0.2); /* Darker transparent footer */
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.25); /* Darker transparent footer */
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
     }
     .modal-footer .btn-primary {
         @extend .btn-gold; /* Gold button */

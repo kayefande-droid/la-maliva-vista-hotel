@@ -3,17 +3,17 @@
 <style>
     /* Specific styles for about.html, overriding/extending base.html where needed */
     .about-header {
-        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
+        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 40px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         margin-bottom: 30px;
         animation: slideInDown 0.6s ease-out;
         text-align: center;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
@@ -24,14 +24,14 @@
         font-weight: bold;
         margin-bottom: 10px;
         letter-spacing: 1px;
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
     }
     .about-header .tagline {
         font-size: 18px;
         font-style: italic;
         opacity: 0.95;
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     .about-content {
         display: grid;
@@ -40,15 +40,15 @@
         margin-bottom: 30px;
     }
     .info-card {
-        background: rgba(255, 255, 255, 0.08); /* Transparent background */
-        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
         padding: 25px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         animation: fadeInScale 0.6s ease-out forwards;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     .info-card:nth-child(1) { animation-delay: 0.1s; }
     .info-card:nth-child(2) { animation-delay: 0.2s; }
@@ -59,11 +59,11 @@
     }
     .info-card:hover {
         transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 12px 24px rgba(255, 183, 0, 0.4); /* Enhanced gold shadow */
-        background: rgba(255, 183, 0, 0.1); /* Subtle gold hover background */
+        box-shadow: 0 12px 28px rgba(255, 193, 7, 0.5); /* Enhanced brighter gold shadow */
+        background: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover background */
     }
     .info-card h5 {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: bold;
         margin-bottom: 15px;
         display: flex;
@@ -73,29 +73,29 @@
     }
     .info-card .icon {
         font-size: 24px;
-        color: #ffb700; /* Gold icon */
+        color: #ffc107; /* Brighter gold icon */
     }
     .info-card p {
-        color: #e0e0e0; /* Lighter text for readability */
+        color: #f0f0f0; /* Brighter text for readability */
         line-height: 1.6;
         margin: 8px 0;
     }
     .contact-info {
-        background: rgba(255, 255, 255, 0.08); /* Transparent background */
-        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
         padding: 30px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         animation: slideInUp 0.6s ease-out;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .contact-info h5 {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: bold;
         margin-bottom: 20px;
         font-size: 20px;
@@ -113,18 +113,18 @@
         border-radius: 5px;
     }
     .contact-item:hover {
-        background: rgba(255, 183, 0, 0.15); /* Subtle gold hover background */
+        background: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover background */
         padding-left: 18px;
-        border-left: 3px solid #ffb700; /* Gold left border on hover */
+        border-left: 3px solid #ffc107; /* Brighter gold left border on hover */
         transform: translateX(5px);
     }
     .contact-icon {
-        color: #ffb700; /* Gold icon */
+        color: #ffc107; /* Brighter gold icon */
         font-size: 20px;
         min-width: 24px;
     }
     .contact-text {
-        color: #e0e0e0; /* Lighter text for readability */
+        color: #f0f0f0; /* Brighter text for readability */
         font-weight: 500;
     }
 </style>
@@ -155,7 +155,7 @@
         </div>
 
         <div class="contact-info">
-            <h5><i class="bi bi-telephone" style="color: #ffb700;"></i> Contact Information</h5>
+            <h5><i class="bi bi-telephone" style="color: #ffc107;"></i> Contact Information</h5>
 
             <div class="contact-item">
                 <i class="bi bi-geo-alt-fill contact-icon"></i>

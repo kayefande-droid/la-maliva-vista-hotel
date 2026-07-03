@@ -3,64 +3,65 @@
 <style>
     /* Specific styles for new_reservation.html, overriding/extending base.html where needed */
     .reservation-header {
-        background: linear-gradient(135deg, rgba(0, 26, 77, 0.6), rgba(0, 61, 153, 0.6)); /* Dark blue gradient */
+        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         margin-bottom: 25px;
         animation: slideInDown 0.6s ease-out;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.3); /* Glassmorphism border */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
     .reservation-header h5 {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .reservation-header small {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Brighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .reservation-form {
-        background: rgba(255, 255, 255, 0.08); /* Transparent background */
-        border: 1px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
         padding: 25px;
-        border-radius: 8px;
+        border-radius: 0.75rem;
         animation: slideInUp 0.6s ease-out;
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(5px);
-        -webkit-backdrop-filter: blur(5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
     @keyframes slideInUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .form-control, .form-select {
-        background-color: rgba(255, 255, 255, 0.1) !important;
-        border: 1px solid rgba(255, 255, 255, 0.3) !important;
-        color: #e0e0e0 !important;
+        background-color: rgba(255, 255, 255, 0.15) !important; /* Slightly more opaque */
+        border: 1px solid rgba(255, 255, 255, 0.4) !important; /* More prominent border */
+        color: #f0f0f0 !important; /* Lighter text */
         transition: all 0.3s ease;
         font-weight: 500;
+        border-radius: 0.5rem !important;
     }
     .form-control:focus, .form-select:focus {
-        border-color: #ffb700 !important;
-        box-shadow: 0 0 10px rgba(255, 183, 0, 0.3) !important;
-        background-color: rgba(255, 255, 255, 0.2) !important;
+        border-color: #ffc107 !important; /* Brighter gold focus */
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4) !important;
+        background-color: rgba(255, 255, 255, 0.25) !important;
     }
     .form-control::placeholder {
-        color: rgba(255, 255, 255, 0.6);
+        color: rgba(255, 255, 255, 0.7); /* Brighter placeholder */
     }
     .form-label {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: bold;
         margin-bottom: 8px;
         display: flex;
@@ -80,13 +81,13 @@
         to { opacity: 1; transform: translateX(0); }
     }
     .submit-btn {
-        @extend .btn-gold; /* Use the gold gradient button style */
+        @extend .btn-teal; /* Use the teal gradient button style */
         padding: 15px;
         margin-top: 20px;
         font-size: 16px;
     }
     .form-section-title {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: bold;
         font-size: 14px;
         text-transform: uppercase;
@@ -94,11 +95,11 @@
         margin-top: 20px;
         margin-bottom: 15px;
         padding-bottom: 10px;
-        border-bottom: 2px solid rgba(255, 183, 0, 0.5); /* Gold border */
+        border-bottom: 2px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
     }
-    .icon-guest { color: #ffb700; } /* Gold icon */
-    .icon-room { color: #ffb700; } /* Gold icon */
-    .icon-date { color: #ffb700; } /* Gold icon */
+    .icon-guest { color: #ffc107; } /* Brighter gold icon */
+    .icon-room { color: #ffc107; } /* Brighter gold icon */
+    .icon-date { color: #ffc107; } /* Brighter gold icon */
 </style>
 
 <div class="container-fluid">

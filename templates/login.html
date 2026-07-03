@@ -14,6 +14,8 @@
             padding: 0;
             overflow: hidden;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
+            background-attachment: fixed;
         }
         .slideshow {
             position: fixed;
@@ -26,7 +28,7 @@
             background-size: cover;
             background-position: center;
             opacity: 0;
-            transition: opacity 1.5s ease-in-out; /* Changed to 1.5s */
+            transition: opacity 1.35s ease-in-out; /* Changed to 1.35s */
         }
         /* High-quality hotel backgrounds from Unsplash */
         .slide:nth-child(1) { background-image: url('https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'); }
@@ -40,7 +42,7 @@
         .overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(0, 26, 77, 0.4), rgba(0, 61, 153, 0.4));
+            background: linear-gradient(135deg, rgba(0, 21, 51, 0.5), rgba(0, 42, 102, 0.5)); /* Deeper dark blue gradient */
             z-index: 0;
         }
 
@@ -48,14 +50,15 @@
         .login-card {
             z-index: 10;
             width: 400px;
-            background: rgba(255, 255, 255, 0.15); /* More transparent */
-            backdrop-filter: blur(20px); /* Stronger frosted effect */
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.3); /* Catch highlights */
-            border-radius: 20px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+            backdrop-filter: blur(12px); /* Stronger frosted effect */
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.4); /* More prominent light border */
+            border-radius: 0.75rem; /* Slightly more rounded */
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
             padding: 40px;
             animation: cardEntrance 0.8s ease-out;
+            color: #f0f0f0; /* Lighter text */
         }
         @keyframes cardEntrance {
             from { opacity: 0; transform: translateY(30px); }
@@ -66,10 +69,10 @@
             width: 100px;
             height: 100px;
             border-radius: 50%;
-            background: white;
+            background: rgba(255, 255, 255, 0.95); /* More opaque white */
             padding: 10px;
             margin: 0 auto 20px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2), inset 0 2px 5px rgba(0,0,0,0.1); /* Skeuomorphic shadows */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3), inset 0 2px 5px rgba(0,0,0,0.1); /* Skeuomorphic shadows */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -81,15 +84,15 @@
         }
 
         h3 {
-            color: #ffb700; /* Gold text */
+            color: #ffc107; /* Brighter gold text */
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.4);
             margin-bottom: 5px;
         }
         .motto {
-            color: white;
+            color: #f0f0f0; /* Lighter text */
             font-size: 14px;
             opacity: 0.9;
             margin-bottom: 30px;
@@ -97,64 +100,64 @@
 
         /* Skeuomorphic Form Fields */
         .form-control {
-            background: rgba(255, 255, 255, 0.1) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
-            border-radius: 12px !important;
-            color: white !important;
+            background: rgba(255, 255, 255, 0.15) !important; /* Slightly more opaque */
+            border: 1px solid rgba(255, 255, 255, 0.4) !important; /* More prominent border */
+            border-radius: 0.5rem !important; /* Slightly more rounded */
+            color: #f0f0f0 !important; /* Lighter text */
             padding: 12px 20px !important;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); /* Depth inside */
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3); /* Deeper depth inside */
             transition: all 0.3s ease;
         }
         .form-control::placeholder {
-            color: rgba(255,255,255,0.6);
+            color: rgba(255,255,255,0.7); /* Brighter placeholder */
         }
         .form-control:focus {
-            background: rgba(255, 255, 255, 0.2) !important;
-            border-color: #ffb700 !important;
-            box-shadow: 0 0 15px rgba(255, 183, 0, 0.4), inset 0 2px 4px rgba(0,0,0,0.2) !important;
+            background: rgba(255, 255, 255, 0.25) !important; /* More opaque on focus */
+            border-color: #ffc107 !important; /* Brighter gold focus */
+            box-shadow: 0 0 15px rgba(255, 193, 7, 0.5), inset 0 2px 4px rgba(0,0,0,0.3) !important; /* Enhanced shadow */
             outline: none;
         }
         .form-floating label {
-            color: rgba(255,255,255,0.8);
+            color: rgba(255,255,255,0.9); /* Brighter label */
         }
         .form-floating > .form-control:focus ~ label,
         .form-floating > .form-control:not(:placeholder-shown) ~ label {
-            color: #ffb700;
+            color: #ffc107; /* Brighter gold on focus */
         }
 
         /* Tactile Button */
-        .btn-primary {
-            background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%);
+        .btn-gold {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); /* Brighter gold gradient */
             border: none;
-            border-radius: 12px;
-            color: #001a4d;
+            border-radius: 0.5rem; /* Slightly more rounded */
+            color: #001533; /* Dark text for contrast */
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 1px;
             padding: 14px !important;
-            box-shadow: 0 6px 20px rgba(255, 183, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+            box-shadow: 0 6px 20px rgba(255, 193, 7, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
             transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
-        .btn-primary:hover {
+        .btn-gold:hover {
             transform: translateY(-3px) scale(1.02);
-            box-shadow: 0 10px 25px rgba(255, 183, 0, 0.5);
-            background: linear-gradient(135deg, #ffc107 0%, #ffb700 100%);
+            box-shadow: 0 10px 25px rgba(255, 193, 7, 0.5);
+            background: linear-gradient(135deg, #ffdb58 0%, #ffc107 100%); /* Lighter gold on hover */
         }
-        .btn-primary:active {
+        .btn-gold:active {
             transform: translateY(0);
-            box-shadow: inset 0 3px 5px rgba(0,0,0,0.3); /* Pressed feel */
+            box-shadow: inset 0 3px 5px rgba(0,0,0,0.4); /* Deeper pressed feel */
         }
 
         .signup-link {
-            color: white;
+            color: #f0f0f0; /* Lighter text */
             text-decoration: none;
             font-size: 13px;
-            opacity: 0.8;
+            opacity: 0.9;
             transition: opacity 0.3s;
         }
         .signup-link:hover {
             opacity: 1;
-            color: #ffb700;
+            color: #ffc107; /* Brighter gold on hover */
         }
         .signup-link strong {
             text-decoration: underline;
@@ -162,26 +165,32 @@
 
         /* Password toggle button styling */
         .input-group-text {
-            background: rgba(255, 255, 255, 0.1) !important;
-            border: 1px solid rgba(255, 255, 255, 0.2) !important;
+            background: rgba(255, 255, 255, 0.15) !important; /* Slightly more opaque */
+            border: 1px solid rgba(255, 255, 255, 0.4) !important;
             border-left: none !important;
-            border-radius: 0 12px 12px 0 !important;
-            color: rgba(255,255,255,0.8) !important;
+            border-radius: 0 0.5rem 0.5rem 0 !important; /* Match input border-radius */
+            color: rgba(255,255,255,0.9) !important; /* Brighter color */
             cursor: pointer;
             padding: 12px 15px;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
         }
         .input-group-text:hover {
-            color: #ffb700 !important;
+            color: #ffc107 !important; /* Brighter gold on hover */
         }
         /* Adjust label for input-group */
         .form-floating > .input-group > .form-control:focus ~ label,
         .form-floating > .input-group > .form-control:not(:placeholder-shown) ~ label {
-            color: #ffb700;
+            color: #ffc107; /* Brighter gold on focus */
         }
         .form-floating > .input-group > .form-control {
             border-right: none !important;
-            border-radius: 12px 0 0 12px !important;
+            border-radius: 0.5rem 0 0 0.5rem !important; /* Match input border-radius */
+        }
+        .alert {
+            color: #f0f0f0; /* Lighter text for alerts */
+        }
+        .text-white-50 {
+            color: rgba(240, 240, 240, 0.8) !important; /* Brighter muted text */
         }
     </style>
 </head>
@@ -227,7 +236,7 @@
                     </span>
                 </div>
             </div>
-            <button class="btn btn-primary w-100 py-2 shadow-lg">Access Dashboard</button>
+            <button class="btn btn-gold w-100 py-2 shadow-lg">Access Dashboard</button>
         </form>
 
         <div class="mt-4">
@@ -235,7 +244,7 @@
             <a href="{{ url_for('signup') }}" class="signup-link">New User <strong>Create an account</strong></a>
         </div>
         <div class="mt-2">
-            <a href="https://la-maliva-vista-hotel.onrender.com/"> <small style="color: rgba(255,255,255,0.5); font-size: 11px;">la-maliva-vista-hotel.onrender.com/</small></a>
+            <a href="https://la-maliva-vista-hotel.onrender.com/"> <small style="color: rgba(240,240,240,0.6); font-size: 11px;">la-maliva-vista-hotel.onrender.com/</small></a>
         </div>
     </div>
 
@@ -247,7 +256,7 @@
             slides[currentSlide].classList.remove('active');
             currentSlide = (currentSlide + 1) % slides.length;
             slides[currentSlide].classList.add('active');
-        }, 1500); // Changed to 1.5 seconds
+        }, 1350); // Changed to 1.35 seconds
 
         // Password toggle functionality
         const togglePassword = document.querySelector('#togglePassword');

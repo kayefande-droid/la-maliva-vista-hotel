@@ -53,41 +53,41 @@
         margin: 0 auto;
     }
     .invoice-header-strip {
-        background: linear-gradient(135deg, #ffb700 0%, #ff9500 100%); /* Gold gradient strip */
+        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); /* Brighter gold gradient strip */
         height: 10px;
-        border-radius: 8px 8px 0 0;
+        border-radius: 0.75rem 0.75rem 0 0;
     }
     .invoice-box {
-        background: rgba(255, 255, 255, 0.08); /* Transparent background */
-        border: 1px solid rgba(255, 255, 255, 0.3); /* Light border */
-        border-radius: 0 0 8px 8px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
+        border: 1px solid rgba(255, 255, 255, 0.4); /* More prominent light border */
+        border-radius: 0 0 0.75rem 0.75rem;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
         padding: 40px;
-        color: #e0e0e0; /* Lighter text */
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
+        color: #f0f0f0; /* Lighter text */
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
     }
     .invoice-title {
-        color: #ffb700; /* Gold text */
+        color: #ffc107; /* Brighter gold text */
         font-weight: 800;
         font-size: 28px;
         text-transform: uppercase;
         margin-bottom: 5px;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        text-shadow: 0 2px 4px rgba(0,0,0,0.4);
     }
     .invoice-subtitle {
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Lighter text */
         font-weight: 600;
         font-size: 14px;
         letter-spacing: 1px;
     }
     .divider {
-        border-top: 2px solid rgba(255, 255, 255, 0.1);
+        border-top: 2px solid rgba(255, 255, 255, 0.2);
         margin: 25px 0;
     }
     .info-label {
         font-size: 12px;
-        color: #adb5bd; /* Muted text */
+        color: #b0b0b0; /* Brighter muted text */
         text-transform: uppercase;
         letter-spacing: 0.5px;
         margin-bottom: 2px;
@@ -95,29 +95,29 @@
     .info-value {
         font-size: 16px;
         font-weight: 600;
-        color: #ffb700; /* Gold for values */
+        color: #ffc107; /* Brighter gold for values */
         margin-bottom: 15px;
     }
     .total-box {
-        background: rgba(0, 0, 0, 0.2); /* Darker transparent background */
-        border-left: 4px solid #ffb700; /* Gold border */
+        background: rgba(0, 0, 0, 0.25); /* Darker transparent background */
+        border-left: 4px solid #ffc107; /* Brighter gold border */
         padding: 20px;
         margin-top: 30px;
         text-align: right;
-        border-radius: 0.3rem;
+        border-radius: 0.5rem;
     }
     .total-label {
         font-size: 14px;
-        color: #e0e0e0; /* Lighter text */
+        color: #f0f0f0; /* Lighter text */
     }
     .total-amount {
         font-size: 24px;
-        color: #ffb700; /* Gold total amount */
+        color: #ffc107; /* Brighter gold total amount */
         font-weight: 800;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        text-shadow: 0 1px 3px rgba(0,0,0,0.4);
     }
     .invoice-box .text-muted {
-        color: #adb5bd !important;
+        color: #b0b0b0 !important; /* Brighter muted text */
     }
 </style>
 
@@ -150,26 +150,26 @@
                     <div class="col-6">
                         <h6 class="text-gold mb-3"><i class="bi bi-person"></i> Guest Information</h6>
                         <div class="info-label">Name</div>
-                        <div class="info-value">{{ guest.name }}</div>
+                        <div class="info-value">{{ res.guest.name if res.guest else 'N/A' }}</div> {# Safely access guest name #}
 
                         <div class="info-label">Email</div>
-                        <div class="info-value">{{ guest.email }}</div>
+                        <div class="info-value">{{ res.guest.email if res.guest else 'N/A' }}</div> {# Safely access guest email #}
 
                         <div class="info-label">Phone</div>
-                        <div class="info-value">{{ guest.phone }}</div>
+                        <div class="info-value">{{ res.guest.phone if res.guest else 'N/A' }}</div> {# Safely access guest phone #}
                     </div>
 
                     <!-- Room Info -->
                     <div class="col-6 text-end">
                         <h6 class="text-gold mb-3"><i class="bi bi-door-open"></i> Room Details</h6>
                         <div class="info-label">Room Number</div>
-                        <div class="info-value">{{ room.room_number }}</div>
+                        <div class="info-value">{{ res.room.room_number if res.room else 'N/A' }}</div> {# Safely access room number #}
 
                         <div class="info-label">Room Type</div>
-                        <div class="info-value">{{ room.room_type }}</div>
+                        <div class="info-value">{{ res.room.room_type if res.room else 'N/A' }}</div> {# Safely access room type #}
 
                         <div class="info-label">Price per Night</div>
-                        <div class="info-value">FCFA {{ "{:,.0f}".format(room.price) }}</div>
+                        <div class="info-value">FCFA {{ "{:,.0f}".format(res.room.price) if res.room else 'N/A' }}</div> {# Safely access room price #}
                     </div>
                 </div>
 
