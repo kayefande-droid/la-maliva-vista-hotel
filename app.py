@@ -45,7 +45,7 @@ db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
-# Security headers
+# ===================== MODELS =====================
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
@@ -111,6 +111,29 @@ class ActivityLog(db.Model): # New ActivityLog Model
     details = db.Column(db.Text, nullable=True)
 
     user = db.relationship('User', backref=db.backref('activity_logs', lazy=True))
+
+# Initialize database and create initial data
+def initialize_database():
+    """Initialize database tables and create initial data."""
+    with app.app_context():
+        try:
+            db.create_all()
+            create_initial_data()
+        except Exception as e:
+            print(f"Database initialization error: {e}")
+            # In a production environment, you might want to re-raise or handle this differently
+            raise
+
+# Call database initialization
+initialize_database()
+
+# Security headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -933,6 +956,4 @@ def process_payment(res_id):
         return redirect(url_for('payment_form', res_id=res_id))
 
 if __name__ == '__main__':
-    with app.app_context():
-        create_initial_data()
     app.run(debug=False)
