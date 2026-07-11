@@ -32,6 +32,7 @@
         animation: fadeInScale 0.6s ease-out forwards;
         @extend .glass-panel; /* Apply glassmorphism to stat cards */
         padding: 15px; /* Adjust padding for card-body */
+        margin-bottom: 20px; /* Add margin between cards */
     }
     .stat-card:nth-child(1) { animation-delay: 0.1s; }
     .stat-card:nth-child(2) { animation-delay: 0.2s; }
@@ -231,6 +232,31 @@
     .tab-content .text-muted {
         color: #b0b0b0 !important; /* Brighter muted text */
     }
+    /* Responsive tabs */
+    @media (max-width: 768px) {
+        .nav-tabs .nav-link {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+        }
+    }
+    @media (max-width: 576px) {
+        .nav-tabs {
+            display: block;
+        }
+        .nav-tabs .nav-link {
+            margin-bottom: 0;
+            border-radius: 0.5rem;
+            border-right: none;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .nav-tabs .nav-link.active {
+            border-bottom-color: #ffc107;
+            border-radius: 0.5rem 0.5rem 0 0;
+        }
+        .tab-content {
+            margin-top: 20px;
+        }
+    }
 </style>
 
 <div class="container-fluid">
@@ -249,7 +275,7 @@
 
         <div class="row">
             <!-- Stats Cards -->
-            <div class="col-md-3 mb-3">
+            <div class="col-12 col-sm-6 col-md-3 mb-3">
                 <div class="card stat-card stat-card-occupied text-white">
                     <div class="card-body position-relative">
                         <div class="d-flex align-items-center">
@@ -262,7 +288,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-12 col-sm-6 col-md-3 mb-3">
                 <div class="card stat-card stat-card-available text-white">
                     <div class="card-body position-relative">
                         <div class="d-flex align-items-center">
@@ -275,7 +301,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-12 col-sm-6 col-md-3 mb-3">
                 <div class="card stat-card stat-card-occupancy">
                     <div class="card-body position-relative">
                         <div class="d-flex align-items-center">
@@ -288,7 +314,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3 mb-3">
+            <div class="col-12 col-sm-6 col-md-3 mb-3">
                 <div class="card stat-card stat-card-arrivals text-white">
                     <div class="card-body position-relative">
                         <div class="d-flex align-items-center">
@@ -305,7 +331,7 @@
 
         <div class="row mt-4">
             <!-- Arrivals & Departures Tabs -->
-            <div class="col-md-7">
+            <div class="col-12 col-md-7 mb-4">
                 <ul class="nav nav-tabs mb-3" id="dashboardTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active fw-bold text-uppercase" id="arrivals-tab" data-bs-toggle="tab" data-bs-target="#arrivals" type="button" role="tab">
@@ -383,7 +409,7 @@
             </div>
 
             <!-- Chart & Hotel Image -->
-            <div class="col-md-5">
+            <div class="col-12 col-md-5 mb-4">
                 <div class="card shadow-sm">
                     <div class="card-header">
                         <h6 class="mb-0"><i class="bi bi-graph-up"></i> LIVE OCCUPANCY</h6>
@@ -402,7 +428,7 @@
 
         <!-- Hotel-themed Info Section -->
         <div class="row mt-4">
-            <div class="col-md-6">
+            <div class="col-12 col-md-6 mb-4">
                 <div class="card shadow-sm">
                     <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&h=300&fit=crop" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
                     <div class="card-body">
@@ -411,7 +437,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
+            <div class="col-12 col-md-6 mb-4">
                 <div class="card shadow-sm">
                     <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=500&h=300&fit=crop" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
                     <div class="card-body">
@@ -514,7 +540,7 @@
 
                     let html = '<table class="table table-striped mb-0"><thead><tr class="bg-darkblue-gradient">' +
                                '<th><i class="bi bi-person"></i> Guest Name</th><th><i class="bi bi-door-open"></i> Room No.</th><th><i class="bi bi-info-circle"></i> Status</th><th><i class="bi bi-gear"></i> Action</th></tr></thead><tbody>';
-                    
+
                     data.forEach(d => {
                         if (d.guest_name) {
                             html += `<tr style="transition: all 0.3s ease;">

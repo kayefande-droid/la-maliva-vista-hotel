@@ -76,15 +76,35 @@
     .input-group:nth-child(2) { animation-delay: 0.2s; }
     .input-group:nth-child(3) { animation-delay: 0.3s; }
     .input-group:nth-child(4) { animation-delay: 0.4s; }
+    .input-group:nth-child(5) { animation-delay: 0.5s; }
+    .input-group:nth-child(6) { animation-delay: 0.6s; }
     @keyframes fadeIn {
         from { opacity: 0; transform: translateX(-10px); }
         to { opacity: 1; transform: translateX(0); }
     }
     .submit-btn {
-        @extend .btn-teal; /* Use the teal gradient button style */
-        padding: 15px;
-        margin-top: 20px;
+        background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); /* Orange gradient */
+        border: none;
+        border-radius: 0.5rem;
+        color: #001533; /* Dark text for contrast */
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 14px !important;
+        box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.3);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        width: 100%;
         font-size: 16px;
+        margin-top: 20px;
+    }
+    .submit-btn:hover {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 10px 25px rgba(255, 152, 0, 0.5);
+        background: linear-gradient(135deg, #ffb74d 0%, #ff9800 100%); /* Lighter orange on hover */
+    }
+    .submit-btn:active {
+        transform: translateY(0);
+        box-shadow: inset 0 3px 5px rgba(0,0,0,0.4);
     }
     .form-section-title {
         color: #ffc107; /* Brighter gold text */
@@ -100,6 +120,7 @@
     .icon-guest { color: #ffc107; } /* Brighter gold icon */
     .icon-room { color: #ffc107; } /* Brighter gold icon */
     .icon-date { color: #ffc107; } /* Brighter gold icon */
+    .icon-id { color: #ffc107; } /* Brighter gold icon */
 </style>
 
 <div class="container-fluid">
@@ -133,6 +154,36 @@
                         <div class="input-group">
                             <label for="email" class="form-label"><i class="bi bi-envelope-fill icon-guest"></i> Email</label>
                             <input type="email" name="email" id="email" class="form-control form-control-lg" placeholder="Email address" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="place_of_birth" class="form-label"><i class="bi bi-globe icon-guest"></i> Place of Birth</label>
+                            <input type="text" name="place_of_birth" id="place_of_birth" class="form-control form-control-lg" placeholder="City, Country" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="profession" class="form-label"><i class="bi bi-briefcase icon-guest"></i> Profession</label>
+                            <input type="text" name="profession" id="profession" class="form-control form-control-lg" placeholder="Job title" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="num_persons" class="form-label"><i class="bi bi-people icon-guest"></i> Number of Persons</label>
+                            <input type="number" name="num_persons" id="num_persons" class="form-control form-control-lg" min="1" value="1" required>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <label for="id_passport" class="form-label"><i class="bi bi-card-id icon-id"></i> ID or Passport Number</label>
+                            <input type="text" name="id_passport" id="id_passport" class="form-control form-control-lg" placeholder="ID/Passport No." required>
                         </div>
                     </div>
                 </div>
@@ -187,7 +238,7 @@
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="btn submit-btn w-100">
+                <button type="submit" class="submit-btn w-100">
                     <i class="bi bi-check-circle"></i> Create Reservation
                 </button>
             </form>

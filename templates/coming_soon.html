@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+    /* Centered coming soon page */
+    .coming-once-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 80vh;
+        text-align: center;
+        padding: 20px;
+    }
+    .coming-once-icon {
+        font-size: 80px;
+        margin-bottom: 30px;
+        color: #ffc107;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+        100% { transform: scale(1); }
+    }
+    .coming-once-title {
+        font-size: 3rem;
+        margin-bottom: 20px;
+        color: #ffc107;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+    .coming-once-message {
+        font-size: 1.5rem;
+        margin-bottom: 30px;
+        color: #f0f0f0;
+        max-width: 600px;
+        line-height: 1.6;
+    }
+    .coming-once-btn {
+        @extend .btn-gold;
+        padding: 15px 30px;
+        font-size: 1.2rem;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="main-content glass-panel">
+        <div class="coming-once-container">
+            <div class="coming-once-icon">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <h1 class="coming-once-title">We'll Be Back Soon!</h1>
+            <p class="coming-once-message">{{ lock_message }}</p>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a href="{{ url_for('settings') }}" class="coming-once-btn">Go to Admin Panel</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

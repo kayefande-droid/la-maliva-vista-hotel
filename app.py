@@ -9,6 +9,8 @@ import io
 import csv
 import random
 import re
+import base64
+import requests
 from functools import wraps # Import wraps for decorator
 
 # ReportLab imports
@@ -27,6 +29,13 @@ db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# MTN Mobile Money Configuration
+app.config['MTN_MOMO_SUBSCRIPTION_KEY'] = os.environ.get('MTN_MOMO_SUBSCRIPTION_KEY', '')
+app.config['MTN_MOMO_API_USER'] = os.environ.get('MTN_MOMO_API_USER', '')
+app.config['MTN_MOMO_API_KEY'] = os.environ.get('MTN_MOMO_API_KEY', '')
+app.config['MTN_MOMO_API_URL'] = os.environ.get('MTN_MOMO_API_URL', 'https://sandbox.momodeveloper.mtn.com')
+app.config['MTN_MOMO_TARGET_ENV'] = os.environ.get('MTN_MOMO_TARGET_ENV', 'sandbox') # or 'mtncameroon' for live
+
 # Ensure instance folder exists
 instance_folder = os.path.join(basedir, 'instance')
 if not os.path.exists(instance_folder):
@@ -35,6 +44,14 @@ if not os.path.exists(instance_folder):
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# Security headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 # ===================== MODELS =====================
 class User(UserMixin, db.Model):
@@ -82,6 +99,9 @@ class Hotel(db.Model):
     name = db.Column(db.String(100), default='LA-MALIVA VISTA HOTEL')
     address = db.Column(db.String(200), default='Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon')
     tax_rate = db.Column(db.Float, default=0.0)
+    # New columns for lock system
+    is_locked = db.Column(db.Boolean, default=False)
+    lock_message = db.Column(db.Text, default="We are currently undergoing maintenance. Please check back later.")
 
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
@@ -118,6 +138,32 @@ def log_activity(action_description):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+# ===================== LOCK SYSTEM =====================
+@app.before_request
+def check_site_locked():
+    """Check if site is locked and redirect to coming soon page if needed."""
+    # Allow access to certain endpoints even when locked
+    allowed_endpoints = ['static', 'login', 'logout', 'coming_soon']
+    if request.endpoint in allowed_endpoints:
+        return
+
+    # If user is admin, allow access regardless of lock
+    if current_user.is_authenticated and current_user.role == 'admin':
+        return
+
+    # Check if site is locked
+    hotel = Hotel.query.first()
+    if hotel and hotel.is_locked:
+        # Redirect to coming soon page, passing the lock message
+        return redirect(url_for('coming_soon'))
+
+@app.route('/coming_soon')
+def coming_soon():
+    """Display coming soon message when site is locked."""
+    hotel = Hotel.query.first()
+    lock_message = hotel.lock_message if hotel else "We are currently undergoing maintenance. Please check back later."
+    return render_template('coming_soon.html', lock_message=lock_message)
 
 # ===================== CHATBOT LOGIC (AI for Users) =====================
 # This is a simple rule-based chatbot. A true AI for user problem-solving
@@ -207,7 +253,7 @@ def create_initial_data():
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True, first_login_done=True) # Admin's first login is done
                 db.session.add(admin)
-            
+
             # Clear existing room data to ensure only the new, specified rooms are present
             Room.query.delete()
             db.session.commit()
@@ -218,7 +264,7 @@ def create_initial_data():
                 {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
                 {'number': '103', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
                 {'number': '104', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
-                
+
                 # Deluxe Rooms
                 {'number': '201', 'type': 'Deluxe', 'price': 25000, 'description': 'With fridge, couch, and large space', 'image_url': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1920&auto=format&fit=crop'},
                 {'number': '202', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
@@ -244,9 +290,14 @@ def create_initial_data():
                 db.session.add(new_room)
 
             if not Hotel.query.first():
-                db.session.add(Hotel())
+                hotel = Hotel()
+                # Explicitly set lock system fields (though they have defaults)
+                hotel.is_locked = False
+                hotel.lock_message = "We are currently undergoing maintenance. Please check back later."
+                db.session.add(hotel)
             db.session.commit()
-        except Exception as e: print(f"DB Error: {e}")
+        except Exception as e:
+            print(f"DB Error: {e}")
 
 # ===================== ROUTES =====================
 @app.route('/')
@@ -260,7 +311,7 @@ def signup():
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
-        
+
         # Basic validation
         if not email.endswith('@gmail.com'):
             flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed for user registration!', 'error')
@@ -268,7 +319,7 @@ def signup():
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
-        
+
         # Default role for new signups is 'user'
         new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
         db.session.add(new_user)
@@ -305,17 +356,17 @@ def dashboard():
     occupied_rooms = Room.query.filter_by(status='Occupied').count()
     free_rooms = total_rooms - occupied_rooms
     occupancy_rate = int((occupied_rooms / total_rooms) * 100) if total_rooms > 0 else 0
-    
+
     start_of_today = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
     end_of_today = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
-    
+
     arrivals = Reservation.query.filter(Reservation.check_in >= start_of_today, Reservation.check_in <= end_of_today).all()
     departures = Reservation.query.filter(Reservation.check_out >= start_of_today, Reservation.check_out <= end_of_today).all()
-    
-    return render_template('dashboard.html', 
-                           occupied=occupied_rooms, 
-                           free=free_rooms, 
-                           occupancy_rate=occupancy_rate, 
+
+    return render_template('dashboard.html',
+                           occupied=occupied_rooms,
+                           free=free_rooms,
+                           occupancy_rate=occupancy_rate,
                            arrivals=arrivals,
                            departures=departures)
 
@@ -377,14 +428,14 @@ def new_reservation():
         db.session.add(guest)
         db.session.commit()
         room = Room.query.get(request.form['room_id'])
-        
+
         # Parse check-in/out dates and times
         check_in = datetime.strptime(f"{request.form['check_in_date']} {request.form['check_in_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
         check_out = datetime.strptime(f"{request.form['check_out_date']} {request.form['check_out_time']}", '%Y-%m-%d %H:%M').replace(tzinfo=timezone.utc)
-        
+
         # Set access deadline (e.g., 24 hours after check-in)
-        access_deadline = check_in + timedelta(hours=24) 
-        
+        access_deadline = check_in + timedelta(hours=24)
+
         # Basic validation
         if check_out <= check_in:
             flash('❌ Check-out date must be after check-in date.', 'error')
@@ -395,12 +446,12 @@ def new_reservation():
         amount = room.price * days
         res = Reservation(guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out, amount=amount, status='Confirmed', customer_arrived_paid=False, access_deadline=access_deadline)
         db.session.add(res)
-        
+
         # If check-in is now or in the past, mark room as occupied
         if check_in <= datetime.now(timezone.utc):
             room.status = 'Occupied'
             res.status = 'Checked-In'
-            
+
         db.session.commit()
         flash('✅ Reservation created successfully! Please ensure customer arrives by deadline.', 'success')
         _perform_log("Created New Reservation", details=f"Reservation ID: {res.id} for Room {room.room_number if room else 'N/A'}")
@@ -413,7 +464,7 @@ def new_reservation():
 @log_activity("Attempted Check-in") # Log activity
 def checkin(res_id):
     res = Reservation.query.get_or_404(res_id)
-    
+
     # Check if current user is admin or staff to allow setting customer_arrived_paid
     if current_user.role not in ['admin', 'staff']:
         flash('❌ Access denied. You do not have permission to perform this action.', 'error')
@@ -422,7 +473,7 @@ def checkin(res_id):
     if res.status == 'Checked-In':
         flash('ℹ️ Guest is already checked in.', 'info')
         return redirect(url_for('calendar'))
-    
+
     # Check if access deadline has passed
     if res.access_deadline and datetime.now(timezone.utc) > res.access_deadline and res.status == 'Confirmed':
         res.status = 'Cancelled' # Automatically cancel if deadline passed and not checked in
@@ -449,7 +500,7 @@ def checkin(res_id):
 @log_activity("Attempted Check-out") # Log activity
 def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
-    
+
     if current_user.role not in ['admin', 'staff']:
         flash('❌ Access denied. You do not have permission to perform this action.', 'error')
         return redirect(url_for('calendar'))
@@ -457,7 +508,7 @@ def checkout(res_id):
     if res.status == 'Checked-Out':
         flash('ℹ️ Guest is already checked out.', 'info')
         return redirect(url_for('calendar'))
-        
+
     res.status = 'Checked-Out'
     room = Room.query.get(res.room_id)
     if room: # Ensure room exists before updating status
@@ -529,7 +580,7 @@ def download_booking_proof(res_id):
     response = make_response(buffer.getvalue())
     response.headers.set('Content-Disposition', 'attachment', filename=f'booking_proof_res_{res.id}.pdf')
     response.headers.set('Content-Type', 'application/pdf')
-    
+
     _perform_log(f"Generated booking proof for Reservation {res.id}")
     return response
 
@@ -548,7 +599,7 @@ def export_data():
     if current_user.role not in ['admin', 'staff']:
         flash('❌ Access denied. Only staff and administrators can export data.', 'error')
         return redirect(url_for('dashboard'))
-    
+
     all_guests = Guest.query.all() # Renamed to all_guests
     output = io.StringIO()
     writer = csv.writer(output)
@@ -569,6 +620,9 @@ def settings():
         hotel.name = request.form['name']
         hotel.address = request.form['address']
         hotel.tax_rate = float(request.form['tax_rate'])
+        # Handle lock settings
+        hotel.is_locked = 'is_locked' in request.form
+        hotel.lock_message = request.form.get('lock_message', hotel.lock_message)
         db.session.commit()
         flash('✅ Hotel settings updated successfully!', 'success')
         _perform_log("Updated Hotel Settings")
@@ -626,13 +680,13 @@ def edit_user(user_id):
         if request.form.get('password'):
             user_to_edit.password_hash = generate_password_hash(request.form.get('password'))
         user_to_edit.role = request.form['role']
-        
+
         # Update can_be_monitored_by_admin only for staff roles
         if user_to_edit.role == 'staff':
             user_to_edit.can_be_monitored_by_admin = 'can_be_monitored_by_admin' in request.form
         else:
             user_to_edit.can_be_monitored_by_admin = False # Non-staff cannot be monitored
-            
+
         db.session.commit()
         flash(f'✅ User {user_to_edit.username} updated successfully!', 'success')
         _perform_log(f"Updated User {user_to_edit.username}")
@@ -685,7 +739,7 @@ def todays_arrivals():
 def todays_departures():
     today = datetime.now(timezone.utc).date()
     departures = Reservation.query.filter(db.func.date(Reservation.check_out) == today).all()
-    
+
     if request.args.get('json'):
         return jsonify([{
             'id': d.id,
@@ -693,7 +747,7 @@ def todays_departures():
             'room': d.room.room_number if d.room else 'N/A', # Safely access room number
             'status': d.status
         } for d in departures])
-        
+
     return render_template('departures.html', departures=departures, today=today)
 
 @app.route('/occupancy_report')
@@ -714,7 +768,7 @@ def admin_monitoring():
     if current_user.role != 'admin':
         flash('❌ Access denied. Administrators only.', 'error')
         return redirect(url_for('dashboard'))
-    
+
     users_with_logs = []
     all_users = User.query.all()
     for user in all_users:
@@ -735,10 +789,10 @@ def send_message():
     if current_user.role != 'admin':
         flash('❌ Access denied. Administrators only.', 'error')
         return redirect(url_for('dashboard'))
-    
+
     user_id = request.form.get('user_id')
     message_content = request.form.get('message_content')
-    
+
     user = User.query.get(user_id)
     if user and user.role == 'staff': # Only allow sending messages to staff
         # In a real application, you would integrate with a messaging service (e.g., email, SMS, internal notification system)
@@ -747,7 +801,7 @@ def send_message():
         _perform_log(f"Admin sent message to {user.username}", details=message_content)
     else:
         flash('❌ User not found or not a staff member.', 'error')
-        
+
     return redirect(url_for('admin_monitoring'))
 
 @app.route('/user_manual')
@@ -761,6 +815,122 @@ def manifest():
 @app.route('/sw.js')
 def service_worker():
     return app.send_static_file('sw.js')
+
+# ===================== MTN MOBILE MONEY PAYMENT INTEGRATION =====================
+@app.route('/pay/<int:res_id>', methods=['GET'])
+@login_required
+@log_activity("Accessed Payment Page") # Log activity
+def payment_form(res_id):
+    """Render the payment form for a specific reservation."""
+    reservation = Reservation.query.get_or_404(res_id)
+    # Only allow the user who made the reservation or admin/staff to access payment
+    if not current_user.is_authenticated or (current_user.id != reservation.guest.id and current_user.role not in ['admin', 'staff']):
+        flash('❌ Access denied. You do not have permission to access this payment page.', 'error')
+        return redirect(url_for('reservations'))
+    # Pre-fill amount from reservation, but allow user to modify? We'll show the amount as default.
+    return render_template('payment.html', reservation=reservation)
+
+@app.route('/pay/<int:res_id>', methods=['POST'])
+@login_required
+@log_activity("Processed Payment") # Log activity
+def process_payment(res_id):
+    """Process MTN Mobile Money payment for a reservation."""
+    reservation = Reservation.query.get_or_404(res_id)
+    # Only allow the user who made the reservation or admin/staff to process payment
+    if not current_user.is_authenticated or (current_user.id != reservation.guest.id and current_user.role not in ['admin', 'staff']):
+        flash('❌ Access denied. You do not have permission to process this payment.', 'error')
+        return redirect(url_for('reservations'))
+
+    phone_number = request.form.get('phone_number')
+    amount_str = request.form.get('amount')
+
+    # Validate input
+    if not phone_number or not amount_str:
+        flash('❌ Phone number and amount are required.', 'error')
+        return redirect(url_for('payment_form', res_id=res_id))
+
+    try:
+        amount = float(amount_str)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        flash('❌ Amount must be a positive number.', 'error')
+        return redirect(url_for('payment_form', res_id=res_id))
+
+    # Check if amount matches reservation amount (optional, can be overridden)
+    # if amount != reservation.amount:
+    #     flash('❌ Amount does not match the reservation amount.', 'error')
+    #     return redirect(url_for('payment_form', res_id=res_id))
+
+    # Prepare MTN MoMo API credentials
+    subscription_key = app.config['MTN_MOMO_SUBSCRIPTION_KEY']
+    api_user = app.config['MTN_MOMO_API_USER']
+    api_key = app.config['MTN_MOMO_API_KEY']
+    base_url = app.config['MTN_MOMO_API_URL']
+    target_env = app.config['MTN_MOMO_TARGET_ENV']
+
+    if not all([subscription_key, api_user, api_key]):
+        flash('❌ MTN Mobile Money credentials are not configured properly.', 'error')
+        return redirect(url_for('payment_form', res_id=res_id))
+
+    try:
+        # Step 1: Get access token
+        token_url = f"{base_url}/collection/token/"
+        headers = {
+            'Ocp-Apim-Subscription-Key': subscription_key,
+            'Authorization': 'Basic ' + base64.b64encode(f"{api_user}:{api_key}".encode()).decode(),
+            'Content-Type': 'application/json'
+        }
+        token_response = requests.post(token_url, headers=headers, json={})
+        token_response.raise_for_status() # Raise exception for bad status codes
+        access_token = token_response.json()['access_token']
+
+        # Step 2: Initiate payment request
+        payment_url = f"{base_url}/collection/v1_0/requesttopay"
+        headers = {
+            'Authorization': f'Bearer {access_token}',
+            'X-Callback-Url': 'https://example.com/callback', # Placeholder - implement callback handling if needed
+            'X-Target-Environment': target_env,
+            'Content-Type': 'application/json',
+            'Ocp-Apim-Subscription-Key': subscription_key
+        }
+        payload = {
+            'amount': str(amount),
+            'currency': 'EUR', # Consider making currency configurable or based on hotel location (XAF for Cameroon?)
+            'externalId': str(reservation.id),
+            'payer': {
+                'partyIdType': 'MSISDN',
+                'partyId': phone_number
+            },
+            'payerMessage': 'Payment for hotel reservation',
+            'payeeNote': 'Thank you for your business'
+        }
+        payment_response = requests.post(payment_url, headers=headers, json=payload)
+        payment_response.raise_for_status()
+
+        # If we get here, the request was accepted (HTTP 202)
+        # Note: Mobile money payments are asynchronous. We assume success for now.
+        # In a real implementation, you would check the transaction status via the transaction ID.
+        flash('✅ Payment has been initiated. Please complete the payment on your mobile money account.', 'success')
+        # Log the payment attempt
+        _perform_log(f"Initiated MoMo payment for Reservation {reservation.id}", details=f"Amount: {amount}, Phone: {phone_number}")
+        return redirect(url_for('reservations'))
+
+    except requests.exceptions.RequestException as e:
+        error_msg = f'❌ Payment initiation failed: {str(e)}'
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_detail = e.response.json()
+                error_msg += f' - Details: {error_detail}'
+            except:
+                error_msg += f' - Response: {e.response.text}'
+        flash(error_msg, 'error')
+        _perform_log(f"MoMo payment failed for Reservation {reservation.id}", details=str(e))
+        return redirect(url_for('payment_form', res_id=res_id))
+    except Exception as e:
+        flash(f'❌ An unexpected error occurred: {str(e)}', 'error')
+        _perform_log(f"Unexpected error in payment processing for Reservation {reservation.id}", details=str(e))
+        return redirect(url_for('payment_form', res_id=res_id))
 
 if __name__ == '__main__':
     with app.app_context():
