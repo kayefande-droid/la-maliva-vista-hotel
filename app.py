@@ -46,14 +46,6 @@ login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
 # ===================== MODELS =====================
-@app.after_request
-def add_security_headers(response):
-    response.headers['X-Content-Type-Options'] = 'nosniff'
-    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
-    response.headers['X-XSS-Protection'] = '1; mode=block'
-    return response
-
-# ===================== MODELS =====================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True)
@@ -125,7 +117,6 @@ def initialize_database():
             raise
 
 # Call database initialization
-initialize_database()
 
 # Security headers
 @app.after_request
@@ -321,8 +312,10 @@ def create_initial_data():
             db.session.commit()
         except Exception as e:
             print(f"DB Error: {e}")
+initialize_database()
 
 # ===================== ROUTES =====================
+
 @app.route('/')
 def public_home():
     all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
