@@ -49,4 +49,4 @@ This project is configured for deployment on Render.com.
 5. Set Start Command: `gunicorn app:app`
 
 ## Credits
-Built for LA-MALIVA VISTA HOTEL.
+Built for LA-MALIVA VISTA HOTEL by Efande ikome
