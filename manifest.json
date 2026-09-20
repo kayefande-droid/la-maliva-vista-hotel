@@ -1,0 +1,38 @@
+{
+  "name": "LA-MALIVA VISTA HOTEL",
+  "short_name": "La-Maliva",
+  "description": "Luxury hotel management & booking — A Taste of Paradise, Buea",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#050b18",
+  "theme_color": "#050b18",
+  "icons": [
+    {
+      "src": "/static/logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Get the App",
+      "url": "/downloads",
+      "description": "Download native builds and PWA"
+    },
+    {
+      "name": "Book a Room",
+      "url": "/#rooms",
+      "description": "Browse rooms and reserve"
+    }
+  ]
+}

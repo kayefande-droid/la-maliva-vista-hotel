@@ -11,7 +11,11 @@ import random
 import re
 import base64
 import requests
+import secrets
 from functools import wraps # Import wraps for decorator
+from email_utils import validate_email_real  # Real email verification (syntax + DNS + disposable)
+from mailer import send_verification_email, smtp_configured
+import logging
 
 # ReportLab imports
 from reportlab.lib.pagesizes import letter
@@ -22,6 +26,9 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURATION ---
+APP_VERSION = "2.0.0"
+BUILD_CHANNEL = "stable"
+
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
 # Use absolute path for database to ensure it runs correctly everywhere
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -35,6 +42,12 @@ app.config['MTN_MOMO_API_USER'] = os.environ.get('MTN_MOMO_API_USER', '')
 app.config['MTN_MOMO_API_KEY'] = os.environ.get('MTN_MOMO_API_KEY', '')
 app.config['MTN_MOMO_API_URL'] = os.environ.get('MTN_MOMO_API_URL', 'https://sandbox.momodeveloper.mtn.com')
 app.config['MTN_MOMO_TARGET_ENV'] = os.environ.get('MTN_MOMO_TARGET_ENV', 'sandbox') # or 'mtncameroon' for live
+
+# Elevated access secret pass (admin/staff second factor on the login form).
+# Set ELEVATED_ACCESS_PASS in the environment on Render/Railway. When unset,
+# per-user access_secret_hash is used instead.
+ELEVATED_ACCESS_PASS = os.environ.get('ELEVATED_ACCESS_PASS', 'MALIVA-2026')
+app.config['ELEVATED_SECRET_HASH'] = generate_password_hash(ELEVATED_ACCESS_PASS) if ELEVATED_ACCESS_PASS else None
 
 # Ensure instance folder exists
 instance_folder = os.path.join(basedir, 'instance')
@@ -55,6 +68,14 @@ class User(UserMixin, db.Model):
     registered_on = db.Column(db.DateTime, default=datetime.now(timezone.utc)) # New: Registration timestamp
     can_be_monitored_by_admin = db.Column(db.Boolean, default=False) # New: Permission for screen view
     first_login_done = db.Column(db.Boolean, default=False) # New: Track first login for welcome message
+
+    # ---- Email verification ----
+    email_verified = db.Column(db.Boolean, default=False)
+    verification_token = db.Column(db.String(128), nullable=True)
+    verification_sent_at = db.Column(db.DateTime, nullable=True)
+
+    # ---- Elevated access secret pass (admin/staff second factor) ----
+    access_secret_hash = db.Column(db.String(128), nullable=True)
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -118,12 +139,29 @@ def initialize_database():
 
 # Call database initialization
 
-# Security headers
+# Security headers + PWA offline support
 @app.after_request
 def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Content Security Policy: allows Bootstrap/FontAwesome CDNs and inline
+    # scripts used by the templates, but blocks everything else.
+    response.headers.setdefault('Content-Security-Policy',
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
+        "img-src 'self' data: blob: https:; "
+        "connect-src 'self'; "
+        "frame-src 'self'; "
+        "worker-src 'self'; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'")
+    # Service worker needs to own its scope
+    if request.path == '/sw.js':
+        response.headers['Service-Worker-Allowed'] = '/'
     return response
 
 @login_manager.user_loader
@@ -266,6 +304,7 @@ def create_initial_data():
             db.create_all()
             if not User.query.filter_by(username='admin').first():
                 admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True, first_login_done=True) # Admin's first login is done
+                admin.email_verified = True  # seeded accounts skip email verification
                 db.session.add(admin)
 
             # Clear existing room data to ensure only the new, specified rooms are present
@@ -312,6 +351,39 @@ def create_initial_data():
             db.session.commit()
         except Exception as e:
             print(f"DB Error: {e}")
+
+
+def _migrate_schema():
+    """Lightweight column migration for existing SQLite databases.
+
+    Adds any columns introduced after initial release that ALTER TABLE
+    would be needed for. Safe to run on every startup.
+    """
+    with app.app_context():
+        try:
+            result = db.session.execute(
+                db.text("PRAGMA table_info(user)")
+            ).fetchall()
+            existing = {row[1] for row in result}
+            migrations = [
+                ("email_verified", "BOOLEAN DEFAULT 0"),
+                ("verification_token", "VARCHAR(128)"),
+                ("verification_sent_at", "DATETIME"),
+                ("access_secret_hash", "VARCHAR(128)"),
+            ]
+            for column, ddl in migrations:
+                if column not in existing:
+                    db.session.execute(db.text(f"ALTER TABLE user ADD COLUMN {column} {ddl}"))
+            # Trust existing admin accounts created before email verification existed
+            db.session.execute(db.text("UPDATE user SET email_verified = 1 WHERE role = 'admin'"))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Schema migration skipped: {e}")
+
+
+# Call database initialization
+_migrate_schema()
 initialize_database()
 
 # ===================== ROUTES =====================
@@ -321,6 +393,48 @@ def public_home():
     all_rooms = Room.query.order_by(Room.price).all() # Renamed to all_rooms
     return render_template('public_home.html', rooms=all_rooms)
 
+@app.route('/verify-email/<token>')
+def verify_email(token):
+    """Confirm a signup email address via tokenized link."""
+    user = User.query.filter_by(verification_token=token).first()
+    if not user:
+        flash('❌ Invalid or expired verification link. Please sign up again.', 'error')
+        return redirect(url_for('signup'))
+    user.email_verified = True
+    user.verification_token = None
+    db.session.commit()
+    flash('✅ Email verified! Your account is active — please log in.', 'success')
+    return redirect(url_for('login'))
+
+
+@app.route('/resend-verification', methods=['POST'])
+def resend_verification():
+    """Re-send the verification email (form posts the email address)."""
+    email = (request.form.get('email') or '').strip().lower()
+    user = User.query.filter_by(email=email).first()
+    # Always claim success to avoid account enumeration
+    flash('ℹ️ If that address has a pending account, a new verification link has been sent.', 'info')
+    if user and not user.email_verified:
+        _issue_verification(user)
+    return redirect(url_for('login'))
+
+
+def _issue_verification(user):
+    """Create + email a verification token for the user. Never raises."""
+    try:
+        user.verification_token = secrets.token_urlsafe(32)
+        user.verification_sent_at = datetime.now(timezone.utc)
+        db.session.commit()
+        link = url_for('verify_email', token=user.verification_token, _external=True)
+        sent = send_verification_email(user.email, link)
+        if not sent:
+            logger.warning('Verification email for %s could not be sent (SMTP unconfigured/failed). Link: %s', user.email, link)
+        return sent
+    except Exception:
+        logger.exception('Failed to issue verification for %s', user.email)
+        return False
+
+
 @app.route('/signup', methods=['GET', 'POST'])
 def signup():
     if request.method == 'POST':
@@ -329,18 +443,31 @@ def signup():
         password = request.form['password']
 
         # Basic validation
-        if not email.endswith('@gmail.com'):
-            flash('❌ Only genuine Gmail accounts (@gmail.com) are allowed for user registration!', 'error')
+        # ---- REAL EMAIL VERIFICATION ----
+        # Layer 1: syntax | Layer 2: disposable blocklist | Layer 3: live DNS (MX/A)
+        email_check = validate_email_real(email)
+        if not email_check['valid']:
+            flash(f'❌ {email_check["reason"]}', 'error')
             return redirect(url_for('signup'))
+        email = email_check['email']  # normalized (lowercase, trimmed)
+
         if User.query.filter((User.username == username) | (User.email == email)).first():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
 
         # Default role for new signups is 'user'
         new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
+        new_user.email_verified = False
         db.session.add(new_user)
         db.session.commit()
-        flash('✅ Account created successfully! Please login.', 'success')
+
+        # Send the address-verification email before the account can log in
+        _issue_verification(new_user)
+
+        if smtp_configured():
+            flash('✅ Account created! We sent a verification link to your email — verify to activate login.', 'success')
+        else:
+            flash('⚠️ Account created, but email delivery is not configured on this server. Ask the administrator to verify your account or set SMTP env vars.', 'warning')
         return render_template('signup.html') # Render signup template again to show flash message
     return render_template('signup.html')
 
@@ -349,8 +476,31 @@ def login():
     if request.method == 'POST':
         identifier = request.form['username']
         password = request.form['password']
+        secret_pass = (request.form.get('secret_pass') or '').strip()
+
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+
         if user and check_password_hash(user.password_hash, password):
+            # ---- GATE 1: email must be verified before any login ----
+            if not user.email_verified:
+                flash('⛔ Email not verified. Check your inbox for the verification link, or resend it below.', 'error')
+                return render_template('login.html', pending_email=user.email, smtp_ready=smtp_configured())
+
+            # ---- GATE 2: admin/staff require the secret pass ----
+            if user.role in ('admin', 'staff'):
+                if not secret_pass:
+                    flash('🔐 Staff & admin logins require the secret pass. Enter it in the elevated access field.', 'error')
+                    return render_template('login.html', needs_secret=True)
+                expected = app.config.get('ELEVATED_SECRET_HASH')
+                if expected:
+                    ok = check_password_hash(expected, secret_pass)
+                else:
+                    # Fallback: per-user hash (set when staff/admin created)
+                    ok = bool(user.access_secret_hash) and check_password_hash(user.access_secret_hash, secret_pass)
+                if not ok:
+                    flash('❌ Invalid secret pass for staff/admin access.', 'error')
+                    return render_template('login.html', needs_secret=True)
+
             login_user(user)
             if not user.first_login_done:
                 flash(f'🎉 Welcome to La-Maliva Vista Hotel, {user.username}! We\'re excited to have you. Please review our terms of service and privacy policy.', 'success')
@@ -663,6 +813,7 @@ def users():
                 flash(f'❌ User {username} or email already exists!', 'error')
             else:
                 new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.utc), first_login_done=True) # Staff/Admin accounts are not new users
+                new_user.email_verified = True  # created internally by admin -> pre-verified
                 db.session.add(new_user)
                 db.session.commit()
                 flash(f'✅ User {username} added successfully!', 'info')
@@ -824,6 +975,69 @@ def send_message():
 def user_manual():
     return render_template('user_manual.html')
 
+# ===================== DOWNLOADS & VERSIONING =====================
+APP_RELEASES = {
+    'android': {'file': 'la-maliva-vista-{v}.apk', 'label': 'Android APK', 'min_os': 'Android 8.0+', 'size': '~18 MB'},
+    'windows': {'file': 'La-Maliva-Vista-Setup-{v}.exe', 'label': 'Windows Installer', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~65 MB'},
+    'pwa': {'file': None, 'label': 'Progressive Web App', 'min_os': 'Any modern browser', 'size': '~2 MB'},
+}
+
+
+def _release_meta(platform_key):
+    meta = dict(APP_RELEASES[platform_key])
+    meta['version'] = APP_VERSION
+    meta['channel'] = BUILD_CHANNEL
+    meta['filename'] = meta['file'].format(v=APP_VERSION) if meta['file'] else None
+    return meta
+
+
+@app.route('/downloads')
+def downloads():
+    """Native app downloads page (APK / EXE / PWA) with live version info."""
+    return render_template(
+        'downloads.html',
+        app_version=APP_VERSION,
+        build_channel=BUILD_CHANNEL,
+        releases={k: _release_meta(k) for k in APP_RELEASES},
+    )
+
+
+@app.route('/api/version')
+def api_version():
+    """Machine-readable version endpoint — download cards bind to this."""
+    return jsonify({
+        'app': 'LA-MALIVA VISTA',
+        'version': APP_VERSION,
+        'channel': BUILD_CHANNEL,
+        'releases': {k: _release_meta(k) for k in APP_RELEASES},
+    })
+
+
+@app.route('/downloads/<platform>')
+def download_release(platform):
+    """Serve the requested native bundle if present in static/releases."""
+    platform = platform.lower()
+    if platform not in APP_RELEASES or platform == 'pwa':
+        flash('❌ Unknown platform requested.', 'error')
+        return redirect(url_for('downloads'))
+    filename = _release_meta(platform)['filename']
+    release_path = os.path.join(basedir, 'static', 'releases', filename)
+    if os.path.exists(release_path):
+        return send_file(release_path, as_attachment=True, download_name=filename)
+    flash(f'ℹ️ {filename} is being packaged — the build pipeline publishes it to /static/releases shortly.', 'info')
+    return redirect(url_for('downloads'))
+
+
+# ===================== EMAIL VALIDATION API =====================
+@app.route('/api/validate-email', methods=['POST'])
+def api_validate_email():
+    """Live endpoint powering the signup form's real-time email verification."""
+    data = request.get_json(silent=True) or {}
+    result = validate_email_real(data.get('email', ''))
+    # Never leak existence of accounts; this only checks the ADDRESS itself.
+    return jsonify(result)
+
+
 @app.route('/manifest.json')
 def manifest():
     return jsonify({"name": "LaMalaVista", "short_name": "LaMalaVista", "start_url": "/dashboard", "display": "standalone", "background_color": "#001a4d", "theme_color": "#0052cc", "icons": [{"src": "/static/logo.png", "sizes": "192x192", "type": "image/png"}]})
@@ -831,6 +1045,14 @@ def manifest():
 @app.route('/sw.js')
 def service_worker():
     return app.send_static_file('sw.js')
+
+
+@app.route('/offline')
+def offline_page():
+    """Offline fallback page served by the service worker."""
+    response = make_response(render_template('offline.html'))
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
 
 # ===================== MTN MOBILE MONEY PAYMENT INTEGRATION =====================
 @app.route('/pay/<int:res_id>', methods=['GET'])
@@ -947,6 +1169,48 @@ def process_payment(res_id):
         flash(f'❌ An unexpected error occurred: {str(e)}', 'error')
         _perform_log(f"Unexpected error in payment processing for Reservation {reservation.id}", details=str(e))
         return redirect(url_for('payment_form', res_id=res_id))
+
+# ===================== ERROR HANDLERS (clean boundaries) =====================
+@app.errorhandler(404)
+def not_found_error(error):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    try:
+        return render_template('errors/404.html'), 404
+    except Exception:
+        return '404 — Page not found', 404
+
+
+@app.errorhandler(500)
+def internal_error(error):
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    try:
+        return render_template('errors/500.html'), 500
+    except Exception:
+        return '500 — Internal Server Error', 500
+
+
+@app.errorhandler(Exception)
+def unhandled_exception(error):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(error, HTTPException):
+        return error
+    try:
+        db.session.rollback()
+    except Exception:
+        pass
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    try:
+        return render_template('errors/500.html'), 500
+    except Exception:
+        return '500 — Internal Server Error', 500
+
 
 if __name__ == '__main__':
     app.run(debug=False)

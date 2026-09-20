@@ -1,0 +1,105 @@
+name: Build Release (EXE + APK)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build server executable
+        run: >
+          pyinstaller --noconfirm --clean
+          --name La-Maliva-Vista-Server
+          --add-data "templates;templates"
+          --add-data "static;static"
+          --add-data "instance;instance"
+          --hidden-import email_validator
+          --hidden-import dns.resolver
+          app.py
+
+      - name: Zip bundle
+        shell: pwsh
+        run: Compress-Archive -Path dist/La-Maliva-Vista-Server -DestinationPath La-Maliva-Vista-Setup-${{ github.ref_name }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: La-Maliva-Vista-Setup-${{ github.ref_name }}.zip
+
+  build-android-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Bubblewrap (TWA builder)
+        run: npm install -g @bubblewrap/cli
+
+      - name: Create TWA project
+        run: |
+          bubblewrap init --manifest=https://la-maliva-vista-hotel.onrender.com/manifest.json --directory twa
+        continue-on-error: true
+
+      - name: Generate signing key
+        run: |
+          keytool -genkeypair -v -keystore release.keystore -alias lamaliva \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass "${{ secrets.APK_KEYSTORE_PASSWORD || 'lamaliva2026' }}" \
+            -keypass "${{ secrets.APK_KEY_PASSWORD || 'lamaliva2026' }}" \
+            -dname "CN=La-Maliva Vista, OU=Hotel, O=La-Maliva, L=Buea, C=CM"
+
+      - name: Build APK
+        run: |
+          cd twa
+          bubblewrap build --skipPwaValidation \
+            --keystore ../release.keystore \
+            --keystorePassword "${{ secrets.APK_KEYSTORE_PASSWORD || 'lamaliva2026' }}" \
+            --keyPassword "${{ secrets.APK_KEY_PASSWORD || 'lamaliva2026' }}" || true
+          find . -name "*.apk" -exec cp {} ../la-maliva-vista-${{ github.ref_name }}.apk \;
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: la-maliva-vista-${{ github.ref_name }}.apk
+        continue-on-error: true
+
+  release:
+    needs: [build-windows-exe, build-android-apk]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Attach binaries to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            windows-exe/*
+            android-apk/*
