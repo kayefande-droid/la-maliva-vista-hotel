@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for dashboard.html, overriding/extending base.html where needed */
     .dashboard-header {
-        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
+        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 0.75rem;
@@ -19,11 +19,11 @@
         to { opacity: 1; transform: translateY(0); }
     }
     .dashboard-header h5 {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
     .dashboard-header small {
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     .stat-card {
         position: relative;
@@ -57,50 +57,50 @@
     }
     .stat-card:hover {
         transform: translateY(-8px);
-        box-shadow: 0 12px 28px rgba(255, 193, 7, 0.5); /* Brighter gold shadow on hover */
+        box-shadow: 0 12px 28px rgba(238, 195, 122, 0.5); /* Brighter gold shadow on hover */
     }
     .stat-card-occupied {
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient */
-        border-left: 5px solid #ffc107; /* Brighter gold accent */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient */
+        border-left: 5px solid #eec37a; /* Brighter gold accent */
     }
     .stat-card-available {
         background: linear-gradient(135deg, #28a745, #20c997) !important; /* Green gradient */
-        border-left: 5px solid #ffc107; /* Brighter gold accent */
+        border-left: 5px solid #eec37a; /* Brighter gold accent */
     }
     .stat-card-occupancy {
-        background: linear-gradient(135deg, #ffc107, #ff9800) !important; /* Brighter gold gradient */
-        border-left: 5px solid #001533; /* Deeper dark blue accent */
-        color: #001533 !important; /* Dark text for contrast */
+        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient */
+        border-left: 5px solid #0f2240; /* Deeper dark blue accent */
+        color: #0f2240 !important; /* Dark text for contrast */
     }
     .stat-card-arrivals {
         background: linear-gradient(135deg, #17a2b8, #138496) !important; /* Cyan gradient */
-        border-left: 5px solid #ffc107; /* Brighter gold accent */
+        border-left: 5px solid #eec37a; /* Brighter gold accent */
     }
     .stat-icon {
         font-size: 28px;
         margin-right: 12px;
         opacity: 0.9;
-        color: #ffc107; /* Brighter gold icon */
+        color: #eec37a; /* Brighter gold icon */
     }
     .stat-card-occupancy .stat-icon {
-        color: #001533; /* Dark icon for contrast on gold */
+        color: #0f2240; /* Dark icon for contrast on gold */
     }
     .stat-number {
         font-size: 32px;
         font-weight: bold;
         margin-bottom: 5px;
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     .stat-card-occupancy .stat-number {
-        color: #001533; /* Dark text for contrast */
+        color: #0f2240; /* Dark text for contrast */
     }
     .stat-label {
         font-size: 14px;
         opacity: 0.9;
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     .stat-card-occupancy .stat-label {
-        color: #001533; /* Dark text for contrast */
+        color: #0f2240; /* Dark text for contrast */
     }
     /* Hotel-themed image animation */
     .hotel-image-animated {
@@ -157,21 +157,21 @@
     .nav-tabs .nav-link {
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.3);
-        color: #f0f0f0;
+        color: #f5f1e8;
         border-radius: 0.5rem 0.5rem 0 0;
         margin-right: 5px;
         transition: all 0.3s ease;
         font-weight: 600;
     }
     .nav-tabs .nav-link:hover {
-        background: rgba(255, 193, 7, 0.25);
-        color: #ffc107;
-        border-color: #ffc107;
+        background: rgba(238, 195, 122, 0.25);
+        color: #eec37a;
+        border-color: #eec37a;
     }
     .nav-tabs .nav-link.active {
-        background: linear-gradient(135deg, #001533, #002a66) !important;
-        color: #ffc107 !important;
-        border-color: #ffc107 !important;
+        background: linear-gradient(135deg, #0f2240, #16305c) !important;
+        color: #eec37a !important;
+        border-color: #eec37a !important;
         border-bottom-color: transparent !important;
     }
     .tab-content .card {
@@ -180,25 +180,25 @@
     }
     .tab-content table {
         background-color: transparent !important;
-        color: #f0f0f0;
+        color: #f5f1e8;
     }
     .tab-content table th, .tab-content table td {
         border-color: rgba(255, 255, 255, 0.15);
     }
     .tab-content table thead tr {
-        background: linear-gradient(135deg, #001533, #002a66) !important;
-        color: #ffc107 !important;
+        background: linear-gradient(135deg, #0f2240, #16305c) !important;
+        color: #eec37a !important;
     }
     .tab-content table tbody tr:hover {
-        background: rgba(255, 193, 7, 0.15);
-        color: #ffc107;
+        background: rgba(238, 195, 122, 0.15);
+        color: #eec37a;
     }
     .tab-content table tbody tr td strong {
-        color: #ffc107;
+        color: #eec37a;
     }
     .tab-content table tbody tr td span.badge {
-        background: linear-gradient(135deg, #ffc107, #ff9800) !important;
-        color: #001533 !important;
+        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important;
+        color: #0f2240 !important;
     }
     .tab-content table tbody tr td .btn-success { /* Check-in button */
         background: linear-gradient(135deg, #28a745, #20c997) !important; /* Green gradient */
@@ -230,7 +230,7 @@
         color: #28a745 !important;
     }
     .tab-content .text-muted {
-        color: #b0b0b0 !important; /* Brighter muted text */
+        color: #b9c2ce !important; /* Brighter muted text */
     }
     /* Responsive tabs */
     @media (max-width: 768px) {
@@ -250,7 +250,7 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.3);
         }
         .nav-tabs .nav-link.active {
-            border-bottom-color: #ffc107;
+            border-bottom-color: #eec37a;
             border-radius: 0.5rem 0.5rem 0 0;
         }
         .tab-content {
@@ -268,7 +268,7 @@
                     <small>Welcome Back, {{ current_user.username }}! Real-time Hotel Management Dashboard</small>
                 </div>
                 <div class="col-md-4 text-end">
-                    <img src="https://cdn-icons-png.flaticon.com/512/1524/1524816.png" alt="Hotel" style="height: 50px; opacity: 0.8; animation: spin 20s linear infinite;">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" style="height: 50px; opacity: 0.8; animation: spin 20s linear infinite;">
                 </div>
             </div>
         </div>
@@ -419,7 +419,7 @@
                             <canvas id="dashboardChart"></canvas>
                         </div>
                         <div style="text-align: center; margin-top: 15px;">
-                            <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" class="hotel-image-animated" style="height: 40px;">
+                            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" class="hotel-image-animated" style="height: 40px;">
                         </div>
                     </div>
                 </div>
@@ -472,7 +472,7 @@
                             labels: ['Occupied', 'Available'],
                             datasets: [{
                                 data: [occupiedCount, freeCount],
-                                backgroundColor: ['#002a66', '#ffc107'], /* Deeper Dark blue and Brighter Gold */
+                                backgroundColor: ['#16305c', '#eec37a'], /* Deeper Dark blue and Brighter Gold */
                                 borderColor: 'rgba(255, 255, 255, 0.5)',
                                 borderWidth: 3,
                                 hoverBorderWidth: 5,
@@ -486,7 +486,7 @@
                                 legend: {
                                     position: 'bottom',
                                     labels: {
-                                        color: '#f0f0f0', /* Brighter text for legend */
+                                        color: '#f5f1e8', /* Brighter text for legend */
                                         font: { weight: 'bold', size: 14 },
                                         padding: 15,
                                         usePointStyle: true

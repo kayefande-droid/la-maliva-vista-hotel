@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for calendar.html, overriding/extending base.html where needed */
     .calendar-header {
-        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
+        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 0.75rem;
@@ -18,13 +18,13 @@
         -webkit-backdrop-filter: blur(12px);
     }
     .calendar-header h5 {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .calendar-header small {
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
@@ -32,7 +32,7 @@
     }
     .calendar-container {
         background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
+        border: 1px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
         border-radius: 0.75rem;
         padding: 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -45,14 +45,14 @@
         to { opacity: 1; }
     }
     .fc {
-        border: 2px solid #ffc107 !important; /* Brighter gold border for calendar */
+        border: 2px solid #eec37a !important; /* Brighter gold border for calendar */
         border-radius: 0.75rem;
         overflow: hidden;
         background: rgba(255, 255, 255, 0.08); /* Transparent calendar background */
-        color: #f0f0f0; /* Default text color for calendar */
+        color: #f5f1e8; /* Default text color for calendar */
     }
     .fc .fc-button-primary {
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient buttons */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient buttons */
         border-color: rgba(255, 255, 255, 0.4) !important;
         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         border-radius: 0.5rem !important;
@@ -62,22 +62,22 @@
         letter-spacing: 0.5px;
     }
     .fc .fc-button-primary:hover {
-        background: linear-gradient(135deg, #ffc107, #ff9800) !important; /* Brighter gold gradient on hover */
-        border-color: #ffc107 !important;
-        color: #001533 !important; /* Dark text for contrast */
+        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient on hover */
+        border-color: #eec37a !important;
+        color: #0f2240 !important; /* Dark text for contrast */
         transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        box-shadow: 0 4px 12px rgba(238, 195, 122, 0.4);
     }
     .fc .fc-button-primary.fc-button-active {
-        background: linear-gradient(135deg, #ffc107, #ff9800) !important; /* Brighter gold gradient when active */
-        border-color: #ffc107 !important;
-        color: #001533 !important;
+        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient when active */
+        border-color: #eec37a !important;
+        color: #0f2240 !important;
     }
     .fc .fc-col-header-cell {
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient header */
-        color: #ffc107 !important; /* Brighter gold text */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient header */
+        color: #eec37a !important; /* Brighter gold text */
         font-weight: bold !important;
-        border-color: rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
+        border-color: rgba(238, 195, 122, 0.5) !important; /* Brighter gold border */
         padding: 12px !important;
     }
     .fc .fc-timegrid-slot {
@@ -86,46 +86,46 @@
     }
     .fc .fc-resource-area {
         background: rgba(0, 0, 0, 0.15) !important; /* Slightly darker transparent */
-        border-right: 2px solid #ffc107 !important; /* Brighter gold border */
+        border-right: 2px solid #eec37a !important; /* Brighter gold border */
     }
     .fc .fc-resource-area header {
-        background: linear-gradient(135deg, #ffc107, #ff9800) !important; /* Brighter gold gradient header */
-        color: #001533 !important; /* Dark text for contrast */
+        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient header */
+        color: #0f2240 !important; /* Dark text for contrast */
         font-weight: bold !important;
         padding: 10px !important;
     }
     .fc .fc-daygrid-day:hover {
-        background: rgba(255, 193, 7, 0.15) !important; /* Subtle brighter gold hover */
+        background: rgba(238, 195, 122, 0.15) !important; /* Subtle brighter gold hover */
     }
     .fc .fc-event {
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient event */
-        border: 2px solid #ffc107 !important; /* Brighter gold border */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient event */
+        border: 2px solid #eec37a !important; /* Brighter gold border */
         transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
         border-radius: 4px !important;
         font-weight: bold !important;
         color: white !important;
     }
     .fc .fc-event:hover {
-        box-shadow: 0 8px 16px rgba(255, 193, 7, 0.5) !important; /* Brighter gold shadow on hover */
+        box-shadow: 0 8px 16px rgba(238, 195, 122, 0.5) !important; /* Brighter gold shadow on hover */
         transform: scale(1.02);
     }
     .fc .fc-event-title {
         font-weight: bold !important;
-        color: #ffc107 !important; /* Brighter gold text */
+        color: #eec37a !important; /* Brighter gold text */
     }
     .fc .fc-resource-title {
         font-weight: bold !important;
-        color: #ffc107 !important; /* Brighter gold text */
+        color: #eec37a !important; /* Brighter gold text */
     }
     .calendar-loading {
         text-align: center;
         padding: 50px;
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
         font-size: 18px;
     }
     .calendar-loading i {
         font-size: 48px;
-        color: #ffc107; /* Brighter gold icon */
+        color: #eec37a; /* Brighter gold icon */
         animation: spin 2s linear infinite;
         margin-bottom: 20px;
     }
@@ -153,7 +153,7 @@
                 <h5><i class="bi bi-calendar-range"></i> Reservation Calendar</h5>
                 <small>LA-MALIVA VISTA HOTEL • Real-time Room Occupancy</small>
             </div>
-            <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" style="height: 40px; opacity: 0.8; animation: spin 20s linear infinite;">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" style="height: 40px; opacity: 0.8; animation: spin 20s linear infinite;">
         </div>
 
         <div class="calendar-container">
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
         calendar.render();
     }).catch(error => {
         console.error('Calendar initialization error:', error);
-        loadingDiv.innerHTML = '<i class="bi bi-exclamation-triangle" style="color: #ffc107;"></i><div style="color: #f0f0f0;">Error loading calendar. Please refresh the page.</div>';
+        loadingDiv.innerHTML = '<i class="bi bi-exclamation-triangle" style="color: #eec37a;"></i><div style="color: #f5f1e8;">Error loading calendar. Please refresh the page.</div>';
     });
 });
 </script>

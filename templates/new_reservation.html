@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for new_reservation.html, overriding/extending base.html where needed */
     .reservation-header {
-        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
+        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 0.75rem;
@@ -18,13 +18,13 @@
         -webkit-backdrop-filter: blur(12px);
     }
     .reservation-header h5 {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .reservation-header small {
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
@@ -32,7 +32,7 @@
     }
     .reservation-form {
         background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
+        border: 1px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
         padding: 25px;
         border-radius: 0.75rem;
         animation: slideInUp 0.6s ease-out;
@@ -47,21 +47,21 @@
     .form-control, .form-select {
         background-color: rgba(255, 255, 255, 0.15) !important; /* Slightly more opaque */
         border: 1px solid rgba(255, 255, 255, 0.4) !important; /* More prominent border */
-        color: #f0f0f0 !important; /* Lighter text */
+        color: #f5f1e8 !important; /* Lighter text */
         transition: all 0.3s ease;
         font-weight: 500;
         border-radius: 0.5rem !important;
     }
     .form-control:focus, .form-select:focus {
-        border-color: #ffc107 !important; /* Brighter gold focus */
-        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4) !important;
+        border-color: #eec37a !important; /* Brighter gold focus */
+        box-shadow: 0 0 10px rgba(238, 195, 122, 0.4) !important;
         background-color: rgba(255, 255, 255, 0.25) !important;
     }
     .form-control::placeholder {
         color: rgba(255, 255, 255, 0.7); /* Brighter placeholder */
     }
     .form-label {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-weight: bold;
         margin-bottom: 8px;
         display: flex;
@@ -83,10 +83,10 @@
         to { opacity: 1; transform: translateX(0); }
     }
     .submit-btn {
-        background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); /* Orange gradient */
+        background: linear-gradient(135deg, #f08c2e 0%, #ff5722 100%); /* Orange gradient */
         border: none;
         border-radius: 0.5rem;
-        color: #001533; /* Dark text for contrast */
+        color: #0f2240; /* Dark text for contrast */
         font-weight: 800;
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -100,14 +100,14 @@
     .submit-btn:hover {
         transform: translateY(-3px) scale(1.02);
         box-shadow: 0 10px 25px rgba(255, 152, 0, 0.5);
-        background: linear-gradient(135deg, #ffb74d 0%, #ff9800 100%); /* Lighter orange on hover */
+        background: linear-gradient(135deg, #ffb74d 0%, #f08c2e 100%); /* Lighter orange on hover */
     }
     .submit-btn:active {
         transform: translateY(0);
         box-shadow: inset 0 3px 5px rgba(0,0,0,0.4);
     }
     .form-section-title {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-weight: bold;
         font-size: 14px;
         text-transform: uppercase;
@@ -115,12 +115,12 @@
         margin-top: 20px;
         margin-bottom: 15px;
         padding-bottom: 10px;
-        border-bottom: 2px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
+        border-bottom: 2px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
     }
-    .icon-guest { color: #ffc107; } /* Brighter gold icon */
-    .icon-room { color: #ffc107; } /* Brighter gold icon */
-    .icon-date { color: #ffc107; } /* Brighter gold icon */
-    .icon-id { color: #ffc107; } /* Brighter gold icon */
+    .icon-guest { color: #eec37a; } /* Brighter gold icon */
+    .icon-room { color: #eec37a; } /* Brighter gold icon */
+    .icon-date { color: #eec37a; } /* Brighter gold icon */
+    .icon-id { color: #eec37a; } /* Brighter gold icon */
 </style>
 
 <div class="container-fluid">
@@ -130,7 +130,7 @@
                 <h5><i class="bi bi-plus-circle"></i> New Reservation</h5>
                 <small>Book a luxurious stay at LA-MALIVA VISTA HOTEL</small>
             </div>
-            <img src="https://cdn-icons-png.flaticon.com/512/1524/1524815.png" alt="Hotel Key" style="height: 40px; opacity: 0.8;">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" style="height: 40px; opacity: 0.8;">
         </div>
 
         <div class="reservation-form">

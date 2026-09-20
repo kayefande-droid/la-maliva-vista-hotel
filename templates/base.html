@@ -17,12 +17,12 @@
     <style>
         /* --- General Body & Background --- */
         body {
-            background: linear-gradient(135deg, #001533, #002a66); /* Deeper, richer dark blue gradient */
+            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper, richer dark blue gradient */
             background-attachment: fixed; /* Keep gradient fixed during scroll */
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             font-size: 14px;
             min-height: 100vh;
-            color: #f0f0f0; /* Brighter text for better visibility */
+            color: #f5f1e8; /* Brighter text for better visibility */
         }
 
         /* --- Glassmorphism Effect for Panels/Cards --- */
@@ -33,22 +33,22 @@
             border: 1px solid rgba(255, 255, 255, 0.4); /* More prominent light border */
             border-radius: 0.75rem; /* Slightly more rounded */
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
-            color: #f0f0f0; /* Lighter text */
+            color: #f5f1e8; /* Lighter text */
         }
 
         /* --- Accent Colors --- */
-        .text-gold { color: #ffc107 !important; } /* Brighter gold */
+        .text-gold { color: #eec37a !important; } /* Brighter gold */
         .bg-gold-gradient {
-            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); /* Brighter gold gradient */
-            color: #001533; /* Dark text for contrast */
+            background: linear-gradient(135deg, #eec37a 0%, #f08c2e 100%); /* Brighter gold gradient */
+            color: #0f2240; /* Dark text for contrast */
         }
         .bg-darkblue-gradient {
-            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
-            color: #f0f0f0;
+            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient */
+            color: #f5f1e8;
         }
         .bg-teal-gradient { /* New Teal Gradient */
             background: linear-gradient(135deg, #008080 0%, #006666 100%);
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
 
         /* --- General Card Styling --- */
@@ -57,15 +57,15 @@
             box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
             background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect for cards */
             border: 1px solid rgba(255, 255, 255, 0.25); /* Slightly more prominent border */
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
         .card-header {
             background-color: rgba(255, 255, 255, 0.08); /* Slightly more opaque */
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            color: #ffc107; /* Brighter gold header text */
+            color: #eec37a; /* Brighter gold header text */
         }
         .card-body {
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
 
         /* --- Buttons --- */
@@ -79,12 +79,12 @@
         .btn-gold {
             @extend .bg-gold-gradient; /* Use the gold gradient */
             border: none;
-            color: #001533; /* Dark text for contrast */
+            color: #0f2240; /* Dark text for contrast */
         }
         .btn-gold:hover {
             transform: translateY(-3px); /* More pronounced lift */
-            box-shadow: 0 8px 20px rgba(255, 193, 7, 0.5); /* Enhanced gold shadow */
-            color: #001533;
+            box-shadow: 0 8px 20px rgba(238, 195, 122, 0.5); /* Enhanced gold shadow */
+            color: #0f2240;
         }
         .btn-gold:active {
             transform: translateY(0);
@@ -93,12 +93,12 @@
         .btn-teal { /* New Teal Button Style */
             @extend .bg-teal-gradient;
             border: none;
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
         .btn-teal:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0, 128, 128, 0.5);
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
         .btn-teal:active {
             transform: translateY(0);
@@ -116,12 +116,12 @@
 
         /* --- Headers and Titles --- */
         h1, h2, h3, h4, h5, h6 {
-            color: #ffc107; /* Brighter gold for all headers */
+            color: #eec37a; /* Brighter gold for all headers */
             font-weight: 700; /* Bolder */
             text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Subtle text shadow */
         }
         .text-primary { color: #007bff !important; } /* Keep Bootstrap primary for specific uses */
-        .text-warning { color: #ffc107 !important; } /* Use brighter gold for warning */
+        .text-warning { color: #eec37a !important; } /* Use brighter gold for warning */
         .text-danger { color: #dc3545 !important; }
         .text-success { color: #28a745 !important; }
 
@@ -137,11 +137,11 @@
             border-radius: 0.5rem;
             background-color: rgba(255, 255, 255, 0.15); /* Slightly more opaque */
             border: 1px solid rgba(255, 255, 255, 0.4);
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
         .alert-success { background-color: rgba(40, 167, 69, 0.25); border-color: #28a745; }
         .alert-info { background-color: rgba(23, 162, 184, 0.25); border-color: #17a2b8; }
-        .alert-warning { background-color: rgba(255, 193, 7, 0.25); border-color: #ffc107; }
+        .alert-warning { background-color: rgba(238, 195, 122, 0.25); border-color: #eec37a; }
         .alert-danger { background-color: rgba(220, 53, 69, 0.25); border-color: #dc3545; }
         .alert .btn-close { filter: invert(1); } /* Ensure close button is visible */
 
@@ -263,7 +263,7 @@
             font-size: 30px;
             cursor: pointer;
             box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-            color: #001533; /* Dark text for contrast */
+            color: #0f2240; /* Dark text for contrast */
             animation: pulse-chat 2s infinite;
         }
         #chatbot-window {
@@ -281,7 +281,7 @@
             box-shadow: 0 8px 20px rgba(0,0,0,0.3);
         }
         #chatbot-header {
-            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient header */
+            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient header */
             padding: 12px 18px; /* More padding */
             font-weight: bold;
             display: flex;
@@ -313,14 +313,14 @@
             line-height: 1.5;
         }
         .user-message {
-            background: linear-gradient(135deg, #002a66, #001533); /* Dark blue gradient for user messages */
-            color: #f0f0f0;
+            background: linear-gradient(135deg, #16305c, #0f2240); /* Dark blue gradient for user messages */
+            color: #f5f1e8;
             align-self: flex-end;
             border-bottom-right-radius: 5px;
         }
         .bot-message {
             background: rgba(255, 255, 255, 0.25); /* Lighter transparent for bot messages */
-            color: #f0f0f0;
+            color: #f5f1e8;
             align-self: flex-start;
             border-bottom-left-radius: 5px;
             border: 1px solid rgba(255, 255, 255, 0.4);
@@ -360,22 +360,22 @@
 
         /* --- Top Menu --- */
         .top-menu {
-            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
+            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient */
             color: white;
             padding: 10px 20px; /* More padding */
             border-bottom: 1px solid rgba(255, 255, 255, 0.4);
             box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4); /* Enhanced shadow */
         }
         .top-menu .navbar-nav .nav-link {
-            color: #f0f0f0 !important; /* Brighter text */
+            color: #f5f1e8 !important; /* Brighter text */
             font-weight: 600;
             padding: 0.6rem 1.2rem; /* More padding */
             border-radius: 0.4rem;
             transition: all 0.3s ease;
         }
         .top-menu .navbar-nav .nav-link:hover {
-            background-color: rgba(255, 193, 7, 0.25); /* Brighter gold transparent hover */
-            color: #ffc107 !important; /* Brighter gold text on hover */
+            background-color: rgba(238, 195, 122, 0.25); /* Brighter gold transparent hover */
+            color: #eec37a !important; /* Brighter gold text on hover */
             transform: translateY(-3px);
         }
         .top-menu .dropdown-menu {
@@ -387,17 +387,17 @@
             overflow: hidden;
         }
         .top-menu .dropdown-item {
-            color: #f0f0f0; /* Lighter text */
+            color: #f5f1e8; /* Lighter text */
             padding: 0.75rem 1.25rem; /* More padding */
             transition: all 0.2s ease;
         }
         .top-menu .dropdown-item:hover {
-            background-color: rgba(255, 193, 7, 0.25); /* Brighter gold transparent hover */
-            color: #ffc107; /* Brighter gold text on hover */
+            background-color: rgba(238, 195, 122, 0.25); /* Brighter gold transparent hover */
+            color: #eec37a; /* Brighter gold text on hover */
         }
         .top-menu .dropdown-item i {
             margin-right: 10px;
-            color: #ffc107; /* Brighter gold icons */
+            color: #eec37a; /* Brighter gold icons */
         }
 
         /* --- Sidebar --- */
@@ -407,21 +407,21 @@
             width: 240px; /* Slightly wider */
         }
         .sidebar h6 {
-            color: #ffc107; /* Brighter gold for sidebar titles */
+            color: #eec37a; /* Brighter gold for sidebar titles */
             font-weight: 700;
         }
         .sidebar .btn-outline-primary, .sidebar .btn-outline-success, .sidebar .btn-outline-warning {
             border-width: 2px; /* Thicker border */
             font-weight: 600;
-            color: #f0f0f0;
+            color: #f5f1e8;
             border-color: rgba(255, 255, 255, 0.4);
             transition: all 0.3s ease;
             border-radius: 0.5rem;
         }
         .sidebar .btn-outline-primary:hover, .sidebar .btn-outline-success:hover, .sidebar .btn-outline-warning:hover {
-            background-color: rgba(255, 193, 7, 0.25);
-            color: #ffc107;
-            border-color: #ffc107;
+            background-color: rgba(238, 195, 122, 0.25);
+            color: #eec37a;
+            border-color: #eec37a;
             transform: translateY(-3px);
         }
         .sidebar .text-success { color: #28a745 !important; } /* Keep success green */
@@ -432,11 +432,11 @@
             width: 280px; /* Slightly wider */
         }
         .right-panel h6 {
-            color: #ffc107; /* Brighter gold for right panel titles */
+            color: #eec37a; /* Brighter gold for right panel titles */
             font-weight: 700;
         }
         .right-panel p {
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
 
         /* --- Toolbar --- */
@@ -455,13 +455,13 @@
         }
         .toolbar .btn-light { /* Override for specific light buttons if needed */
             background-color: rgba(255, 255, 255, 0.15);
-            color: #f0f0f0;
+            color: #f5f1e8;
             border: 1px solid rgba(255, 255, 255, 0.4);
         }
         .toolbar .btn-light:hover {
-            background-color: rgba(255, 193, 7, 0.25);
-            color: #ffc107;
-            border-color: #ffc107;
+            background-color: rgba(238, 195, 122, 0.25);
+            color: #eec37a;
+            border-color: #eec37a;
         }
         .btn-create-reservation { /* New style for Create Reservation button */
             @extend .btn-teal;
@@ -470,7 +470,7 @@
 
         /* --- Mobile Menu --- */
         .mobile-offcanvas {
-            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
+            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient */
             color: white;
             width: 280px;
             border-right: 1px solid rgba(255, 255, 255, 0.4);
@@ -479,13 +479,13 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.4);
         }
         .mobile-offcanvas .offcanvas-title {
-            color: #ffc107; /* Brighter gold title */
+            color: #eec37a; /* Brighter gold title */
         }
         .mobile-offcanvas .btn-close {
             filter: invert(1);
         }
         .mobile-offcanvas a {
-            color: #f0f0f0 !important; /* Brighter text */
+            color: #f5f1e8 !important; /* Brighter text */
             padding: 15px 20px; /* More padding */
             border-bottom: 1px solid rgba(255,255,255,0.15);
             display: flex;
@@ -496,23 +496,23 @@
             font-weight: 500;
         }
         .mobile-offcanvas a:hover {
-            background-color: rgba(255, 193, 7, 0.25); /* Brighter gold transparent hover */
-            color: #ffc107 !important; /* Brighter gold text on hover */
+            background-color: rgba(238, 195, 122, 0.25); /* Brighter gold transparent hover */
+            color: #eec37a !important; /* Brighter gold text on hover */
             transform: translateX(8px); /* More pronounced slide */
         }
         .mobile-offcanvas small {
-            color: #b0b0b0 !important; /* Slightly brighter muted text */
+            color: #b9c2ce !important; /* Slightly brighter muted text */
         }
         .mobile-offcanvas .list-group-flush .list-group-item {
             background-color: transparent;
-            color: #f0f0f0;
+            color: #f5f1e8;
         }
         .mobile-offcanvas .list-group-flush .list-group-item:hover {
-            background-color: rgba(255, 193, 7, 0.25);
-            color: #ffc107;
+            background-color: rgba(238, 195, 122, 0.25);
+            color: #eec37a;
         }
         .mobile-offcanvas .text-muted {
-            color: #ffc107 !important; /* Brighter gold for admin tools label */
+            color: #eec37a !important; /* Brighter gold for admin tools label */
         }
 
         /* --- PWA Install Button --- */
@@ -558,12 +558,12 @@
         .mobile-menu-btn .hamburger-line {
             width: 100%;
             height: 3px;
-            background-color: #ffc107; /* Gold lines */
+            background-color: #eec37a; /* Gold lines */
             border-radius: 2px;
             transition: all 0.3s ease;
         }
         .mobile-menu-btn:hover .hamburger-line {
-            background-color: #f0f0f0; /* White on hover */
+            background-color: #f5f1e8; /* White on hover */
         }
         .mobile-menu-btn.active .hamburger-line:nth-child(1) {
             transform: translateY(8px) rotate(45deg);
@@ -655,7 +655,7 @@
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 40px; width: auto; border-radius: 6px;">
                 <div style="color: white; line-height: 1.2;">
                     <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
-                    <small style="color: #b0b0b0; font-size: 10px;">Paradise in Buea</small>
+                    <small style="color: #b9c2ce; font-size: 10px;">Paradise in Buea</small>
                 </div>
             </div>
 

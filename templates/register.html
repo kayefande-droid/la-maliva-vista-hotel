@@ -180,7 +180,7 @@
         }
 
         const strengthText = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
-        const strengthColors = ['#dc3545', '#fd7e14', '#ffc107', '#28a745', '#28a745'];
+        const strengthColors = ['#dc3545', '#fd7e14', '#eec37a', '#28a745', '#28a745'];
 
         strengthIndicator.textContent = `Strength: ${strengthText[Math.min(strength, 4)]} (${missing.length === 0 ? 'Strong' : missing.length + ' requirements missing'})`;
         strengthIndicator.style.color = strengthColors[Math.min(strength, 4)];
