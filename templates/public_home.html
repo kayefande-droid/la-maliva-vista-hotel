@@ -3,450 +3,308 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#050b18">
-    <title>LA-MALIVA VISTA HOTEL — A Taste of Paradise</title>
-    <meta name="google-site-verification" content="google-site-verification: google78cbf317abe48f6e"/>
+    <meta name="theme-color" content="#0a1628">
+    <title>La-Maliva Vista Hotel — A Taste of Paradise · Buea, Cameroon</title>
     <meta name="google-site-verification" content="3rRXefg_LYfyIPKcJgeXbLXBLkHx9zKOUlWcX7Fm6Tg" />
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link rel="manifest" href="/manifest.json">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/luxury.css') }}">
     <style>
-        :root {
-            --bg-deep: #050b18;
-            --gold: #ffc94d;
-            --gold-2: #ff9d2e;
-            --cyan: #4dd8ff;
-            --text: #e8eefc;
-            --muted: rgba(232, 238, 252, 0.65);
-            --glass: rgba(13, 27, 54, 0.5);
-            --glass-border: rgba(120, 170, 255, 0.18);
-            --radius: 20px;
+        /* ---------- Homepage hero ---------- */
+        .home-hero {
+            position: relative; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            text-align: center; color: var(--cream-50);
+            overflow: hidden; isolation: isolate;
         }
-        * { box-sizing: border-box; }
-        html { scroll-behavior: smooth; }
-        body {
-            margin: 0; min-height: 100vh;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            color: var(--text); background: var(--bg-deep);
-            overflow-x: hidden;
+        .hero-slides { position: absolute; inset: 0; z-index: -2; }
+        .hero-slide {
+            position: absolute; inset: 0; opacity: 0;
+            transition: opacity 2.2s ease-in-out;
         }
-
-        /* ============ 21st.dev-style aurora mesh background ============ */
-        .mesh { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-        .mesh::before {
-            content: ""; position: absolute; inset: -25%;
-            background:
-                radial-gradient(42% 48% at 15% 22%, rgba(18, 58, 143, 0.6), transparent 68%),
-                radial-gradient(36% 42% at 85% 15%, rgba(77, 216, 255, 0.13), transparent 70%),
-                radial-gradient(45% 50% at 80% 85%, rgba(255, 176, 32, 0.11), transparent 72%),
-                radial-gradient(35% 40% at 10% 90%, rgba(46, 204, 113, 0.08), transparent 70%);
-            animation: meshDrift 26s ease-in-out infinite alternate;
+        .hero-slide.active { opacity: 1; }
+        .hero-slide img {
+            width: 100%; height: 100%; object-fit: cover;
+            transform: scale(1.08);
+            animation: kenburns 16s ease-in-out infinite alternate;
         }
-        .mesh::after {
-            content: ""; position: absolute; inset: 0;
-            background-image:
-                linear-gradient(rgba(120,170,255,0.045) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(120,170,255,0.045) 1px, transparent 1px);
-            background-size: 48px 48px;
-            mask-image: radial-gradient(ellipse 85% 75% at 50% 35%, black 25%, transparent 100%);
+        .hero-slide.active img { animation-play-state: running; }
+        @keyframes kenburns {
+            from { transform: scale(1.08) translate3d(0,0,0); }
+            to   { transform: scale(1.18) translate3d(-1.6%, -1.4%, 0); }
         }
-        @keyframes meshDrift {
-            0%   { transform: translate3d(0,0,0) scale(1) rotate(0deg); }
-            50%  { transform: translate3d(2%, -2.5%, 0) scale(1.06) rotate(0.4deg); }
-            100% { transform: translate3d(-2%, 2%, 0) scale(1) rotate(-0.3deg); }
+        .home-hero::after {
+            content: ""; position: absolute; inset: 0; z-index: -1;
+            background: linear-gradient(180deg,
+                rgba(10,22,40,0.55) 0%,
+                rgba(10,22,40,0.35) 40%,
+                rgba(10,22,40,0.82) 100%);
         }
-        /* Floating light orbs */
-        .orb {
-            position: fixed; border-radius: 50%; filter: blur(70px);
-            opacity: .5; z-index: 0; pointer-events: none;
-            animation: orbFloat 18s ease-in-out infinite alternate;
+        .hero-content { padding: 140px 24px 110px; max-width: 900px; }
+        .hero-est {
+            display: inline-flex; align-items: center; gap: 14px;
+            font-size: 0.7rem; letter-spacing: 0.4em; text-transform: uppercase;
+            color: var(--gold-400); margin-bottom: 26px;
         }
-        .orb-1 { width: 340px; height: 340px; top: -80px; right: -60px; background: rgba(18, 58, 143, 0.55); }
-        .orb-2 { width: 260px; height: 260px; bottom: 10%; left: -80px; background: rgba(77, 216, 255, 0.16); animation-delay: -6s; }
-        .orb-3 { width: 220px; height: 220px; top: 45%; right: 6%; background: rgba(255, 176, 32, 0.12); animation-delay: -12s; }
-        @keyframes orbFloat {
-            0%   { transform: translate3d(0,0,0) scale(1); }
-            100% { transform: translate3d(-40px, 50px, 0) scale(1.12); }
+        .hero-est::before, .hero-est::after { content: ""; width: 44px; height: 1px; background: var(--gold-400); opacity: 0.8; }
+        .home-hero h1 {
+            font-size: clamp(2.8rem, 7vw, 5.2rem); font-weight: 600;
+            color: var(--cream-50); margin: 0 0 20px;
+            text-shadow: 0 4px 40px rgba(10,22,40,0.5);
         }
-
-        /* ============ Glass navbar ============ */
-        .nav-glass {
-            position: sticky; top: 0; z-index: 50;
-            backdrop-filter: blur(18px) saturate(1.4);
-            -webkit-backdrop-filter: blur(18px) saturate(1.4);
-            background: rgba(5, 11, 24, 0.65);
-            border-bottom: 1px solid var(--glass-border);
+        .home-hero h1 em { font-style: italic; color: var(--orange-400); }
+        .hero-tagline {
+            font-family: 'Cormorant Garamond', serif; font-style: italic;
+            font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+            color: rgba(253,250,244,0.9); margin-bottom: 40px;
         }
-        .nav-inner {
-            max-width: 1180px; margin: 0 auto; padding: 14px 24px;
-            display: flex; align-items: center; justify-content: space-between; gap: 16px;
-        }
-        .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-        .nav-brand img { width: 42px; height: 42px; border-radius: 12px; object-fit: cover; box-shadow: 0 0 0 1px var(--glass-border); }
-        .nav-title { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: .82rem; letter-spacing: .18em; color: var(--text); }
-        .nav-sub { font-size: .62rem; letter-spacing: .3em; text-transform: uppercase; color: var(--muted); }
-        .nav-links { display: flex; align-items: center; gap: 6px; }
-        .nav-links a {
-            color: var(--muted); text-decoration: none; font-size: .8rem; font-weight: 500;
-            padding: 9px 15px; border-radius: 11px; letter-spacing: .04em;
-            transition: color .25s ease, background .25s ease, transform .25s ease;
-        }
-        .nav-links a:hover { color: var(--gold); background: rgba(255, 201, 77, 0.08); transform: translateY(-1px); }
-        .nav-cta {
-            color: #06122b !important; background: linear-gradient(115deg, var(--gold), var(--gold-2));
-            font-weight: 700 !important; box-shadow: 0 8px 22px rgba(255,157,46,.3);
-        }
-        .nav-cta:hover { color: #06122b !important; transform: translateY(-2px); }
-        @media (max-width: 767.98px) { .nav-links a:not(.nav-cta) { display: none; } }
-
-        /* ============ Hero ============ */
-        .hero {
-            position: relative; z-index: 1;
-            max-width: 1180px; margin: 0 auto;
-            padding: 96px 24px 70px; text-align: center;
-        }
-        .hero-eyebrow {
-            display: inline-flex; align-items: center; gap: 9px;
-            background: var(--glass); border: 1px solid var(--glass-border);
-            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            padding: 8px 18px; border-radius: 999px;
-            font-size: .7rem; letter-spacing: .24em; text-transform: uppercase; color: var(--muted);
-            animation: rise .7s cubic-bezier(.22,1,.36,1) both;
-        }
-        .hero-eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 10px #2ecc71; animation: blink 2.4s infinite; }
-        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-        .hero h1 {
-            font-family: 'Orbitron', sans-serif;
-            font-size: clamp(2.2rem, 6vw, 4.2rem);
-            font-weight: 900; line-height: 1.08;
-            margin: 26px 0 20px;
-            animation: rise .8s cubic-bezier(.22,1,.36,1) .08s both;
-        }
-        .hero h1 .gilded {
-            background: linear-gradient(100deg, var(--gold) 10%, var(--gold-2) 60%, #ffd97a 90%);
-            background-size: 200% auto;
-            -webkit-background-clip: text; background-clip: text; color: transparent;
-            animation: gildedShift 6s linear infinite;
-        }
-        @keyframes gildedShift { to { background-position: 200% center; } }
-        .hero p.lead {
-            color: var(--muted); max-width: 62ch; margin: 0 auto 36px;
-            line-height: 1.8; font-size: 1.02rem;
-            animation: rise .8s cubic-bezier(.22,1,.36,1) .16s both;
-        }
-        .hero-actions { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; animation: rise .8s cubic-bezier(.22,1,.36,1) .24s both; }
-        .btn-hero {
-            display: inline-flex; align-items: center; gap: 10px;
-            padding: 15px 30px; border-radius: 14px; text-decoration: none; border: none; cursor: pointer;
-            font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: .78rem;
-            letter-spacing: .18em; text-transform: uppercase;
-            transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
-        }
-        .btn-hero.primary {
-            color: #06122b; background: linear-gradient(115deg, var(--gold), var(--gold-2));
-            box-shadow: 0 14px 36px rgba(255,157,46,.35), inset 0 1px 0 rgba(255,255,255,.45);
-        }
-        .btn-hero.primary:hover { transform: translateY(-3px); box-shadow: 0 20px 46px rgba(255,157,46,.5); }
-        .btn-hero.ghost {
-            color: var(--cyan); background: rgba(77,216,255,.07);
-            border: 1px solid rgba(77,216,255,.35);
-        }
-        .btn-hero.ghost:hover { background: rgba(77,216,255,.14); transform: translateY(-3px); }
-
-        /* Stats strip */
-        .stats {
-            display: flex; justify-content: center; gap: clamp(28px, 6vw, 72px);
-            margin-top: 60px; flex-wrap: wrap;
-            animation: rise .8s cubic-bezier(.22,1,.36,1) .34s both;
-        }
-        .stat .num {
-            font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.7rem; color: var(--gold);
-        }
-        .stat .lbl { font-size: .66rem; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); margin-top: 5px; }
-
-        /* ============ Section scaffolding ============ */
-        section { position: relative; z-index: 1; max-width: 1180px; margin: 0 auto; padding: 60px 24px; }
-        .sec-head { text-align: center; margin-bottom: 46px; }
-        .sec-head .kicker { font-size: .68rem; letter-spacing: .3em; text-transform: uppercase; color: var(--cyan); }
-        .sec-head h2 { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: clamp(1.5rem, 3.4vw, 2.2rem); margin: 12px 0 10px; }
-        .sec-head p { color: var(--muted); max-width: 56ch; margin: 0 auto; line-height: 1.7; font-size: .92rem; }
-
-        /* Scroll-reveal */
-        .reveal { opacity: 0; transform: translateY(34px); transition: opacity .8s cubic-bezier(.22,1,.36,1), transform .8s cubic-bezier(.22,1,.36,1); }
-        .reveal.in { opacity: 1; transform: none; }
-        .reveal[data-delay="1"] { transition-delay: .1s; }
-        .reveal[data-delay="2"] { transition-delay: .2s; }
-        .reveal[data-delay="3"] { transition-delay: .3s; }
-        .reveal[data-delay="4"] { transition-delay: .4s; }
-
-        /* ============ Room cards ============ */
-        .rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-        .room-card {
-            position: relative;
-            background: var(--glass);
-            backdrop-filter: blur(22px) saturate(1.35);
-            -webkit-backdrop-filter: blur(22px) saturate(1.35);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius);
-            overflow: hidden;
-            display: flex; flex-direction: column;
-            box-shadow: 0 24px 60px rgba(2, 8, 20, 0.5), inset 0 1px 0 rgba(255,255,255,.06);
-            transition: transform .4s cubic-bezier(.22,1,.36,1), border-color .35s ease, box-shadow .35s ease;
-        }
-        .room-card:hover {
-            transform: translateY(-8px);
-            border-color: rgba(255, 201, 77, 0.4);
-            box-shadow: 0 34px 74px rgba(2, 8, 20, 0.65), 0 0 40px rgba(255,201,77,.08), inset 0 1px 0 rgba(255,255,255,.09);
-        }
-        .room-media { position: relative; height: 210px; overflow: hidden; }
-        .room-media img {
-            width: 100%; height: 100%; object-fit: cover; display: block;
-            transition: transform .8s cubic-bezier(.22,1,.36,1), filter .5s ease;
-        }
-        .room-card:hover .room-media img { transform: scale(1.08); filter: saturate(1.15); }
-        .room-media::after {
-            content: ""; position: absolute; inset: 0;
-            background: linear-gradient(180deg, transparent 45%, rgba(5,11,24,.85));
-        }
-        .room-badge {
-            position: absolute; top: 14px; left: 14px; z-index: 2;
-            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-            background: rgba(5, 11, 24, 0.55); border: 1px solid var(--glass-border);
-            color: var(--gold); font-size: .66rem; font-weight: 700;
-            letter-spacing: .16em; text-transform: uppercase;
-            padding: 6px 12px; border-radius: 999px;
-        }
-        .room-body { padding: 22px 22px 24px; display: flex; flex-direction: column; flex: 1; }
-        .room-body h3 { font-family: 'Orbitron', sans-serif; font-size: .95rem; font-weight: 700; letter-spacing: .08em; margin: 0 0 4px; }
-        .room-body .type { color: var(--cyan); font-size: .74rem; letter-spacing: .18em; text-transform: uppercase; margin-bottom: 12px; }
-        .room-body .desc { color: var(--muted); font-size: .84rem; line-height: 1.65; flex: 1; margin: 0 0 18px; }
-        .room-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-        .price { display: flex; align-items: baseline; gap: 6px; }
-        .price .cur { color: var(--gold); font-size: .7rem; font-weight: 700; letter-spacing: .1em; }
-        .price .amt { font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--gold); }
-        .price .per { color: var(--muted); font-size: .7rem; }
-        .btn-book {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 11px 20px; border-radius: 12px; text-decoration: none;
-            font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
-            color: #06122b; background: linear-gradient(115deg, var(--gold), var(--gold-2));
-            box-shadow: 0 10px 26px rgba(255,157,46,.32), inset 0 1px 0 rgba(255,255,255,.4);
-            transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
-        }
-        .btn-book:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(255,157,46,.45); color: #06122b; }
-        .btn-book:active { transform: translateY(1px); }
-
-        /* ============ Amenities ============ */
-        .amen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px; }
-        .amen {
-            background: rgba(5, 11, 24, 0.5);
-            border: 1px solid rgba(120, 170, 255, 0.12);
-            border-radius: 16px; padding: 26px 20px; text-align: center;
-            transition: transform .35s cubic-bezier(.34,1.56,.64,1), border-color .3s ease, background .3s ease;
-        }
-        .amen:hover { transform: translateY(-5px); border-color: rgba(77,216,255,.35); background: rgba(13, 27, 54, 0.6); }
-        .amen i { font-size: 1.7rem; color: var(--gold); display: block; margin-bottom: 12px; text-shadow: 0 0 24px rgba(255,201,77,.35); }
-        .amen h4 { font-size: .8rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; margin: 0 0 6px; }
-        .amen p { color: var(--muted); font-size: .76rem; line-height: 1.55; margin: 0; }
-
-        /* ============ CTA band ============ */
-        .cta-band {
-            position: relative; z-index: 1;
-            max-width: 1080px; margin: 30px auto 0; padding: 0 24px;
-        }
-        .cta-inner {
-            background: var(--glass);
-            backdrop-filter: blur(22px) saturate(1.35);
-            -webkit-backdrop-filter: blur(22px) saturate(1.35);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 52px 40px; text-align: center;
-            box-shadow: 0 30px 70px rgba(2, 8, 20, 0.6), inset 0 1px 0 rgba(255,255,255,.07);
-            position: relative; overflow: hidden;
-        }
-        .cta-inner::before {
-            content: ""; position: absolute; top: -120px; left: 50%; transform: translateX(-50%);
-            width: 480px; height: 240px;
-            background: radial-gradient(ellipse, rgba(255,201,77,.14), transparent 70%);
-        }
-        .cta-inner h2 { font-family: 'Orbitron', sans-serif; font-weight: 800; font-size: clamp(1.4rem, 3vw, 2rem); margin: 0 0 12px; }
-        .cta-inner p { color: var(--muted); max-width: 52ch; margin: 0 auto 28px; line-height: 1.7; font-size: .92rem; }
-
-        /* ============ Footer ============ */
-        footer {
-            position: relative; z-index: 1;
-            border-top: 1px solid var(--glass-border);
-            margin-top: 80px;
-            background: rgba(5, 11, 24, 0.7);
+        .hero-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+        .hero-strip {
+            position: absolute; bottom: 0; left: 0; right: 0; z-index: 3;
+            background: rgba(10,22,40,0.55);
             backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+            border-top: 1px solid var(--line-dark);
         }
-        .foot-inner {
-            max-width: 1180px; margin: 0 auto; padding: 40px 24px;
-            display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap;
+        .hero-strip .strip-inner {
+            max-width: 1180px; margin: 0 auto; padding: 18px 24px;
+            display: flex; justify-content: center; gap: clamp(24px, 6vw, 80px);
+            flex-wrap: wrap;
         }
-        .foot-brand { display: flex; align-items: center; gap: 12px; }
-        .foot-brand img { width: 38px; height: 38px; border-radius: 11px; object-fit: cover; }
-        .foot-brand .t { font-family: 'Orbitron', sans-serif; font-size: .74rem; letter-spacing: .18em; }
-        .foot-brand .s { font-size: .62rem; letter-spacing: .26em; text-transform: uppercase; color: var(--muted); }
-        .foot-links { display: flex; gap: 20px; flex-wrap: wrap; }
-        .foot-links a { color: var(--muted); text-decoration: none; font-size: .78rem; transition: color .25s ease; }
-        .foot-links a:hover { color: var(--gold); }
-        .foot-note { width: 100%; text-align: center; color: rgba(232,238,252,.35); font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; padding-bottom: 26px; margin: 0; }
+        .strip-item { display: flex; align-items: center; gap: 12px; color: rgba(253,250,244,0.85); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
+        .strip-item i { color: var(--orange-400); font-size: 1.1rem; }
 
-        @keyframes rise { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation: none !important; transition: none !important; }
-            .reveal { opacity: 1; transform: none; }
+        /* ---------- Welcome intro ---------- */
+        .intro-media { position: relative; }
+        .intro-media img { width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); object-fit: cover; height: 520px; }
+        .intro-media .badge-circle {
+            position: absolute; bottom: -30px; right: -14px;
+            width: 150px; height: 150px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
+            color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            box-shadow: 0 20px 44px rgba(217,122,43,0.45);
+            font-family: 'Cormorant Garamond', serif; text-align: center;
+            animation: slowSpinPulse 6s ease-in-out infinite;
         }
+        .badge-circle .b1 { font-size: 1.7rem; font-weight: 700; line-height: 1; }
+        .badge-circle .b2 { font-size: 0.58rem; letter-spacing: 0.3em; text-transform: uppercase; margin-top: 6px; opacity: 0.9; }
+        @keyframes slowSpinPulse { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-10px) rotate(2deg); } }
+        .drop-cap::first-letter {
+            font-family: 'Cormorant Garamond', serif; font-size: 3.4em;
+            float: left; line-height: 0.85; padding-right: 12px; color: var(--orange-600);
+        }
+
+        /* ---------- Stats band ---------- */
+        .stats-band { border-top: 1px solid var(--line-dark); border-bottom: 1px solid var(--line-dark); }
+        .stat-cell { padding: 40px 20px; text-align: center; }
+        .stat-cell .n { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 2.6rem; color: var(--gold-400); line-height: 1; }
+        .stat-cell .l { font-size: 0.68rem; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(253,250,244,0.6); margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <div class="mesh"></div>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
+    {% include 'partials/_nav.html' %}
 
-    <!-- Glass navbar -->
-    <nav class="nav-glass">
-        <div class="nav-inner">
-            <a href="{{ url_for('public_home') }}" class="nav-brand">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista">
-                <span>
-                    <span class="nav-title d-block">LA-MALIVA VISTA</span>
-                    <span class="nav-sub d-block">A Taste of Paradise</span>
-                </span>
-            </a>
-            <div class="nav-links">
-                <a href="#rooms">Rooms</a>
-                <a href="#amenities">Amenities</a>
-                <a href="{{ url_for('downloads') }}">Get the App</a>
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}" class="nav-cta"><i class="bi bi-speedometer2"></i> Dashboard</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}" class="nav-cta"><i class="bi bi-person-badge"></i> Sign In</a>
-                {% endif %}
+    <!-- ================= HERO ================= -->
+    <header class="home-hero">
+        <div class="hero-slides">
+            <div class="hero-slide active"><img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=2400&auto=format&fit=crop" alt="La-Maliva Vista Hotel exterior"></div>
+            <div class="hero-slide"><img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2400&auto=format&fit=crop" alt="Elegant hotel terrace"></div>
+            <div class="hero-slide"><img src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=2400&auto=format&fit=crop" alt="Luxury suite interior"></div>
+            <div class="hero-slide"><img src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=2400&auto=format&fit=crop" alt="Resort pool at dusk"></div>
+        </div>
+
+        <div class="hero-content">
+            <span class="hero-est">Est. Buea · Mount Cameroon Foothills</span>
+            <h1>Where paradise<br>feels like <em>home</em></h1>
+            <p class="hero-tagline">An intimate luxury retreat above the clouds — warm Cameroonian hospitality, reimagined.</p>
+            <div class="hero-cta">
+                <a href="{{ url_for('login') }}" class="btn-lux"><i class="bi bi-calendar-check"></i> Reserve Your Stay</a>
+                <a href="{{ url_for('stay') }}" class="btn-ghost-lux"><i class="bi bi-door-open"></i> Explore Rooms</a>
             </div>
         </div>
-    </nav>
 
-    <!-- Hero -->
-    <header class="hero">
-        <span class="hero-eyebrow"><span class="dot"></span> Now accepting reservations — Buea, Cameroon</span>
-        <h1>Sleep above the clouds.<br><span class="gilded">Wake up in paradise.</span></h1>
-        <p class="lead">
-            Perched opposite Fako Heart Entrance in GRA Bokwaongo, La-Maliva Vista blends
-            warm Cameroonian hospitality with a sleek digital experience — reserve in seconds,
-            pay with Mobile Money, and manage everything from one elegant console.
-        </p>
-        <div class="hero-actions">
-            <a href="#rooms" class="btn-hero primary"><i class="bi bi-calendar-check"></i> Book a Room</a>
-            <a href="{{ url_for('downloads') }}" class="btn-hero ghost"><i class="bi bi-download"></i> Get the App</a>
-        </div>
-        <div class="stats">
-            <div class="stat"><div class="num" data-count="{{ rooms|length or 15 }}">0</div><div class="lbl">Signature Rooms</div></div>
-            <div class="stat"><div class="num" data-count="24" data-suffix="/7">0</div><div class="lbl">Concierge AI</div></div>
-            <div class="stat"><div class="num" data-count="100" data-suffix="%">0</div><div class="lbl">MoMo Ready</div></div>
+        <div class="hero-strip">
+            <div class="strip-inner">
+                <span class="strip-item"><i class="bi bi-geo-alt"></i> GRA Bokwaongo, Buea</span>
+                <span class="strip-item"><i class="bi bi-stars"></i> 15 Signature Rooms</span>
+                <span class="strip-item"><i class="bi bi-cup-hot"></i> Restaurant &amp; Bar</span>
+                <span class="strip-item"><i class="bi bi-phone"></i> Mobile Money Accepted</span>
+            </div>
         </div>
     </header>
 
-    <!-- Rooms -->
-    <section id="rooms">
-        <div class="sec-head reveal">
-            <span class="kicker">Accommodation</span>
-            <h2>Rooms &amp; Suites</h2>
-            <p>Every room is professionally maintained and refreshed daily — from efficient Standard rooms to expansive Deluxes with smart TVs.</p>
-        </div>
-
-        <div class="rooms-grid">
-            {% for room in rooms %}
-            <article class="room-card reveal" data-delay="{{ loop.index0 % 3 }}">
-                <div class="room-media">
-                    <span class="room-badge"><i class="bi bi-door-open"></i> Room {{ room.room_number }}</span>
-                    <img src="{{ room.image_url if room.image_url else 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800&auto=format&fit=crop' }}"
-                         alt="Room {{ room.room_number }} — {{ room.room_type }}" loading="lazy">
-                </div>
-                <div class="room-body">
-                    <h3>{{ room.room_type }}</h3>
-                    <div class="type">{{ room.room_type }} · Room {{ room.room_number }}</div>
-                    <p class="desc">
-                        {% if room.description %}{{ room.description }}
-                        {% else %}Experience world-class comfort in our professionally maintained {{ room.room_type }} room.{% endif %}
+    <!-- ================= WELCOME ================= -->
+    <section class="section" id="welcome">
+        <div class="container-lux">
+            <div class="split">
+                <div class="split-media reveal">
+                    <img src="https://images.unsplash.com/photo-1571896349842-33c89424de2d?q=80&w=1200&auto=format&fit=crop" alt="Hotel lobby detail">
+                    <div class="badge-circle">
+                        <span class="b1">24/7</span>
+                        <span class="b2">Concierge</span>
+                    </div>
+    </div>
+                <div class="reveal" data-delay="1">
+                    <span class="kicker">Welcome to Paradise</span>
+                    <h2 style="font-size: clamp(2rem, 4vw, 3rem); margin: 14px 0 18px;">A sanctuary on the slopes of Mount Fako</h2>
+                    <p class="lead drop-cap">
+                        Tucked into the quiet heart of GRA Bokwaongo, La-Maliva Vista is a
+                        boutique hideaway where thoughtful design meets the famously warm
+                        hospitality of Cameroon. Wake to mist over the mountain, linger over
+                        breakfast in the garden, and let our concierge craft your perfect day —
+                        from the trails of Mount Cameroon to the markets of Buea.
                     </p>
-                    <div class="room-foot">
-                        <div class="price">
-                            <span class="cur">FCFA</span>
-                            <span class="amt">{{ "{:,.0f}".format(room.price) }}</span>
-                            <span class="per">/night</span>
-                        </div>
-                        {% if current_user.is_authenticated %}
-                            <a href="{{ url_for('new_reservation', room_id=room.id) }}" class="btn-book"><i class="bi bi-calendar-check"></i> Book</a>
-                        {% else %}
-                            <a href="{{ url_for('login') }}" class="btn-book"><i class="bi bi-lightning-charge"></i> Book</a>
-                        {% endif %}
+                    <p class="lead mt-16">
+                        Every one of our fifteen rooms and suites is individually styled, refreshed
+                        daily, and attended around the clock by a team that remembers your name.
+                    </p>
+                    <div class="mt-24" style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <a href="{{ url_for('about') }}" class="btn-outline-lux">Discover Our Story</a>
+                        <a href="{{ url_for('contact') }}" class="btn-lux" style="padding: 15px 26px;">Plan Your Visit</a>
                     </div>
                 </div>
-            </article>
-            {% endfor %}
+            </div>
         </div>
     </section>
 
-    <!-- Amenities -->
-    <section id="amenities">
-        <div class="sec-head reveal">
-            <span class="kicker">The Experience</span>
-            <h2>Everything, taken care of</h2>
-            <p>Thoughtful amenities that make paradise feel effortless.</p>
-        </div>
-        <div class="amen-grid">
-            <div class="amen reveal" data-delay="1"><i class="bi bi-wifi"></i><h4>High-Speed Wi-Fi</h4><p>Fiber connectivity throughout the property, free for every guest.</p></div>
-            <div class="amen reveal" data-delay="2"><i class="bi bi-cup-hot"></i><h4>On-Site Restaurant</h4><p>Local and international dishes served fresh, all day long.</p></div>
-            <div class="amen reveal" data-delay="3"><i class="bi bi-phone"></i><h4>MoMo Payments</h4><p>Pay securely with MTN Mobile Money in a couple of taps.</p></div>
-            <div class="amen reveal" data-delay="4"><i class="bi bi-mountain-stars"></i><h4>Mountain Views</h4><p>Wake up to the serene views of Mount Fako's green slopes.</p></div>
+    <!-- ================= STATS (navy) ================= -->
+    <section class="section navy stats-band" style="padding: 64px 0;">
+        <div class="container-lux">
+            <div class="reveal" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 8px;">
+                <div class="stat-cell"><div class="n">15</div><div class="l">Signature Rooms</div></div>
+                <div class="stat-cell"><div class="n">24/7</div><div class="l">Concierge Care</div></div>
+                <div class="stat-cell"><div class="n">4.9</div><div class="l">Guest Rating</div></div>
+                <div class="stat-cell"><div class="n">100%</div><div class="l">MoMo Friendly</div></div>
+            </div>
         </div>
     </section>
 
-    <!-- CTA band -->
-    <div class="cta-band">
-        <div class="cta-inner reveal">
-            <h2>Ready for your stay?</h2>
-            <p>Download the native app for Android or Windows, or install the PWA — your bookings, rooms and rates stay available even offline.</p>
-            <div class="hero-actions">
-                <a href="{{ url_for('downloads') }}" class="btn-hero primary"><i class="bi bi-download"></i> Download the App</a>
-                <a href="#rooms" class="btn-hero ghost"><i class="bi bi-calendar-check"></i> Reserve a Room</a>
+    <!-- ================= ROOMS PREVIEW ================= -->
+    <section class="section tinted" id="rooms">
+        <div class="container-lux">
+            <div class="section-head reveal">
+                <span class="kicker center">Accommodation</span>
+                <h2>Rooms &amp; Suites</h2>
+                <p>Fifteen individually styled rooms across two collections — each with plush bedding, en-suite bathrooms, and views over the Buea hills.</p>
+            </div>
+
+            <div class="rooms-grid">
+                {% for room in rooms[:6] %}
+                <article class="room-card reveal" data-delay="{{ loop.index0 % 3 + 1 }}">
+                    <div class="room-media">
+                        <span class="room-badge">Room {{ room.room_number }}</span>
+                        <img src="{{ room.image_url if room.image_url else 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=900&auto=format&fit=crop' }}"
+                             alt="Room {{ room.room_number }} — {{ room.room_type }}" loading="lazy">
+                    </div>
+                    <div class="room-body">
+                        <h3>{{ room.room_type }}</h3>
+                        <div class="room-type">{{ room.room_type }} Collection</div>
+                        <p class="desc">
+                            {% if room.description %}{{ room.description }}
+                            {% else %}Thoughtfully appointed comfort with all the essentials beautifully handled.{% endif %}
+                        </p>
+                        <div class="room-foot">
+                            <div class="price">
+                                <span class="cur">FCFA</span>
+                                <span class="amt">{{ "{:,.0f}".format(room.price) }}</span>
+                                <span class="per">/ night</span>
+                            </div>
+                            {% if current_user.is_authenticated %}
+                                <a href="{{ url_for('new_reservation', room_id=room.id) }}" class="btn-book-sm">Reserve</a>
+                            {% else %}
+                                <a href="{{ url_for('login') }}" class="btn-book-sm">Reserve</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+
+            <div class="center mt-40 reveal">
+                <a href="{{ url_for('stay') }}" class="btn-outline-lux">View All Rooms &amp; Suites <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= AMENITIES ================= -->
+    <section class="section">
+        <div class="container-lux">
+            <div class="section-head reveal">
+                <span class="kicker center">The Experience</span>
+                <h2>Everything, taken care of</h2>
+                <p>Small luxuries, thoughtfully delivered — so your only task is to unwind.</p>
+            </div>
+            <div class="amen-grid">
+                <div class="amen-tile reveal" data-delay="1"><i class="bi bi-wifi"></i><h4>Fibre Wi-Fi</h4><p>Fast, free connectivity in every room and across the grounds.</p></div>
+                <div class="amen-tile reveal" data-delay="2"><i class="bi bi-cup-hot-fill"></i><h4>Garden Restaurant</h4><p>Local and continental dishes, served fresh from morning to late.</p></div>
+                <div class="amen-tile reveal" data-delay="3"><i class="bi bi-phone-fill"></i><h4>MoMo Payments</h4><p>Settle your bill securely with MTN Mobile Money in seconds.</p></div>
+                <div class="amen-tile reveal" data-delay="4"><i class="bi bi-binoculars-fill"></i><h4>Mountain Excursions</h4><p>Guided treks on Mount Cameroon, arranged by our concierge.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= TESTIMONIALS (navy) ================= -->
+    <section class="section navy">
+        <div class="container-lux">
+            <div class="section-head reveal">
+                <span class="kicker center" style="color: var(--gold-400)">Guest Stories</span>
+                <h2>Words from our guests</h2>
+            </div>
+            <div class="quote-grid">
+                <div class="quote-card reveal" data-delay="1">
+                    <div class="stars">★★★★★</div>
+                    <p>"The calmest night's sleep I've had in years. Waking up to that mountain view with a cup of coffee is something I'll never forget."</p>
+                    <div class="who">Amara N.<span>Visited from Douala</span></div>
+                </div>
+                <div class="quote-card reveal" data-delay="2">
+                    <div class="stars">★★★★★</div>
+                    <p>"Impeccable service from arrival to departure. The staff arranged our Mount Cameroon trek perfectly — genuine five-star care."</p>
+                    <div class="who">James &amp; Priya K.<span>Honeymoon, Yaoundé</span></div>
+                </div>
+                <div class="quote-card reveal" data-delay="3">
+                    <div class="stars">★★★★★</div>
+                    <p>"Booking took two minutes on the app and paying with MoMo was seamless. This is how modern hospitality should feel."</p>
+                    <div class="who">Etienne M.<span>Business traveller, Limbe</span></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= CTA ================= -->
+    <div class="cta-band" style="background: var(--cream-50);">
+        <div class="container-lux">
+            <div class="cta-inner reveal">
+                <span class="kicker center" style="color: var(--gold-400)">Your Suite Awaits</span>
+                <h2>Reserve your escape to paradise</h2>
+                <p>Rooms release quickly during the climbing season — secure your dates today, online in two minutes or through our app with offline access.</p>
+                <div class="hero-cta">
+                    <a href="{{ url_for('login') }}" class="btn-lux"><i class="bi bi-calendar-check"></i> Book Now</a>
+                    <a href="{{ url_for('downloads') }}" class="btn-ghost-lux"><i class="bi bi-phone"></i> Get the App</a>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer -->
-    <footer>
-        <div class="foot-inner">
-            <div class="foot-brand">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
-                <span>
-                    <span class="t d-block">LA-MALIVA VISTA HOTEL</span>
-                    <span class="s d-block">Buea · Cameroon</span>
-                </span>
-            </div>
-            <div class="foot-links">
-                <a href="{{ url_for('about') }}">About</a>
-                <a href="{{ url_for('downloads') }}">Downloads</a>
-                <a href="tel:+237679915967">(+237) 679-915-967</a>
-                {% if current_user.is_authenticated %}
-                    <a href="{{ url_for('dashboard') }}">Dashboard</a>
-                {% else %}
-                    <a href="{{ url_for('login') }}">Staff Login</a>
-                {% endif %}
-            </div>
-        </div>
-        <p class="foot-note">Opposite Fako Heart Entrance, GRA Bokwaongo, Buea &nbsp;•&nbsp; © La-Maliva Vista Hotel</p>
-    </footer>
+    {% include 'partials/_footer.html' %}
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Scroll-reveal via IntersectionObserver (smooth, synced, staggered)
+        // Hero slideshow (6s crossfade)
+        (function () {
+            var slides = document.querySelectorAll('.hero-slide');
+            var idx = 0;
+            if (slides.length < 2) return;
+            setInterval(function () {
+                slides[idx].classList.remove('active');
+                idx = (idx + 1) % slides.length;
+                slides[idx].classList.add('active');
+            }, 6000);
+        })();
+
+        // Scroll reveal
         (function () {
             var els = document.querySelectorAll('.reveal');
             if (!('IntersectionObserver' in window)) {
@@ -454,50 +312,17 @@
                 return;
             }
             var io = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('in');
-                        io.unobserve(entry.target);
-                    }
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
                 });
             }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
             els.forEach(function (el) { io.observe(el); });
         })();
 
-        // Animated hero counters
-        (function () {
-            var nums = document.querySelectorAll('[data-count]');
-            var animate = function (el) {
-                var target = parseInt(el.getAttribute('data-count'), 10) || 0;
-                var suffix = el.getAttribute('data-suffix') || '';
-                var start = null, dur = 1400;
-                var step = function (ts) {
-                    if (!start) start = ts;
-                    var p = Math.min((ts - start) / dur, 1);
-                    var eased = 1 - Math.pow(1 - p, 3);
-                    el.textContent = Math.round(target * eased) + suffix;
-                    if (p < 1) requestAnimationFrame(step);
-                };
-                requestAnimationFrame(step);
-            };
-            if (!('IntersectionObserver' in window)) {
-                nums.forEach(function (el) {
-                    el.textContent = el.getAttribute('data-count') + (el.getAttribute('data-suffix') || '');
-                });
-                return;
-            }
-            var io = new IntersectionObserver(function (entries) {
-                entries.forEach(function (entry) {
-                    if (entry.isIntersecting) { animate(entry.target); io.unobserve(entry.target); }
-                });
-            }, { threshold: 0.4 });
-            nums.forEach(function (el) { io.observe(el); });
-        })();
-
-        // Register service worker for PWA offline support
+        // PWA registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {
-                navigator.serviceWorker.register('/sw.js').catch(function () { /* offline support optional */ });
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
             });
         }
     </script>
