@@ -8,7 +8,7 @@
      - Offline fallback       : /offline page + cached shell
    ============================================================ */
 
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.2.0';
 const SHELL_CACHE = 'lmv-shell-' + VERSION;
 const PAGES_CACHE = 'lmv-pages-' + VERSION;
 const ASSETS_CACHE = 'lmv-assets-' + VERSION;
@@ -17,11 +17,13 @@ const MAX_PAGES = 30;
 const SHELL_ASSETS = [
   '/offline',
   '/static/logo.png',
-  '/static/css/style.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
-  'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
-  'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css',
-  'https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap'
+  '/static/css/luxury.css',
+  '/static/vendor/css/bootstrap.min.css',
+  '/static/vendor/css/bootstrap-icons.css',
+  '/static/vendor/css/bootstrap-icons.woff2',
+  '/static/vendor/css/bootstrap-icons.woff',
+  '/static/vendor/js/bootstrap.bundle.min.js',
+  '/static/vendor/js/chart.umd.min.js'
 ];
 
 const OFFLINE_URLS = ['/', '/login', '/signup', '/downloads'];
