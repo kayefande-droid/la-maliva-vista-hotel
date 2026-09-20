@@ -145,18 +145,21 @@
         .alert .btn-close { filter: invert(1); } /* Ensure close button is visible */
 
 
-        /* --- SPLASH SCREEN STYLES --- */
+        /* --- SPLASH SCREEN STYLES (brand badge on navy) --- */
         #pwa-splash {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, #001533, #002a66); /* Deeper dark blue gradient */
+            background:
+                radial-gradient(60% 50% at 50% 38%, rgba(42, 82, 136, 0.35), transparent 70%),
+                linear-gradient(160deg, #0a1628 0%, #08123a 55%, #060d24 100%);
             z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
-            transition: opacity 1.35s ease-out; /* 1.35s transition */
+            gap: 22px;
+            color: #fdfaf4;
+            transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
         #pwa-splash.hidden {
@@ -164,31 +167,83 @@
             pointer-events: none;
         }
 
-        .splash-logo {
-            width: 160px; /* Slightly larger logo */
-            height: 160px;
+        .splash-badge {
+            position: relative;
+            width: 132px;
+            height: 132px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: splashBadgeIn .9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        }
+
+        .splash-badge::before {
+            content: "";
+            position: absolute;
+            inset: -9px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.95); /* More opaque white */
-            padding: 12px;
+            border: 2px solid transparent;
+            border-top-color: #eec37a;
+            border-right-color: rgba(238, 195, 122, 0.35);
+            animation: splashSpin 1.15s linear infinite;
+        }
+
+        .splash-badge img {
+            width: 118px;
+            height: 118px;
             object-fit: contain;
-            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
-            margin-bottom: 25px;
+            filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
         }
 
         .splash-title {
-            font-size: 3rem; /* Even larger title */
-            font-weight: bold;
-            color: #ffc107; /* Brighter gold title */
-            text-shadow: 0 3px 8px rgba(0,0,0,0.6); /* More pronounced shadow */
-            margin-bottom: 15px;
-            font-family: 'Cinzel', serif;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            font-weight: 600;
+            letter-spacing: .34em;
+            text-indent: .34em;
+            text-transform: uppercase;
+            color: #fdfaf4;
+            animation: splashRise .8s cubic-bezier(0.22, 1, 0.36, 1) .25s both;
         }
 
         .splash-motto {
-            font-size: 1.4rem; /* Larger motto */
-            color: #f0f0f0; /* Lighter text */
-            font-family: 'Dancing Script', cursive;
-            text-shadow: 0 2px 5px rgba(0,0,0,0.5);
+            font-family: 'Jost', sans-serif;
+            font-size: .68rem;
+            font-weight: 500;
+            letter-spacing: .5em;
+            text-indent: .5em;
+            text-transform: uppercase;
+            color: #eec37a;
+            animation: splashRise .8s cubic-bezier(0.22, 1, 0.36, 1) .4s both;
+        }
+
+        .splash-bar {
+            width: 168px;
+            height: 2px;
+            border-radius: 2px;
+            overflow: hidden;
+            background: rgba(253, 250, 244, 0.14);
+            animation: splashRise .8s cubic-bezier(0.22, 1, 0.36, 1) .55s both;
+        }
+
+        .splash-bar span {
+            display: block;
+            height: 100%;
+            width: 40%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, transparent, #eec37a, #f08c2e, transparent);
+            animation: splashSweep 1.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+        }
+
+        @keyframes splashBadgeIn { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
+        @keyframes splashSpin { to { transform: rotate(360deg); } }
+        @keyframes splashRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes splashSweep { from { transform: translateX(-110%); } to { transform: translateX(300%); } }
+
+        @media (max-width: 480px) {
+            .splash-badge { width: 108px; height: 108px; }
+            .splash-badge img { width: 96px; height: 96px; }
+            .splash-title { font-size: 1.25rem; }
         }
 
         /* --- CHATBOT WIDGET STYLES --- */
@@ -545,7 +600,7 @@
 
     </style>
     <!-- Fonts for Splash -->
-    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Dancing+Script:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -557,9 +612,12 @@
     <div class="floating-shape"></div>
     <div class="floating-shape"></div>
 
-    <img src="{{ url_for('static', filename='logo.png') }}" class="splash-logo" alt="Logo">
-    <div class="splash-title">LA-MALIVA VISTA</div>
+    <div class="splash-badge">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista">
+    </div>
+    <div class="splash-title">La-Maliva Vista</div>
     <div class="splash-motto">A Taste of Paradise</div>
+    <div class="splash-bar"><span></span></div>
 </div>
 
 <!-- CHATBOT WIDGET START -->

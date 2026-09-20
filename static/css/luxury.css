@@ -430,3 +430,144 @@ h1, h2, h3, .display {
     *, *::before, *::after { animation: none !important; transition: none !important; }
     .reveal { opacity: 1; transform: none; }
 }
+
+/* ==========================================================================
+   Brand preloader — LV badge on navy, gold arc sweep
+   Usage: {% include 'partials/_preloader.html' %} right after <body>
+   ========================================================================== */
+
+#lux-preloader {
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    background:
+        radial-gradient(60% 50% at 50% 38%, rgba(42, 82, 136, 0.35), transparent 70%),
+        linear-gradient(160deg, var(--navy-950) 0%, #08123a 55%, #060d24 100%);
+    opacity: 1;
+    visibility: visible;
+    transition: opacity .7s var(--ease), visibility .7s var(--ease);
+}
+
+#lux-preloader.lux-done {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.lux-pre-badge {
+    position: relative;
+    width: 132px;
+    height: 132px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: luxBadgeIn .9s var(--spring) both;
+}
+
+.lux-pre-badge::before {
+    /* rotating gold arc */
+    content: "";
+    position: absolute;
+    inset: -9px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--gold-400);
+    border-right-color: rgba(238, 195, 122, 0.35);
+    animation: luxSpin 1.15s linear infinite;
+}
+
+.lux-pre-badge::after {
+    /* soft halo */
+    content: "";
+    position: absolute;
+    inset: -26px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(238, 195, 122, 0.16), transparent 65%);
+    animation: luxHalo 2.4s ease-in-out infinite;
+}
+
+.lux-pre-badge img {
+    width: 118px;
+    height: 118px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
+}
+
+.lux-pre-word {
+    text-align: center;
+    animation: luxRise .8s var(--ease) .25s both;
+}
+
+.lux-pre-word .w1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.55rem;
+    font-weight: 600;
+    letter-spacing: .34em;
+    text-indent: .34em; /* balance the tracking */
+    color: var(--cream-50);
+    text-transform: uppercase;
+}
+
+.lux-pre-word .w2 {
+    margin-top: 7px;
+    font-family: 'Jost', sans-serif;
+    font-size: .66rem;
+    font-weight: 500;
+    letter-spacing: .5em;
+    text-indent: .5em;
+    text-transform: uppercase;
+    color: var(--gold-400);
+}
+
+.lux-pre-bar {
+    width: 168px;
+    height: 2px;
+    border-radius: 2px;
+    overflow: hidden;
+    background: rgba(253, 250, 244, 0.14);
+    animation: luxRise .8s var(--ease) .4s both;
+}
+
+.lux-pre-bar span {
+    display: block;
+    height: 100%;
+    width: 40%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, var(--gold-400), var(--orange-500), transparent);
+    animation: luxSweep 1.5s var(--ease) infinite;
+}
+
+@keyframes luxBadgeIn {
+    from { opacity: 0; transform: scale(.72); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes luxSpin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes luxHalo {
+    0%, 100% { opacity: .55; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.12); }
+}
+
+@keyframes luxRise {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes luxSweep {
+    from { transform: translateX(-110%); }
+    to   { transform: translateX(300%); }
+}
+
+@media (max-width: 480px) {
+    .lux-pre-badge { width: 108px; height: 108px; }
+    .lux-pre-badge img { width: 96px; height: 96px; }
+    .lux-pre-word .w1 { font-size: 1.2rem; }
+}

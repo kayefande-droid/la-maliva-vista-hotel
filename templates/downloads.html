@@ -3,238 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="theme-color" content="#050b18">
+    <meta name="theme-color" content="#0a1628">
     <title>Get the App — LA-MALIVA VISTA HOTEL</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/luxury.css') }}">
     <style>
-        :root {
-            --bg-deep: #050b18;
-            --gold: #ffc94d;
-            --gold-2: #ff9d2e;
-            --cyan: #4dd8ff;
-            --text: #e8eefc;
-            --muted: rgba(232, 238, 252, 0.65);
-            --glass: rgba(13, 27, 54, 0.55);
-            --glass-border: rgba(120, 170, 255, 0.18);
-            --radius: 18px;
-        }
-        * { box-sizing: border-box; }
-        body {
-            margin: 0; min-height: 100vh;
-            font-family: 'Inter', 'Segoe UI', sans-serif;
-            color: var(--text); background: var(--bg-deep);
-            overflow-x: hidden;
-        }
-        .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-        .aurora::before {
-            content: ""; position: absolute; inset: -20%;
-            background:
-                radial-gradient(38% 42% at 18% 28%, rgba(18, 58, 143, 0.55), transparent 70%),
-                radial-gradient(34% 40% at 82% 18%, rgba(77, 216, 255, 0.14), transparent 70%),
-                radial-gradient(42% 46% at 78% 84%, rgba(255, 176, 32, 0.10), transparent 72%);
-            animation: auroraDrift 22s ease-in-out infinite alternate;
-        }
-        @keyframes auroraDrift {
-            0% { transform: translate3d(0,0,0) scale(1); }
-            50% { transform: translate3d(2.5%, -2%, 0) scale(1.05); }
-            100% { transform: translate3d(-2%, 2%, 0) scale(1); }
-        }
-        .page { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 56px 24px 80px; }
-        .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 48px; }
-        .brand { display: flex; align-items: center; gap: 14px; }
-        .brand img { width: 48px; height: 48px; border-radius: 13px; object-fit: cover; box-shadow: 0 0 0 1px var(--glass-border); }
-        .brand-name { font-family: 'Orbitron', sans-serif; font-weight: 700; letter-spacing: .18em; font-size: .92rem; }
-        .brand-sub { font-size: .7rem; color: var(--muted); letter-spacing: .26em; text-transform: uppercase; }
-        .ver-pill {
-            display: inline-flex; align-items: center; gap: 9px;
-            background: var(--glass); border: 1px solid var(--glass-border);
-            backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-            padding: 9px 16px; border-radius: 999px;
-            font-family: 'Orbitron', sans-serif; font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
-        }
-        .ver-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: #2ecc71; box-shadow: 0 0 8px #2ecc71; animation: blink 2.4s infinite; }
-        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
-        .ver-pill b { color: var(--gold); }
-        .hero { text-align: center; margin-bottom: 54px; animation: rise .7s cubic-bezier(.22,1,.36,1) both; }
-        .hero h1 { font-family: 'Orbitron', sans-serif; font-size: clamp(1.7rem, 4vw, 2.6rem); font-weight: 900; margin: 0 0 14px; line-height: 1.2; }
-        .hero h1 .gilded { background: linear-gradient(100deg, var(--gold), var(--gold-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .hero p { color: var(--muted); max-width: 58ch; margin: 0 auto; line-height: 1.75; font-size: .95rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
-        .card {
-            background: var(--glass);
-            backdrop-filter: blur(22px) saturate(1.35);
-            -webkit-backdrop-filter: blur(22px) saturate(1.35);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--radius);
-            padding: 28px 26px;
+        /* ---------- Downloads page specifics ---------- */
+        .dl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 26px; }
+
+        .dl-card {
+            background: var(--cream-50);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-lg);
+            padding: 34px 30px;
             display: flex; flex-direction: column;
-            box-shadow: 0 24px 60px rgba(2, 8, 20, 0.55), inset 0 1px 0 rgba(255,255,255,.06);
-            transition: transform .3s cubic-bezier(.34,1.56,.64,1), border-color .3s ease;
-            animation: rise .7s cubic-bezier(.22,1,.36,1) both;
+            box-shadow: var(--shadow-md);
+            transition: transform .45s var(--ease), box-shadow .45s var(--ease);
         }
-        .card:nth-child(2) { animation-delay: .1s; }
-        .card:nth-child(3) { animation-delay: .2s; }
-        .card:hover { transform: translateY(-6px); border-color: rgba(77,216,255,.4); }
-        .card-ico {
-            width: 58px; height: 58px; border-radius: 16px;
+        .dl-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
+
+        .dl-ico {
+            width: 62px; height: 62px; border-radius: 18px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; margin-bottom: 18px;
-            background: linear-gradient(150deg, rgba(18,58,143,.55), rgba(77,216,255,.12));
-            border: 1px solid var(--glass-border);
+            font-size: 1.7rem; margin-bottom: 20px;
+            background: linear-gradient(150deg, var(--navy-900), var(--navy-700));
+            color: var(--gold-400);
+            box-shadow: 0 14px 30px rgba(15, 34, 64, 0.28);
         }
-        .card-ico.gold { background: linear-gradient(150deg, rgba(255,201,77,.2), rgba(255,157,46,.08)); }
-        .card-ico.green { background: linear-gradient(150deg, rgba(46,204,113,.18), rgba(46,204,113,.05)); }
-        .card h3 { font-family: 'Orbitron', sans-serif; font-size: 1rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin: 0 0 6px; }
-        .card .desc { color: var(--muted); font-size: .84rem; line-height: 1.6; margin: 0 0 20px; flex: 1; }
-        .meta { list-style: none; padding: 0; margin: 0 0 22px; }
-        .meta li { display: flex; justify-content: space-between; align-items: center; font-size: .78rem; padding: 7px 0; border-bottom: 1px dashed rgba(120,170,255,.14); }
-        .meta li:last-child { border-bottom: none; }
-        .meta .k { color: var(--muted); letter-spacing: .08em; text-transform: uppercase; font-size: .68rem; }
-        .meta .v { font-weight: 600; }
-        .meta .v.ver { color: var(--gold); font-family: 'Orbitron', sans-serif; font-size: .8rem; }
-        .dl-btn {
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-            padding: 13px; border-radius: 13px;
-            font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: .74rem;
-            letter-spacing: .18em; text-transform: uppercase; text-decoration: none;
-            border: none; cursor: pointer;
-            transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease, background .25s ease;
+        .dl-ico.pwa { background: linear-gradient(150deg, var(--orange-600), var(--orange-400)); color: #fff; }
+
+        .dl-card h3 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.65rem; font-weight: 700; margin: 0 0 6px; color: var(--ink-900);
         }
-        .dl-btn.gold {
-            color: #06122b;
-            background: linear-gradient(115deg, var(--gold), var(--gold-2));
-            box-shadow: 0 12px 30px rgba(255,157,46,.35), inset 0 1px 0 rgba(255,255,255,.45);
+        .dl-card .desc { color: var(--ink-500); font-size: .92rem; line-height: 1.7; margin: 0 0 22px; flex: 1; }
+
+        .dl-meta { list-style: none; padding: 0; margin: 0 0 24px; }
+        .dl-meta li {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: .82rem; padding: 9px 0; border-bottom: 1px solid var(--line-soft);
         }
-        .dl-btn.gold:hover { transform: translateY(-2px); box-shadow: 0 16px 38px rgba(255,157,46,.5); }
-        .dl-btn.ghost { color: var(--cyan); background: rgba(77,216,255,.08); border: 1px solid rgba(77,216,255,.35); }
-        .dl-btn.ghost:hover { background: rgba(77,216,255,.16); transform: translateY(-2px); }
-        .dl-btn:active { transform: translateY(1px); }
-        .steps { margin-top: 60px; }
-        .steps h2 { font-family: 'Orbitron', sans-serif; font-size: 1rem; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 22px; text-align: center; }
-        .steps .grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
-        .step {
-            background: rgba(5,11,24,.5); border: 1px solid rgba(120,170,255,.12);
-            border-radius: 14px; padding: 20px; text-align: center;
-            animation: rise .7s cubic-bezier(.22,1,.36,1) both;
+        .dl-meta li:last-child { border-bottom: none; }
+        .dl-meta .k { color: var(--ink-400); letter-spacing: .12em; text-transform: uppercase; font-size: .68rem; font-weight: 500; }
+        .dl-meta .v { font-weight: 600; color: var(--ink-900); }
+        .dl-meta .v.ver { color: var(--orange-600); font-size: .88rem; letter-spacing: .04em; }
+        .dl-meta .v.ok { color: #2e7d4f; }
+
+        .dl-steps { margin-top: 72px; }
+        .dl-steps .step-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 20px; }
+        .step-card {
+            background: var(--cream-100);
+            border: 1px solid var(--line-soft);
+            border-radius: var(--radius-md);
+            padding: 24px 22px; text-align: center;
         }
-        .step .n {
-            width: 34px; height: 34px; border-radius: 50%; margin: 0 auto 12px;
+        .step-card .n {
+            width: 38px; height: 38px; border-radius: 50%; margin: 0 auto 14px;
             display: flex; align-items: center; justify-content: center;
-            font-family: 'Orbitron', sans-serif; font-weight: 700; font-size: .8rem;
-            color: #06122b; background: linear-gradient(135deg, var(--gold), var(--gold-2));
+            font-weight: 600; font-size: .95rem; color: #fff;
+            background: linear-gradient(135deg, var(--orange-600), var(--orange-400));
+            box-shadow: 0 8px 18px rgba(217, 122, 43, 0.35);
         }
-        .step p { color: var(--muted); font-size: .8rem; line-height: 1.6; margin: 0; }
-        .foot { margin-top: 54px; text-align: center; font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(232,238,252,.35); }
-        .foot a { color: var(--muted); text-decoration: none; }
-        .foot a:hover { color: var(--gold); }
-        @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation: none !important; transition: none !important; }
-        }
+        .step-card p { color: var(--ink-500); font-size: .85rem; line-height: 1.65; margin: 0; }
+
+        .dl-back { text-align: center; margin-top: 64px; font-size: .82rem; color: var(--ink-400); }
+        .dl-back a { color: var(--ink-700); text-decoration: none; border-bottom: 1px solid var(--line-soft); }
+        .dl-back a:hover { color: var(--orange-600); }
     </style>
 </head>
 <body>
-    <div class="aurora"></div>
+    {% include 'partials/_preloader.html' %}
 
-    <div class="page">
-        <div class="top-bar">
-            <div class="brand">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo">
-                <div>
-                    <div class="brand-name">LA-MALIVA VISTA</div>
-                    <div class="brand-sub">App Distribution</div>
-                </div>
-            </div>
-            <div class="ver-pill"><span class="dot"></span>v<b id="verText">{{ app_version }}</b> · {{ build_channel }}</div>
+    {% include 'partials/_nav.html' %}
+
+    <header class="page-hero">
+        <div class="hero-bg">
+            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2400&auto=format&fit=crop" alt="La-Maliva Vista terrace at dusk">
         </div>
-
-        <div class="hero">
-            <h1>Take La-Maliva <span class="gilded">everywhere</span>.</h1>
-            <p>Native builds for Android and Windows, plus an installable PWA with full offline support — all versioned from one source of truth and published straight from the build pipeline.</p>
+        <div class="container-lux">
+            <span class="kicker">Native Apps</span>
+            <h1>Take La-Maliva everywhere</h1>
+            <p>Native builds for Android and Windows, plus an installable PWA with full offline support — every card below reflects the latest published release.</p>
         </div>
+    </header>
 
-        {% set android = releases['android'] %}
-        {% set windows = releases['windows'] %}
-        {% set pwa = releases['pwa'] %}
-        <div class="grid">
-            <div class="card">
-                <div class="card-ico gold"><i class="bi bi-android2"></i></div>
-                <h3>Android App</h3>
-                <p class="desc">The full La-Maliva experience, native on your phone — offline room browsing, booking alerts and one-tap reservations.</p>
-                <ul class="meta">
-                    <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
-                    <li><span class="k">Requires</span><span class="v">Android 8.0+</span></li>
-                    <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(android.size_bytes / 1048576) if android.available else '~' }} MB</span></li>
-                    <li><span class="k">Status</span><span class="v" style="color:#2e9e63">{{ 'Available now' if android.available else 'Packaging…' }}</span></li>
-                </ul>
-                <a class="dl-btn gold {{ 'disabled' if not android.available }}" href="{{ url_for('download_release', platform='android') }}">
-                    <i class="bi bi-download"></i> Download APK
-                </a>
-            </div>
+    <section class="section">
+        <div class="container-lux">
+            <div class="dl-grid">
+                {% set android = releases['android'] %}
+                {% set windows = releases['windows'] %}
+                {% set pwa = releases['pwa'] %}
 
-            <div class="card">
-                <div class="card-ico"><i class="bi bi-windows"></i></div>
-                <h3>Windows App</h3>
-                <p class="desc">Native desktop app for Windows 10/11 — unzip, run the exe, and manage your stay from the front desk or your couch.</p>
-                <ul class="meta">
-                    <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
-                    <li><span class="k">Requires</span><span class="v">Windows 10/11 (64-bit)</span></li>
-                    <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(windows.size_bytes / 1048576) if windows.available else '~' }} MB</span></li>
-                    <li><span class="k">Status</span><span class="v" style="color:#2e9e63">{{ 'Available now' if windows.available else 'Packaging…' }}</span></li>
-                </ul>
-                <a class="dl-btn gold {{ 'disabled' if not windows.available }}" href="{{ url_for('download_release', platform='windows') }}">
-                    <i class="bi bi-download"></i> Download for Windows
-                </a>
-            </div>
+                <article class="dl-card reveal" data-delay="1">
+                    <div class="dl-ico"><i class="bi bi-android2"></i></div>
+                    <h3>Android App</h3>
+                    <p class="desc">The full La-Maliva experience, native on your phone — offline room browsing, booking alerts and one-tap reservations.</p>
+                    <ul class="dl-meta">
+                        <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
+                        <li><span class="k">Requires</span><span class="v">{{ android.min_os }}</span></li>
+                        <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(android.size_bytes / 1048576) if android.available else '~46' }} MB</span></li>
+                        <li><span class="k">Status</span><span class="v ok">{{ 'Available now' if android.available else 'Packaging…' }}</span></li>
+                    </ul>
+                    <a class="btn-lux {{ 'disabled' if not android.available }}" style="text-align:center; {{ 'pointer-events:none; opacity:.55;' if not android.available }}"
+                       href="{{ url_for('download_release', platform='android') }}" {% if android.available %}download{% endif %}>
+                        <i class="bi bi-download"></i> Download APK
+                    </a>
+                </article>
 
-            <div class="card">
-                <div class="card-ico green"><i class="bi bi-globe2"></i></div>
-                <h3>Progressive Web App</h3>
-                <p class="desc">Installs straight from the browser — no download needed. Works fully offline with cached bookings, rooms and rates.</p>
-                <ul class="meta">
-                    <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
-                    <li><span class="k">Requires</span><span class="v">Any modern browser</span></li>
-                    <li><span class="k">Size</span><span class="v">~2 MB</span></li>
-                </ul>
-                <button class="dl-btn ghost" id="pwaInstallBtn" type="button">
-                    <i class="bi bi-box-arrow-in-down"></i> Install PWA
-                </button>
-            </div>
-        </div>
+                <article class="dl-card reveal" data-delay="2">
+                    <div class="dl-ico"><i class="bi bi-windows"></i></div>
+                    <h3>Windows App</h3>
+                    <p class="desc">Native desktop app for Windows 10/11 — unzip, run the exe, and manage your stay from the front desk or your couch.</p>
+                    <ul class="dl-meta">
+                        <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
+                        <li><span class="k">Requires</span><span class="v">{{ windows.min_os }}</span></li>
+                        <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(windows.size_bytes / 1048576) if windows.available else '~12' }} MB</span></li>
+                        <li><span class="k">Status</span><span class="v ok">{{ 'Available now' if windows.available else 'Packaging…' }}</span></li>
+                    </ul>
+                    <a class="btn-lux {{ 'disabled' if not windows.available }}" style="text-align:center; {{ 'pointer-events:none; opacity:.55;' if not windows.available }}"
+                       href="{{ url_for('download_release', platform='windows') }}" {% if windows.available %}download{% endif %}>
+                        <i class="bi bi-download"></i> Download for Windows
+                    </a>
+                </article>
 
-        <div class="steps">
-            <h2>How installation works</h2>
-            <div class="grid">
-                <div class="step"><div class="n">1</div><p>Download the bundle for your platform — the version badge always reflects the latest release.</p></div>
-                <div class="step"><div class="n">2</div><p>APK: allow "install unknown apps" for your browser when prompted — the app will request notification permission on first launch. Windows: unzip and double-click the exe.</p></div>
-                <div class="step"><div class="n">3</div><p>PWA: tap Install PWA (or browser menu → Install app) while visiting this site.</p></div>
-                <div class="step"><div class="n">4</div><p>Launch — cached data, rooms and rates are available even with zero connectivity.</p></div>
+                <article class="dl-card reveal" data-delay="3">
+                    <div class="dl-ico pwa"><i class="bi bi-globe2"></i></div>
+                    <h3>Progressive Web App</h3>
+                    <p class="desc">Installs straight from the browser — no download needed. Works fully offline with cached bookings, rooms and rates.</p>
+                    <ul class="dl-meta">
+                        <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
+                        <li><span class="k">Requires</span><span class="v">{{ pwa.min_os }}</span></li>
+                        <li><span class="k">Size</span><span class="v">~2 MB</span></li>
+                    </ul>
+                    <button class="btn-ghost-lux" id="pwaInstallBtn" type="button" style="width:100%;">
+                        <i class="bi bi-box-arrow-in-down"></i> Install PWA
+                    </button>
+                </article>
             </div>
         </div>
+    </section>
 
-        <div class="foot">
-            <a href="{{ url_for('public_home') }}">← Back to site</a>
-            &nbsp;·&nbsp; <span id="apiVer">{{ app_version }}</span> &nbsp;·&nbsp; LA-MALIVA VISTA HOTEL, BUEA
+    <section class="section tinted dl-steps" style="padding-top: 64px;">
+        <div class="container-lux">
+            <div class="section-head reveal">
+                <span class="kicker">Quick start</span>
+                <h2>How installation works</h2>
+            </div>
+            <div class="step-grid">
+                <div class="step-card reveal" data-delay="1"><div class="n">1</div><p>Download the bundle for your platform — the version badge always reflects the latest release.</p></div>
+                <div class="step-card reveal" data-delay="2"><div class="n">2</div><p><b>Android:</b> allow "install unknown apps" for your browser when prompted; the app will request notification permission on first launch. <b>Windows:</b> unzip and double-click the exe.</p></div>
+                <div class="step-card reveal" data-delay="3"><div class="n">3</div><p><b>PWA:</b> tap Install PWA (or browser menu → Install app) while visiting this site.</p></div>
+                <div class="step-card reveal" data-delay="4"><div class="n">4</div><p>Launch — cached data, rooms and rates are available even with zero connectivity.</p></div>
+            </div>
         </div>
+    </section>
+
+    <div class="dl-back">
+        <a href="{{ url_for('public_home') }}">← Back to the hotel</a>
+        &nbsp;·&nbsp; v<span class="rel-ver">{{ app_version }}</span> &nbsp;·&nbsp; LA-MALIVA VISTA HOTEL, BUEA
     </div>
 
+    {% include 'partials/_footer.html' %}
+
     <script>
-        // Bind every version label to the live API so cards always show the latest bundle version
+        /* Scroll reveal */
+        (function () {
+            var els = document.querySelectorAll('.reveal');
+            if (!('IntersectionObserver' in window)) {
+                els.forEach(function (el) { el.classList.add('in'); });
+                return;
+            }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            els.forEach(function (el) { io.observe(el); });
+        })();
+
+        /* Bind every version label to the live API so cards always show the latest bundle version */
         fetch('/api/version')
             .then(function (r) { return r.json(); })
             .then(function (d) {
-                document.getElementById('verText').textContent = d.version;
-                document.getElementById('apiVer').textContent = d.version;
-                document.querySelectorAll('.rel-ver').forEach(function (el) {
-                    el.textContent = d.version;
-                });
+                document.querySelectorAll('.rel-ver').forEach(function (el) { el.textContent = d.version; });
             })
             .catch(function () { /* keep server-rendered fallback */ });
 
-        // PWA install prompt
+        /* PWA install prompt */
         (function () {
             var btn = document.getElementById('pwaInstallBtn');
             var deferred = null;
@@ -251,6 +209,12 @@
                 }
             });
         })();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
     </script>
 </body>
 </html>

@@ -1,0 +1,34 @@
+<!-- Brand preloader: LV badge on navy with gold arc sweep -->
+<div id="lux-preloader" aria-hidden="true">
+    <div class="lux-pre-badge">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista">
+    </div>
+    <div class="lux-pre-word">
+        <div class="w1">La-Maliva Vista</div>
+        <div class="w2">A Taste of Paradise</div>
+    </div>
+    <div class="lux-pre-bar"><span></span></div>
+</div>
+
+<script>
+    (function () {
+        var pre = document.getElementById('lux-preloader');
+        if (!pre) return;
+        var dismiss = function () {
+            if (pre.classList.contains('lux-done')) return;
+            pre.classList.add('lux-done');
+            setTimeout(function () { if (pre.parentNode) pre.parentNode.removeChild(pre); }, 800);
+        };
+        if (sessionStorage.getItem('lmv_preSeen')) {
+            dismiss(); /* return visit this session: instant, gentle fade */
+        } else {
+            sessionStorage.setItem('lmv_preSeen', '1');
+            var started = Date.now();
+            window.addEventListener('load', function () {
+                /* show for at least 1.4s, then release */
+                setTimeout(dismiss, Math.max(0, 1400 - (Date.now() - started)));
+            });
+            setTimeout(dismiss, 4000); /* safety net if a CDN stalls */
+        }
+    })();
+</script>
