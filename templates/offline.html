@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#050b18">
+    <title>Offline — LA-MALIVA VISTA HOTEL</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <style>
+        :root {
+            --bg-deep: #050b18;
+            --gold: #ffc94d;
+            --cyan: #4dd8ff;
+            --text: #e8eefc;
+            --muted: rgba(232, 238, 252, 0.65);
+            --glass: rgba(13, 27, 54, 0.55);
+            --glass-border: rgba(120, 170, 255, 0.18);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+            color: var(--text); background: var(--bg-deep);
+            padding: 24px; text-align: center;
+        }
+        .aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .aurora::before {
+            content: ""; position: absolute; inset: -20%;
+            background:
+                radial-gradient(40% 45% at 20% 25%, rgba(18, 58, 143, 0.55), transparent 70%),
+                radial-gradient(35% 40% at 80% 20%, rgba(77, 216, 255, 0.12), transparent 70%),
+                radial-gradient(40% 45% at 78% 82%, rgba(255, 176, 32, 0.1), transparent 72%);
+            animation: drift 24s ease-in-out infinite alternate;
+        }
+        @keyframes drift {
+            0% { transform: translate3d(0,0,0) scale(1); }
+            100% { transform: translate3d(-2%, 2%, 0) scale(1.06); }
+        }
+        .panel {
+            position: relative; z-index: 1;
+            background: var(--glass);
+            backdrop-filter: blur(22px) saturate(1.35);
+            -webkit-backdrop-filter: blur(22px) saturate(1.35);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 48px 40px; max-width: 460px;
+            box-shadow: 0 30px 80px rgba(2, 8, 20, 0.65);
+            animation: rise .7s cubic-bezier(.22,1,.36,1) both;
+        }
+        @keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+        .glyph {
+            width: 84px; height: 84px; margin: 0 auto 20px; border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 2.1rem; color: var(--gold);
+            background: linear-gradient(150deg, rgba(18,58,143,.55), rgba(77,216,255,.12));
+            border: 1px solid var(--glass-border);
+            animation: floaty 4s ease-in-out infinite;
+        }
+        @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        h1 { font-size: 1.3rem; letter-spacing: .12em; text-transform: uppercase; margin: 0 0 12px; }
+        p { color: var(--muted); line-height: 1.7; font-size: .88rem; margin: 0 0 26px; }
+        .actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+        .btn {
+            display: inline-flex; align-items: center; gap: 9px;
+            padding: 12px 22px; border-radius: 12px; text-decoration: none;
+            font-size: .74rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
+            transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s ease;
+        }
+        .btn-retry {
+            color: #06122b; background: linear-gradient(115deg, var(--gold), #ff9d2e);
+            box-shadow: 0 12px 30px rgba(255,157,46,.35);
+            border: none; cursor: pointer; font-family: inherit;
+        }
+        .btn-retry:hover { transform: translateY(-2px); }
+        .btn-home { color: var(--cyan); border: 1px solid rgba(77,216,255,.35); background: rgba(77,216,255,.08); }
+        .btn-home:hover { background: rgba(77,216,255,.15); }
+        .hint { margin-top: 24px; font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(232,238,252,.35); }
+    </style>
+</head>
+<body>
+    <div class="aurora"></div>
+    <div class="panel">
+        <div class="glyph"><i class="bi bi-wifi-off" style="font-family:'bootstrap-icons'"></i></div>
+        <h1>You're Offline</h1>
+        <p>
+            No network connection right now. Cached pages, room rates and your booking
+            information are still available — anything requiring live data will reconnect automatically.
+        </p>
+        <div class="actions">
+            <button class="btn btn-retry" onclick="location.reload()">Retry Connection</button>
+            <a class="btn btn-home" href="/">Go Home</a>
+        </div>
+        <div class="hint">La-Maliva Vista · Offline Mode</div>
+    </div>
+</body>
+</html>
