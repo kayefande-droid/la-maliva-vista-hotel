@@ -87,11 +87,6 @@
         }
         .field-peek:hover { color: var(--orange-600); }
 
-        /* Elevated access (secret pass) */
-        .elevated-field { border: 1.5px dashed rgba(217,122,43,0.45); border-radius: var(--radius-sm); padding: 14px 14px 6px; margin-bottom: 20px; background: rgba(240,140,46,0.04); }
-        .elevated-field .lux-field { margin-bottom: 10px; }
-        .elevated-field .lux-field label { color: var(--orange-600); }
-        .elevated-field .lux-field input { border-color: rgba(217,122,43,0.35); }
 
         .auth-options { display: flex; align-items: center; justify-content: space-between; margin: 6px 0 22px; }
         .remember-me { display: flex; align-items: center; gap: 9px; font-size: 0.82rem; color: var(--ink-700); cursor: pointer; user-select: none; }
@@ -193,20 +188,6 @@
                         </div>
                     </div>
 
-                    <!-- Elevated access for staff & admins -->
-                    <div class="elevated-field" id="elevatedField" style="display:none">
-                        <div class="lux-field" style="margin-bottom:8px">
-                            <label for="secret_pass"><i class="bi bi-key"></i> Secret Pass — Staff &amp; Admin</label>
-                            <div class="control">
-                                <i class="bi bi-fingerprint"></i>
-                                <input type="password" name="secret_pass" id="secret_pass" placeholder="required for elevated access" autocomplete="off">
-                                <button type="button" class="field-peek" id="toggleSecret" aria-label="Show secret pass" tabindex="-1">
-                                    <i class="bi bi-eye" id="peekSecret"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="auth-options">
                         <label class="remember-me">
                             <input type="checkbox" name="remember">
@@ -246,41 +227,11 @@
     </div>
 
     <script>
-        // Reveal elevated field for admin/staff identifiers or when required
-        (function () {
-            var field = document.getElementById('elevatedField');
-            var userInput = document.getElementById('username');
-            if (!field || !userInput) return;
-            var needsSecret = {{ 'true' if needs_secret else 'false' }};
-            function maybeReveal() {
-                var v = (userInput.value || '').trim().toLowerCase();
-                if (needsSecret || /^(admin|staff)/.test(v)) {
-                    field.style.display = 'block';
-                }
-            }
-            userInput.addEventListener('input', maybeReveal);
-            maybeReveal();
-        })();
-
         // Show / hide password
         (function () {
             var btn = document.getElementById('togglePassword');
             var input = document.getElementById('password');
             var icon = document.getElementById('peekIcon');
-            if (!btn) return;
-            btn.addEventListener('click', function () {
-                var hidden = input.getAttribute('type') === 'password';
-                input.setAttribute('type', hidden ? 'text' : 'password');
-                icon.classList.toggle('bi-eye');
-                icon.classList.toggle('bi-eye-slash');
-            });
-        })();
-
-        // Show / hide secret pass
-        (function () {
-            var btn = document.getElementById('toggleSecret');
-            var input = document.getElementById('secret_pass');
-            var icon = document.getElementById('peekSecret');
             if (!btn) return;
             btn.addEventListener('click', function () {
                 var hidden = input.getAttribute('type') === 'password';

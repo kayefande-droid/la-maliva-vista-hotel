@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, session
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -26,7 +26,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.1.2"
+APP_VERSION = "2.2.0"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -43,11 +43,12 @@ app.config['MTN_MOMO_API_KEY'] = os.environ.get('MTN_MOMO_API_KEY', '')
 app.config['MTN_MOMO_API_URL'] = os.environ.get('MTN_MOMO_API_URL', 'https://sandbox.momodeveloper.mtn.com')
 app.config['MTN_MOMO_TARGET_ENV'] = os.environ.get('MTN_MOMO_TARGET_ENV', 'sandbox') # or 'mtncameroon' for live
 
-# Elevated access secret pass (admin/staff second factor on the login form).
-# Set ELEVATED_ACCESS_PASS in the environment on Render/Railway. When unset,
-# per-user access_secret_hash is used instead.
-ELEVATED_ACCESS_PASS = os.environ.get('ELEVATED_ACCESS_PASS', 'MALIVA-2026')
-app.config['ELEVATED_SECRET_HASH'] = generate_password_hash(ELEVATED_ACCESS_PASS) if ELEVATED_ACCESS_PASS else None
+# NOTE: There is deliberately NO second 'secret pass' field on the public login
+# form. Admin and staff sign in with the same single login form as guests —
+# their elevated powers come from their account role, not a separate form.
+# Default seeded admin: username 'admin' / password 'lamaliva@2026' (changeable
+# in-dashboard via Change Password). Admin creates staff accounts in User
+# Management (admin-only).
 
 # Ensure instance folder exists
 instance_folder = os.path.join(basedir, 'instance')
@@ -57,6 +58,165 @@ if not os.path.exists(instance_folder):
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
+
+# ===================== SECURITY RULES =====================
+import sqlite3
+from sqlalchemy import event as sa_event
+from sqlalchemy.engine import Engine
+
+# ---- 1. Session & request hardening ----
+_IS_PROD = os.environ.get('FLASK_ENV') == 'production' or os.environ.get('RENDER') is not None
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,                      # JS cannot read the session cookie
+    SESSION_COOKIE_SAMESITE='Lax',                     # blocks most cross-site cookie sends
+    SESSION_COOKIE_SECURE=_IS_PROD,                    # HTTPS-only cookies on Render
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),    # sessions expire after 12h
+    MAX_CONTENT_LENGTH=8 * 1024 * 1024,                # 8 MB upload cap (images)
+    JSON_SORT_KEYS=False,
+)
+
+# ---- 2. Database rules (SQLite PRAGMAs on every connection) ----
+@sa_event.listens_for(Engine, 'connect')
+def _set_sqlite_pragmas(dbapi_connection, connection_record):
+    """Enforce database integrity rules for every SQLite connection."""
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys = ON")       # enforce FK constraints
+        cursor.execute("PRAGMA journal_mode = WAL")      # safe concurrent reads/writes
+        cursor.execute("PRAGMA busy_timeout = 5000")     # wait instead of 'database is locked'
+        cursor.execute("PRAGMA synchronous = NORMAL")    # durable + fast
+        cursor.close()
+
+
+# ---- 3. CSRF protection (form + JSON, auto-injected) ----
+def _csrf_token():
+    if '_csrf_token' not in session:
+        session['_csrf_token'] = secrets.token_hex(32)
+    return session['_csrf_token']
+
+
+app.jinja_env.globals['csrf_token'] = _csrf_token
+
+# Endpoints exempt from CSRF (cookie-less native-app calls and static assets)
+_CSRF_EXEMPT_PREFIXES = ('/api/', '/sw.js', '/manifest.json')
+
+
+@app.before_request
+def csrf_protect():
+    """Reject state-changing requests without a valid session-bound token."""
+    if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        return
+    if any(request.path.startswith(p) for p in _CSRF_EXEMPT_PREFIXES):
+        return
+    token = session.get('_csrf_token')
+    sent = (
+        request.form.get('_csrf_token')
+        or request.headers.get('X-CSRF-Token')
+        or (request.get_json(silent=True) or {}).get('_csrf_token')
+        if request.is_json
+        else request.form.get('_csrf_token') or request.headers.get('X-CSRF-Token')
+    )
+    if not token or not sent or not secrets.compare_digest(token, sent):
+        if request.path.startswith('/api/') or request.is_json:
+            return jsonify({'ok': False, 'error': 'CSRF token missing or invalid.'}), 400
+        flash('⚠️ Security check failed — please retry the form.', 'error')
+        return redirect(request.referrer or url_for('public_home'))
+
+
+@app.after_request
+def inject_csrf_forms(response):
+    """Auto-add the CSRF hidden input to every HTML <form method="post">.
+
+    Saves editing dozens of templates while guaranteeing every form carries
+    the token. Requests the token exists for are unaffected.
+    """
+    if response.content_type and response.content_type.startswith('text/html') and response.direct_passthrough is False:
+        try:
+            html = response.get_data(as_text=True)
+            token = _csrf_token()
+            hidden = f'<input type="hidden" name="_csrf_token" value="{token}">'
+            import re as _re
+            def _add(m):
+                tag = m.group(0)
+                return tag + hidden if '_csrf_token' not in tag else tag
+            html = _re.sub(r'<form[^>]*method=["\']post["\'][^>]*>', _add, html, flags=_re.I)
+            response.set_data(html)
+        except Exception:
+            pass
+    return response
+
+
+# ---- 4. Rate limiting (brute-force / spam guard) ----
+_RATE_BUCKET = {}          # {key: [timestamps]}
+_RATE_RULES = {           # endpoint -> (max_hits, window_seconds)
+    'login': (10, 300),              # 10 tries / 5 min / IP+identifier
+    'signup': (5, 3600),             # 5 signups / hour / IP
+    'resend_verification': (3, 600), # 3 emails / 10 min / IP
+    'chat': (30, 60),                # 30 msgs / min / IP
+    'api_book': (10, 3600),          # 10 bookings / hour / IP
+}
+
+
+def _rate_limit_hit(bucket_key, max_hits, window):
+    """Return True when this hit exceeds the allowed rate."""
+    import time as _time
+    now = _time.time()
+    hits = [t for t in _RATE_BUCKET.get(bucket_key, []) if now - t < window]
+    hits.append(now)
+    _RATE_BUCKET[bucket_key] = hits
+    # opportunistic cleanup so the dict cannot grow unbounded
+    if len(_RATE_BUCKET) > 5000:
+        for k in [k for k, v in _RATE_BUCKET.items() if not v or now - v[-1] > window * 2]:
+            _RATE_BUCKET.pop(k, None)
+    return len(hits) > max_hits
+
+
+@app.before_request
+def enforce_rate_limits():
+    rule = _RATE_RULES.get(request.endpoint)
+    if not rule:
+        return
+    max_hits, window = rule
+    ident = ''
+    if request.endpoint == 'login':
+        ident = (request.form.get('username') or '').strip().lower()
+    key = f"{request.endpoint}:{request.remote_addr}:{ident}"
+    if _rate_limit_hit(key, max_hits, window):
+        _perform_log_later(f"Rate limit hit on {request.endpoint} from {request.remote_addr}")
+        if request.path.startswith('/api/') or request.is_json:
+            return jsonify({'ok': False, 'error': 'Too many attempts — slow down and try again shortly.'}), 429
+        flash('⛔ Too many attempts. Please wait a few minutes and try again.', 'error')
+        return redirect(request.referrer or url_for('public_home'))
+
+
+def _perform_log_later(action):
+    """Best-effort security log that never breaks the request."""
+    try:
+        with app.app_context():
+            db.session.add(ActivityLog(action=action))
+            db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
+# ---- 5. Role-based access decorator ----
+def require_roles(*roles):
+    """Route guard: allow only the given roles (admin implicitly allowed via args).
+
+    API callers get JSON 403; browser users get a flash + redirect.
+    """
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            if not current_user.is_authenticated or current_user.role not in roles:
+                _perform_log_later(f"DENIED {request.path} for {getattr(current_user, 'username', 'anonymous')} (needs {roles})")
+                if request.path.startswith('/api/') or request.is_json:
+                    return jsonify({'ok': False, 'error': 'Insufficient permissions.'}), 403
+                flash('❌ Access denied. You do not have permission for that area.', 'error')
+                return redirect(url_for('dashboard' if current_user.is_authenticated else 'login'))
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
 # ===================== MODELS =====================
 class User(UserMixin, db.Model):
@@ -77,6 +237,9 @@ class User(UserMixin, db.Model):
     # ---- Elevated access secret pass (admin/staff second factor) ----
     access_secret_hash = db.Column(db.String(128), nullable=True)
 
+    # ---- Password management ----
+    password_changed = db.Column(db.Boolean, default=False)  # True once user changes from default
+
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     room_number = db.Column(db.String(10), unique=True)
@@ -94,14 +257,21 @@ class Guest(db.Model):
 
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    guest_id = db.Column(db.Integer, db.ForeignKey('guest.id'))
-    room_id = db.Column(db.Integer, db.ForeignKey('room.id'))
-    check_in = db.Column(db.DateTime)
-    check_out = db.Column(db.DateTime)
+    guest_id = db.Column(db.Integer, db.ForeignKey('guest.id'), nullable=False)
+    room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
+    check_in = db.Column(db.DateTime, nullable=False)
+    check_out = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='Confirmed') # Confirmed, Checked-In, Checked-Out, Cancelled
-    amount = db.Column(db.Float)
+    amount = db.Column(db.Float, nullable=False, default=0.0)
     access_deadline = db.Column(db.DateTime, nullable=True) # New: Deadline for room access
     customer_arrived_paid = db.Column(db.Boolean, default=False) # New: Checkbox for arrival/payment
+
+    __table_args__ = (
+        db.Index('ix_reservation_room_in', 'room_id', 'check_in'),
+        db.Index('ix_reservation_status', 'status'),
+        db.CheckConstraint("check_out > check_in", name='ck_res_dates'),
+        db.CheckConstraint("amount >= 0", name='ck_res_amount'),
+    )
 
     # Define relationships
     guest = db.relationship('Guest', backref='reservations')
@@ -115,15 +285,36 @@ class Hotel(db.Model):
     # New columns for lock system
     is_locked = db.Column(db.Boolean, default=False)
     lock_message = db.Column(db.Text, default="We are currently undergoing maintenance. Please check back later.")
+    # ---- Admin feature toggles (drive PWA + native app sections) ----
+    payments_active = db.Column(db.Boolean, default=False)  # MoMo / bank payment sections
+    snackbar_active = db.Column(db.Boolean, default=False)  # Snackbar / restaurant menu
+
+class SnackbarItem(db.Model):
+    """An item on the hotel's snackbar / restaurant menu (admin-managed)."""
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    category = db.Column(db.String(50), default='Drinks', index=True)  # Drinks, Beer, Wine, Whisky, Meals, Snacks
+    price = db.Column(db.Float, nullable=False)
+    image_url = db.Column(db.String(255), nullable=True)
+    available = db.Column(db.Boolean, default=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+
+    __table_args__ = (
+        db.CheckConstraint("price > 0", name='ck_snack_price'),
+    )
 
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    timestamp = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
     action = db.Column(db.String(255))
     details = db.Column(db.Text, nullable=True)
 
     user = db.relationship('User', backref=db.backref('activity_logs', lazy=True))
+
+    __table_args__ = (
+        db.Index('ix_activity_user_time', 'user_id', 'timestamp'),
+    )
 
 # Initialize database and create initial data
 def initialize_database():
@@ -167,6 +358,24 @@ def add_security_headers(response):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+
+@app.context_processor
+def inject_branding():
+    """Expose hotel feature flags to every template (PWA pages + admin tools).
+
+    The native app gets the same flags via /api/features — one switchboard,
+    every surface stays in sync.
+    """
+    try:
+        hotel = _get_hotel()
+        return dict(
+            hotel_name=hotel.name,
+            payments_active=bool(hotel.payments_active),
+            snackbar_active=bool(hotel.snackbar_active),
+        )
+    except Exception:
+        return dict(hotel_name='LA-MALIVA VISTA HOTEL', payments_active=False, snackbar_active=False)
 
 # ===================== ACTIVITY LOGGING =====================
 def _perform_log(action, details=None):
@@ -303,9 +512,18 @@ def create_initial_data():
         try:
             db.create_all()
             if not User.query.filter_by(username='admin').first():
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('admin123'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True, first_login_done=True) # Admin's first login is done
+                # Default administrator: admin / lamaliva@2026 — change it in
+                # Change Password after first login.
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('lamaliva@2026'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True, first_login_done=True) # Admin's first login is done
                 admin.email_verified = True  # seeded accounts skip email verification
                 db.session.add(admin)
+
+            # Ensure the default admin always has the official password
+            admin_row = User.query.filter_by(username='admin', role='admin').first()
+            if admin_row and not check_password_hash(admin_row.password_hash, 'lamaliva@2026') and not admin_row.password_changed:
+                admin_row.password_hash = generate_password_hash('lamaliva@2026')
+                admin_row.email_verified = True
+                db.session.commit()
 
             # Clear existing room data to ensure only the new, specified rooms are present
             Room.query.delete()
@@ -370,10 +588,33 @@ def _migrate_schema():
                 ("verification_token", "VARCHAR(128)"),
                 ("verification_sent_at", "DATETIME"),
                 ("access_secret_hash", "VARCHAR(128)"),
+                ("password_changed", "BOOLEAN DEFAULT 0"),
             ]
             for column, ddl in migrations:
                 if column not in existing:
                     db.session.execute(db.text(f"ALTER TABLE user ADD COLUMN {column} {ddl}"))
+
+            # Hotel table toggles (feature flags for the PWA + native app)
+            hotel_cols = {row[1] for row in db.session.execute(db.text("PRAGMA table_info(hotel)")).fetchall()}
+            for column, ddl in (("payments_active", "BOOLEAN DEFAULT 0"), ("snackbar_active", "BOOLEAN DEFAULT 0")):
+                if column not in hotel_cols:
+                    db.session.execute(db.text(f"ALTER TABLE hotel ADD COLUMN {column} {ddl}"))
+
+            # Snackbar table may not exist on old databases
+            db.session.execute(db.text("SELECT 1 FROM snackbar_item LIMIT 1"))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            try:
+                db.create_all()
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+        try:
+            result = db.session.execute(
+                db.text("PRAGMA table_info(user)")
+            ).fetchall()
+            existing = {row[1] for row in result}
             # Trust existing admin accounts created before email verification existed
             db.session.execute(db.text("UPDATE user SET email_verified = 1 WHERE role = 'admin'"))
             db.session.commit()
@@ -473,35 +714,33 @@ def signup():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """Single unified login for guests, staff and admin.
+
+    No separate secret-pass field: elevated powers come purely from the
+    account's role. The default seeded admin signs in with
+    admin / lamaliva@2026 and is prompted to change it.
+    """
     if request.method == 'POST':
         identifier = request.form['username']
         password = request.form['password']
-        secret_pass = (request.form.get('secret_pass') or '').strip()
 
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
 
         if user and check_password_hash(user.password_hash, password):
-            # ---- GATE 1: email must be verified before any login ----
+            # ---- Only gate: email must be verified before any login ----
             if not user.email_verified:
-                flash('⛔ Email not verified. Check your inbox for the verification link, or resend it below.', 'error')
+                flash('⛔ Email not verified. Check your inbox for the verification link, feel free to resend it below.', 'error')
                 return render_template('login.html', pending_email=user.email, smtp_ready=smtp_configured())
 
-            # ---- GATE 2: admin/staff require the secret pass ----
-            if user.role in ('admin', 'staff'):
-                if not secret_pass:
-                    flash('🔐 Staff & admin logins require the secret pass. Enter it in the elevated access field.', 'error')
-                    return render_template('login.html', needs_secret=True)
-                expected = app.config.get('ELEVATED_SECRET_HASH')
-                if expected:
-                    ok = check_password_hash(expected, secret_pass)
-                else:
-                    # Fallback: per-user hash (set when staff/admin created)
-                    ok = bool(user.access_secret_hash) and check_password_hash(user.access_secret_hash, secret_pass)
-                if not ok:
-                    flash('❌ Invalid secret pass for staff/admin access.', 'error')
-                    return render_template('login.html', needs_secret=True)
-
             login_user(user)
+            is_default_admin = (
+                user.role == 'admin'
+                and not user.password_changed
+                and check_password_hash(user.password_hash, 'lamaliva@2026')
+            )
+            if is_default_admin:
+                flash('👑 Welcome, Administrator. You are using the default password — please change it now under “Change Password”.', 'warning')
+                return redirect(url_for('change_password'))
             if not user.first_login_done:
                 flash(f'🎉 Welcome to La-Maliva Vista Hotel, {user.username}! We\'re excited to have you. Please review our terms of service and privacy policy.', 'success')
                 user.first_login_done = True
@@ -512,6 +751,32 @@ def login():
         else:
             flash('❌ Invalid username/email or password.', 'error')
     return render_template('login.html')
+
+
+@app.route('/change_password', methods=['GET', 'POST'])
+@login_required
+def change_password():
+    """Any signed-in user (guest, staff, admin) can change their own password."""
+    if request.method == 'POST':
+        current_pw = request.form.get('current_password', '')
+        new_pw = request.form.get('new_password', '')
+        confirm_pw = request.form.get('confirm_password', '')
+
+        if not check_password_hash(current_user.password_hash, current_pw):
+            flash('❌ Current password is incorrect.', 'error')
+        elif len(new_pw) < 8:
+            flash('❌ New password must be at least 8 characters.', 'error')
+        elif new_pw != confirm_pw:
+            flash('❌ New passwords do not match.', 'error')
+        elif check_password_hash(current_user.password_hash, new_pw):
+            flash('❌ New password must be different from the current one.', 'error')
+        else:
+            current_user.password_hash = generate_password_hash(new_pw)
+            current_user.password_changed = True
+            db.session.commit()
+            flash('✅ Password updated successfully.', 'success')
+            return redirect(url_for('dashboard'))
+    return render_template('change_password.html')
 
 @app.route('/dashboard')
 @login_required
@@ -575,12 +840,9 @@ def reservations():
 
 @app.route('/guests')
 @login_required
+@require_roles('admin', 'staff')
 @log_activity("Viewed Guests List") # Log activity
 def guests():
-    # Only admin and staff can view guests list
-    if current_user.role not in ['admin', 'staff']:
-        flash('❌ Access denied. Only staff and administrators can view guests.', 'error')
-        return redirect(url_for('dashboard'))
     guest_list = Guest.query.all()
     return render_template('guests.html', guests=guest_list)
 
@@ -627,14 +889,11 @@ def new_reservation():
 
 @app.route('/checkin/<int:res_id>')
 @login_required
+@require_roles('admin', 'staff')
 @log_activity("Attempted Check-in") # Log activity
 def checkin(res_id):
     res = Reservation.query.get_or_404(res_id)
 
-    # Check if current user is admin or staff to allow setting customer_arrived_paid
-    if current_user.role not in ['admin', 'staff']:
-        flash('❌ Access denied. You do not have permission to perform this action.', 'error')
-        return redirect(url_for('calendar'))
 
     if res.status == 'Checked-In':
         flash('ℹ️ Guest is already checked in.', 'info')
@@ -663,13 +922,11 @@ def checkin(res_id):
 
 @app.route('/checkout/<int:res_id>')
 @login_required
+@require_roles('admin', 'staff')
 @log_activity("Attempted Check-out") # Log activity
 def checkout(res_id):
     res = Reservation.query.get_or_404(res_id)
 
-    if current_user.role not in ['admin', 'staff']:
-        flash('❌ Access denied. You do not have permission to perform this action.', 'error')
-        return redirect(url_for('calendar'))
 
     if res.status == 'Checked-Out':
         flash('ℹ️ Guest is already checked out.', 'info')
@@ -760,12 +1017,9 @@ def logout():
 
 @app.route('/export_data')
 @login_required
+@require_roles('admin', 'staff')
 @log_activity("Exported Data") # Log activity
 def export_data():
-    if current_user.role not in ['admin', 'staff']:
-        flash('❌ Access denied. Only staff and administrators can export data.', 'error')
-        return redirect(url_for('dashboard'))
-
     all_guests = Guest.query.all() # Renamed to all_guests
     output = io.StringIO()
     writer = csv.writer(output)
@@ -776,11 +1030,9 @@ def export_data():
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required
+@require_roles('admin')
 @log_activity("Viewed/Edited Settings") # Log activity
 def settings():
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Only administrators can change settings.', 'error')
-        return redirect(url_for('dashboard'))
     hotel = Hotel.query.first()
     if request.method == 'POST':
         hotel.name = request.form['name']
@@ -797,11 +1049,9 @@ def settings():
 
 @app.route('/users', methods=['GET', 'POST'])
 @login_required
+@require_roles('admin')
 @log_activity("Viewed/Managed Users") # Log activity
 def users():
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Only administrators can manage users.', 'error')
-        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         action = request.form.get('action')
         if action == 'add':
@@ -835,11 +1085,9 @@ def users():
 
 @app.route('/edit_user/<int:user_id>', methods=['GET', 'POST'])
 @login_required
+@require_roles('admin')
 @log_activity("Viewed/Edited User Profile") # Log activity
 def edit_user(user_id):
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Only administrators can edit user profiles.', 'error')
-        return redirect(url_for('dashboard'))
     user_to_edit = User.query.get_or_404(user_id)
     if request.method == 'POST':
         user_to_edit.username = request.form['username']
@@ -862,20 +1110,16 @@ def edit_user(user_id):
 
 @app.route('/backup')
 @login_required
+@require_roles('admin')
 @log_activity("Performed Database Backup") # Log activity
 def backup():
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Only administrators can perform backups.', 'error')
-        return redirect(url_for('dashboard'))
     return send_file(db_path, as_attachment=True, download_name='lamaliva_backup.db')
 
 @app.route('/restore', methods=['GET', 'POST'])
 @login_required
+@require_roles('admin')
 @log_activity("Attempted Database Restore") # Log activity
 def restore():
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Only administrators can restore databases.', 'error')
-        return redirect(url_for('dashboard'))
     if request.method == 'POST':
         file = request.files['backup_file']
         if file and file.filename != '':
@@ -942,12 +1186,9 @@ def occupancy_report():
 
 @app.route('/admin_monitoring')
 @login_required
+@require_roles('admin')
 @log_activity("Viewed Admin Monitoring Page") # Log activity
 def admin_monitoring():
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Administrators only.', 'error')
-        return redirect(url_for('dashboard'))
-
     users_with_logs = []
     all_users = User.query.all()
     for user in all_users:
@@ -963,12 +1204,9 @@ def admin_monitoring():
 
 @app.route('/send_message', methods=['POST'])
 @login_required
+@require_roles('admin')
 @log_activity("Sent Message to User") # Log activity
 def send_message():
-    if current_user.role != 'admin':
-        flash('❌ Access denied. Administrators only.', 'error')
-        return redirect(url_for('dashboard'))
-
     user_id = request.form.get('user_id')
     message_content = request.form.get('message_content')
 
@@ -986,6 +1224,130 @@ def send_message():
 @app.route('/user_manual')
 def user_manual():
     return render_template('user_manual.html')
+
+# ===================== ADMIN TOOLS: TOGGLES & SNACKBAR =====================
+
+def _get_hotel():
+    hotel = Hotel.query.first()
+    if not hotel:
+        hotel = Hotel()
+        db.session.add(hotel)
+        db.session.commit()
+    return hotel
+
+
+@app.route('/admin/toggles', methods=['POST'])
+@login_required
+@require_roles('admin')
+def admin_toggles():
+    """Admin switchboard for app-wide feature flags (payments / snackbar).
+
+    These toggles instantly control the payment & snackbar sections in BOTH
+    the PWA and the native apps (they poll /api/features).
+    """
+    hotel = _get_hotel()
+    hotel.payments_active = 'payments_active' in request.form
+    hotel.snackbar_active = 'snackbar_active' in request.form
+    db.session.commit()
+    _perform_log(f"Toggled features — payments: {hotel.payments_active}, snackbar: {hotel.snackbar_active}")
+    flash('✅ Feature switches updated. Apps pick up the change on next refresh.', 'success')
+    return redirect(request.referrer or url_for('dashboard'))
+
+
+@app.route('/snackbar', methods=['GET', 'POST'])
+@login_required
+@require_roles('admin', 'staff')
+def snackbar_admin():
+    """Admin manages snackbar menu items (photo, name, price, category)."""
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'add')
+        if action == 'delete':
+            item = SnackbarItem.query.get(request.form.get('item_id'))
+            if item:
+                db.session.delete(item)
+                db.session.commit()
+                flash('🗑️ Menu item removed.', 'info')
+            return redirect(url_for('snackbar_admin'))
+
+        name = (request.form.get('name') or '').strip()
+        category = (request.form.get('category') or 'Drinks').strip()
+        try:
+            price = float(request.form.get('price') or 0)
+        except ValueError:
+            price = 0
+        if not name or price <= 0:
+            flash('❌ Item name and a positive price are required.', 'error')
+            return redirect(url_for('snackbar_admin'))
+
+        image_url = (request.form.get('image_url') or '').strip() or None
+        file = request.files.get('image_file')
+        if file and file.filename:
+            from werkzeug.utils import secure_filename
+            import uuid as _uuid
+            ext = os.path.splitext(file.filename)[1].lower()
+            if ext in ('.png', '.jpg', '.jpeg', '.webp', '.gif'):
+                fname = f"snack_{_uuid.uuid4().hex[:10]}{secure_filename(ext)}"
+                upload_dir = os.path.join(basedir, 'static', 'uploads')
+                os.makedirs(upload_dir, exist_ok=True)
+                file.save(os.path.join(upload_dir, fname))
+                image_url = url_for('static', filename=f'uploads/{fname}')
+
+        item = SnackbarItem(name=name, category=category, price=price, image_url=image_url)
+        db.session.add(item)
+        db.session.commit()
+        _perform_log(f"Added snackbar item {name}")
+        flash(f'✅ “{name}” added to the snackbar menu.', 'success')
+        return redirect(url_for('snackbar_admin'))
+
+    items = SnackbarItem.query.order_by(SnackbarItem.category, SnackbarItem.name).all()
+    hotel = _get_hotel()
+    return render_template('snackbar_admin.html', items=items, hotel=hotel)
+
+
+@app.route('/snackbar/<int:item_id>/toggle', methods=['POST'])
+@login_required
+@require_roles('admin', 'staff')
+def snackbar_toggle_item(item_id):
+    if current_user.role not in ('admin', 'staff'):
+        flash('❌ Access denied.', 'error')
+        return redirect(url_for('dashboard'))
+    item = SnackbarItem.query.get_or_404(item_id)
+    item.available = not item.available
+    db.session.commit()
+    return redirect(url_for('snackbar_admin'))
+
+
+# ===================== PUBLIC APIs FOR NATIVE APP / PWA =====================
+
+@app.route('/api/health')
+def api_health():
+    """Liveness + database integrity probe for Render health checks."""
+    try:
+        db.session.execute(db.text('SELECT 1'))
+        db_ok = True
+    except Exception:
+        db.session.rollback()
+        db_ok = False
+    return jsonify({
+        'status': 'healthy' if db_ok else 'degraded',
+        'database': 'up' if db_ok else 'down',
+        'version': APP_VERSION,
+        'time': datetime.now(timezone.utc).isoformat(),
+    }), (200 if db_ok else 503)
+
+
+@app.route('/api/features')
+def api_features():
+    """Feature flags + hotel info the native app & PWA poll at startup."""
+    hotel = _get_hotel()
+    return jsonify({
+        'hotel': {'name': hotel.name, 'address': hotel.address},
+        'payments_active': bool(hotel.payments_active),
+        'snackbar_active': bool(hotel.snackbar_active),
+        'site_locked': bool(hotel.is_locked),
+        'version': APP_VERSION,
+    })
 
 # ===================== DOWNLOADS & VERSIONING =====================
 APP_RELEASES = {
@@ -1060,6 +1422,72 @@ def api_public_rooms():
         'image_url': r.image_url,
         'status': r.status,
     } for r in rooms])
+
+
+@app.route('/api/snackbar')
+def api_snackbar():
+    """Snackbar menu for the apps — empty unless admin enabled the section."""
+    hotel = _get_hotel()
+    if not hotel.snackbar_active:
+        return jsonify({'active': False, 'items': []})
+    items = SnackbarItem.query.filter_by(available=True).order_by(SnackbarItem.category, SnackbarItem.name).all()
+    return jsonify({
+        'active': True,
+        'items': [{
+            'id': i.id, 'name': i.name, 'category': i.category,
+            'price': i.price, 'image_url': i.image_url,
+        } for i in items],
+    })
+
+
+@app.route('/api/book', methods=['POST'])
+def api_book():
+    """Create a booking straight from the native app / PWA (public)."""
+    data = request.get_json(silent=True) or {}
+    try:
+        name = (data.get('name') or '').strip()
+        phone = (data.get('phone') or '').strip()
+        email = (data.get('email') or '').strip()
+        room_id = int(data.get('room_id') or 0)
+        check_in = datetime.strptime(data.get('check_in') or '', '%Y-%m-%d').replace(tzinfo=timezone.utc)
+        check_out = datetime.strptime(data.get('check_out') or '', '%Y-%m-%d').replace(tzinfo=timezone.utc)
+    except (ValueError, TypeError):
+        return jsonify({'ok': False, 'error': 'Invalid booking details.'}), 400
+
+    if not name or not phone:
+        return jsonify({'ok': False, 'error': 'Guest name and phone are required.'}), 400
+    if check_out <= check_in:
+        return jsonify({'ok': False, 'error': 'Check-out must be after check-in.'}), 400
+
+    room = Room.query.get(room_id)
+    if not room or room.status != 'Available':
+        return jsonify({'ok': False, 'error': 'Room unavailable — please pick another.'}), 409
+
+    days = max((check_out - check_in).total_seconds() / 86400, 1)
+    guest = Guest(name=name, phone=phone, email=email)
+    db.session.add(guest)
+    db.session.commit()
+    res = Reservation(
+        guest_id=guest.id, room_id=room.id, check_in=check_in, check_out=check_out,
+        amount=room.price * days, status='Confirmed',
+        access_deadline=check_in + timedelta(hours=24),
+    )
+    if check_in <= datetime.now(timezone.utc):
+        room.status = 'Occupied'
+        res.status = 'Checked-In'
+    db.session.add(res)
+    db.session.commit()
+    return jsonify({'ok': True, 'reservation_id': res.id, 'amount': res.amount,
+                    'room': room.room_number, 'message': 'Booking confirmed! Present your ID at the front desk.'})
+
+
+@app.route('/api/register-device', methods=['POST'])
+def api_register_device():
+    """Record a native-app / PWA install so staff can see app bookings in the log."""
+    data = request.get_json(silent=True) or {}
+    platform = (data.get('platform') or 'unknown')[:40]
+    _perform_log(f"App session from {platform}")
+    return jsonify({'ok': True})
 
 
 @app.route('/api/validate-email', methods=['POST'])
