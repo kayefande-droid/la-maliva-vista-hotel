@@ -292,6 +292,8 @@ class Hotel(db.Model):
     # ---- Admin feature toggles (drive PWA + native app sections) ----
     payments_active = db.Column(db.Boolean, default=False)  # MoMo / bank payment sections
     snackbar_active = db.Column(db.Boolean, default=False)  # Snackbar / restaurant menu
+    # ---- Google Maps location link (site contact page + native app "Location" option) ----
+    maps_url = db.Column(db.String(500), default='https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon')
 
 class SnackbarItem(db.Model):
     """An item on the hotel's snackbar / restaurant menu (admin-managed)."""
@@ -377,9 +379,11 @@ def inject_branding():
             hotel_name=hotel.name,
             payments_active=bool(hotel.payments_active),
             snackbar_active=bool(hotel.snackbar_active),
+            maps_url=hotel.maps_url or 'https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon',
         )
     except Exception:
-        return dict(hotel_name='LA-MALIVA VISTA HOTEL', payments_active=False, snackbar_active=False)
+        return dict(hotel_name='LA-MALIVA VISTA HOTEL', payments_active=False, snackbar_active=False,
+                    maps_url='https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon')
 
 # ===================== ACTIVITY LOGGING =====================
 def _perform_log(action, details=None):
@@ -534,22 +538,22 @@ def create_initial_data():
             if Room.query.count() == 0:
                 rooms_data = [
                 # Standard Rooms
-                {'number': '101', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '103', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '104', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '101', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': '/static/uploads/rooms/room_1566073771259.jpg'},
+                {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': '/static/uploads/rooms/room_1542314831.jpg'},
+                {'number': '103', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': '/static/uploads/rooms/room_1571003123894.jpg'},
+                {'number': '104', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': '/static/uploads/rooms/room_1611892440504.jpg'},
 
                 # Deluxe Rooms
-                {'number': '201', 'type': 'Deluxe', 'price': 25000, 'description': 'With fridge, couch, and large space', 'image_url': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '202', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '203', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '204', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '205', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '206', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '207', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '208', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '209', 'type': 'Deluxe', 'price': 20000, 'description': 'With fridge and couch', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
+                {'number': '201', 'type': 'Deluxe', 'price': 25000, 'description': 'With fridge, couch, and large space', 'image_url': '/static/uploads/rooms/room_1520250497591.jpg'},
+                {'number': '202', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': '/static/uploads/rooms/room_1566073771259.jpg'},
+                {'number': '203', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space', 'image_url': '/static/uploads/rooms/room_1542314831.jpg'},
+                {'number': '204', 'type': 'Deluxe', 'price': 20000, 'description': 'With working space', 'image_url': '/static/uploads/rooms/room_1571003123894.jpg'},
+                {'number': '205', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': '/static/uploads/rooms/room_1611892440504.jpg'},
+                {'number': '206', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': '/static/uploads/rooms/room_1520250497591.jpg'},
+                {'number': '207', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': '/static/uploads/rooms/room_1566073771259.jpg'},
+                {'number': '208', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': '/static/uploads/rooms/room_1542314831.jpg'},
+                {'number': '209', 'type': 'Deluxe', 'price': 20000, 'description': 'With fridge and couch', 'image_url': '/static/uploads/rooms/room_1571003123894.jpg'},
+                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV', 'image_url': '/static/uploads/rooms/room_1611892440504.jpg'},
                 ]
 
                 for r_data in rooms_data:
@@ -602,7 +606,8 @@ def _migrate_schema():
 
             # Hotel table toggles (feature flags for the PWA + native app)
             hotel_cols = {row[1] for row in db.session.execute(db.text("PRAGMA table_info(hotel)")).fetchall()}
-            for column, ddl in (("payments_active", "BOOLEAN DEFAULT 0"), ("snackbar_active", "BOOLEAN DEFAULT 0")):
+            for column, ddl in (("payments_active", "BOOLEAN DEFAULT 0"), ("snackbar_active", "BOOLEAN DEFAULT 0"),
+                                ("maps_url", "VARCHAR(500)")):
                 if column not in hotel_cols:
                     db.session.execute(db.text(f"ALTER TABLE hotel ADD COLUMN {column} {ddl}"))
 
@@ -837,6 +842,98 @@ def rooms():
     rooms_list = Room.query.order_by(Room.price).all()
     return render_template('rooms.html', rooms=rooms_list)
 
+# ===================== ADMIN: ROOM MANAGEMENT =====================
+
+def _save_room_photo(file):
+    """Store an uploaded room photo under static/uploads/rooms, return web path."""
+    from werkzeug.utils import secure_filename
+    import uuid as _uuid
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext not in ('.png', '.jpg', '.jpeg', '.webp'):
+        return None
+    fname = f"room_{_uuid.uuid4().hex[:10]}{ext}"
+    upload_dir = os.path.join(basedir, 'static', 'uploads', 'rooms')
+    os.makedirs(upload_dir, exist_ok=True)
+    file.save(os.path.join(upload_dir, fname))
+    return f"/static/uploads/rooms/{fname}"
+
+
+@app.route('/rooms/manage', methods=['GET', 'POST'])
+@login_required
+@require_roles('admin')
+def rooms_admin():
+    """Admin adds rooms, sets price/type/name/description, uploads real photos."""
+    if request.method == 'POST':
+        action = request.form.get('action', 'add')
+
+        if action == 'delete':
+            room = Room.query.get(request.form.get('room_id'))
+            if room:
+                if Reservation.query.filter_by(room_id=room.id).count() > 0:
+                    flash('❌ Cannot delete a room with reservation history — set it to Maintenance instead.', 'error')
+                else:
+                    db.session.delete(room)
+                    db.session.commit()
+                    flash(f'🗑️ Room {room.room_number} deleted.', 'info')
+            return redirect(url_for('rooms_admin'))
+
+        if action == 'update':
+            room = Room.query.get(request.form.get('room_id'))
+            if not room:
+                flash('❌ Room not found.', 'error')
+                return redirect(url_for('rooms_admin'))
+            try:
+                room.price = float(request.form.get('price') or room.price)
+            except ValueError:
+                pass
+            room.room_type = (request.form.get('room_type') or room.room_type).strip()
+            room.description = (request.form.get('description') or '').strip() or room.description
+            room.status = request.form.get('status') or room.status
+            file = request.files.get('image_file')
+            if file and file.filename:
+                saved = _save_room_photo(file)
+                if saved:
+                    room.image_url = saved
+            image_url = (request.form.get('image_url') or '').strip()
+            if image_url and not file:
+                room.image_url = image_url
+            db.session.commit()
+            _perform_log(f"Updated room {room.room_number}")
+            flash(f'✅ Room {room.room_number} updated.', 'success')
+            return redirect(url_for('rooms_admin'))
+
+        # action == add
+        number = (request.form.get('room_number') or '').strip()
+        room_type = (request.form.get('room_type') or 'Standard').strip()
+        try:
+            price = float(request.form.get('price') or 0)
+        except ValueError:
+            price = 0
+        description = (request.form.get('description') or '').strip()
+        if not number or price <= 0:
+            flash('❌ Room number and a positive price are required.', 'error')
+            return redirect(url_for('rooms_admin'))
+        if Room.query.filter_by(room_number=number).first():
+            flash(f'❌ Room {number} already exists.', 'error')
+            return redirect(url_for('rooms_admin'))
+
+        image_url = (request.form.get('image_url') or '').strip() or None
+        file = request.files.get('image_file')
+        if file and file.filename:
+            saved = _save_room_photo(file)
+            if saved:
+                image_url = saved
+        room = Room(room_number=number, room_type=room_type, price=price,
+                    status='Available', description=description, image_url=image_url)
+        db.session.add(room)
+        db.session.commit()
+        _perform_log(f"Added room {number}")
+        flash(f'✅ Room {number} added.', 'success')
+        return redirect(url_for('rooms_admin'))
+
+    rooms_list = Room.query.order_by(Room.room_number).all()
+    return render_template('rooms_admin.html', rooms=rooms_list)
+
 @app.route('/reservations')
 @login_required
 @log_activity("Viewed Reservations List") # Log activity
@@ -1043,6 +1140,11 @@ def settings():
         hotel.name = request.form['name']
         hotel.address = request.form['address']
         hotel.tax_rate = float(request.form['tax_rate'])
+        # Google Maps location link (drives site contact page + native app Location option)
+        maps = (request.form.get('maps_url') or '').strip()
+        if maps and not maps.startswith(('http://', 'https://')):
+            maps = 'https://' + maps
+        hotel.maps_url = maps or hotel.maps_url
         # Handle lock settings
         hotel.is_locked = 'is_locked' in request.form
         hotel.lock_message = request.form.get('lock_message', hotel.lock_message)
@@ -1347,7 +1449,7 @@ def api_features():
     """Feature flags + hotel info the native app & PWA poll at startup."""
     hotel = _get_hotel()
     return jsonify({
-        'hotel': {'name': hotel.name, 'address': hotel.address},
+        'hotel': {'name': hotel.name, 'address': hotel.address, 'maps_url': hotel.maps_url or ''},
         'payments_active': bool(hotel.payments_active),
         'snackbar_active': bool(hotel.snackbar_active),
         'site_locked': bool(hotel.is_locked),
@@ -1711,6 +1813,76 @@ def api_staff_checkout(res_id):
 
 # ===================== APP API: ADMIN CONTROLS =====================
 
+@app.route('/api/admin/rooms', methods=['GET', 'POST'])
+def api_admin_rooms():
+    """Native-app room management: list (staff) / add-edit (admin, multipart photo)."""
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    if request.method == 'GET':
+        rooms = Room.query.order_by(Room.room_number).all()
+        return jsonify({'ok': True, 'rooms': [{
+            'id': r.id, 'room_number': r.room_number, 'room_type': r.room_type,
+            'price': r.price, 'description': r.description,
+            'image_url': r.image_url, 'status': r.status,
+        } for r in rooms]})
+    if user.role != 'admin':
+        return jsonify({'ok': False, 'error': 'Admin access only.'}), 403
+    action = request.form.get('action', 'add')
+    if action == 'delete':
+        room = Room.query.get(request.form.get('room_id'))
+        if not room:
+            return jsonify({'ok': False, 'error': 'Room not found.'}), 404
+        if Reservation.query.filter_by(room_id=room.id).count() > 0:
+            return jsonify({'ok': False, 'error': 'Room has reservation history — set it to Maintenance instead.'}), 409
+        db.session.delete(room)
+        db.session.commit()
+        return jsonify({'ok': True})
+    if action == 'update':
+        room = Room.query.get(request.form.get('room_id'))
+        if not room:
+            return jsonify({'ok': False, 'error': 'Room not found.'}), 404
+        try:
+            room.price = float(request.form.get('price') or room.price)
+        except ValueError:
+            pass
+        room.room_type = (request.form.get('room_type') or room.room_type).strip()
+        room.description = (request.form.get('description') or '').strip() or room.description
+        room.status = request.form.get('status') or room.status
+        file = request.files.get('image')
+        if file and file.filename:
+            saved = _save_room_photo(file)
+            if saved:
+                room.image_url = saved
+        db.session.commit()
+        return jsonify({'ok': True, 'room': {'id': room.id, 'room_number': room.room_number,
+                                              'price': room.price, 'image_url': room.image_url}})
+    # add
+    number = (request.form.get('room_number') or '').strip()
+    room_type = (request.form.get('room_type') or 'Standard').strip()
+    try:
+        price = float(request.form.get('price') or 0)
+    except ValueError:
+        price = 0
+    if not number or price <= 0:
+        return jsonify({'ok': False, 'error': 'Room number and positive price required.'}), 400
+    if Room.query.filter_by(room_number=number).first():
+        return jsonify({'ok': False, 'error': 'Room number already exists.'}), 409
+    image_url = (request.form.get('image_url') or '').strip() or None
+    file = request.files.get('image')
+    if file and file.filename:
+        saved = _save_room_photo(file)
+        if saved:
+            image_url = saved
+    room = Room(room_number=number, room_type=room_type, price=price,
+                status='Available', description=(request.form.get('description') or '').strip(),
+                image_url=image_url)
+    db.session.add(room)
+    db.session.commit()
+    return jsonify({'ok': True, 'room': {'id': room.id, 'room_number': room.room_number,
+                                          'price': room.price, 'image_url': room.image_url}})
+
+
 @app.route('/api/admin/toggles', methods=['POST'])
 def api_admin_toggles():
     """Admin flips payments/snackbar switches from the native app."""
@@ -1806,7 +1978,31 @@ def api_validate_email():
 
 @app.route('/manifest.json')
 def manifest():
-    return jsonify({"name": "LaMalaVista", "short_name": "LaMalaVista", "start_url": "/dashboard", "display": "standalone", "background_color": "#001a4d", "theme_color": "#0052cc", "icons": [{"src": "/static/logo.png", "sizes": "192x192", "type": "image/png"}]})
+    return jsonify({
+        'name': 'La-Maliva Vista Hotel',
+        'short_name': 'La-Maliva',
+        'description': 'Book rooms, order from the snackbar and manage your stay — A Taste of Paradise, Buea.',
+        'id': '/',
+        'start_url': '/',
+        'scope': '/',
+        'display': 'standalone',
+        'orientation': 'portrait-primary',
+        'background_color': '#08123A',
+        'theme_color': '#08123A',
+        'lang': 'en',
+        'categories': ['travel', 'lifestyle'],
+        'icons': [
+            {'src': '/static/icons/icon-192.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'any'},
+            {'src': '/static/icons/icon-512.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'any'},
+            {'src': '/static/icons/icon-192-maskable.png', 'sizes': '192x192', 'type': 'image/png', 'purpose': 'maskable'},
+            {'src': '/static/icons/icon-512-maskable.png', 'sizes': '512x512', 'type': 'image/png', 'purpose': 'maskable'},
+        ],
+        'shortcuts': [
+            {'name': 'Rooms & Suites', 'url': '/stay'},
+            {'name': 'My Bookings', 'url': '/dashboard'},
+            {'name': 'Get the App', 'url': '/downloads'},
+        ],
+    })
 
 @app.route('/sw.js')
 def service_worker():
