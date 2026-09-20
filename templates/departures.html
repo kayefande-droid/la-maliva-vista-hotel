@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for departures.html, overriding/extending base.html where needed */
     .main-content h5 {
-        color: #ffc107; /* Brighter gold text for header */
+        color: #eec37a; /* Brighter gold text for header */
         margin-bottom: 20px;
     }
     .card {
@@ -12,17 +12,17 @@
     }
     .table {
         background-color: transparent !important; /* Transparent table background */
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     .table th, .table td {
         border-color: rgba(255, 255, 255, 0.15);
     }
     .table thead {
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient header */
-        color: #ffc107 !important; /* Brighter gold text */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient header */
+        color: #eec37a !important; /* Brighter gold text */
     }
     .table thead th {
-        border-color: rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
+        border-color: rgba(238, 195, 122, 0.5) !important; /* Brighter gold border */
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
@@ -31,8 +31,8 @@
         transition: all 0.3s ease;
     }
     .table tbody tr:hover {
-        background: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover */
-        color: #ffc107; /* Brighter gold text on hover */
+        background: rgba(238, 195, 122, 0.15); /* Subtle brighter gold hover */
+        color: #eec37a; /* Brighter gold text on hover */
     }
     .badge.bg-info {
         background-color: #17a2b8 !important; /* Cyan badge */
@@ -40,12 +40,12 @@
     }
     .btn-invoice {
         @extend .btn-gold; /* Use gold button style for invoice */
-        background: linear-gradient(135deg, #001533 0%, #002a66 100%) !important; /* Deeper dark blue for invoice */
+        background: linear-gradient(135deg, #0f2240 0%, #16305c 100%) !important; /* Deeper dark blue for invoice */
         color: white !important;
     }
     .btn-invoice:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 21, 51, 0.5);
+        box-shadow: 0 8px 20px rgba(10, 22, 40, 0.5);
     }
     .btn-checkout {
         @extend .btn-teal; /* Use teal button style for checkout */

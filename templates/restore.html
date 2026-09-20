@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for restore.html, overriding/extending base.html where needed */
     .restore-header {
-        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
+        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 0.75rem;
@@ -22,17 +22,17 @@
         to { opacity: 1; transform: translateY(0); }
     }
     .restore-header h5 {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .restore-header small {
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     .restore-form {
         background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
+        border: 1px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
         padding: 30px;
         border-radius: 0.75rem;
         animation: slideInUp 0.6s ease-out;
@@ -46,7 +46,7 @@
         to { opacity: 1; transform: translateY(0); }
     }
     .form-label {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-weight: bold;
         margin-bottom: 12px;
         display: flex;
@@ -57,19 +57,19 @@
     .form-control {
         background-color: rgba(255, 255, 255, 0.15) !important; /* Slightly more opaque */
         border: 1px solid rgba(255, 255, 255, 0.4) !important; /* More prominent border */
-        color: #f0f0f0 !important; /* Lighter text */
+        color: #f5f1e8 !important; /* Lighter text */
         transition: all 0.3s ease;
         padding: 12px;
         border-radius: 0.5rem !important;
     }
     .form-control:focus {
-        border-color: #ffc107 !important; /* Brighter gold focus */
-        box-shadow: 0 0 10px rgba(255, 193, 7, 0.4) !important;
+        border-color: #eec37a !important; /* Brighter gold focus */
+        box-shadow: 0 0 10px rgba(238, 195, 122, 0.4) !important;
         background-color: rgba(255, 255, 255, 0.25) !important;
     }
     .form-control::file-selector-button {
-        background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); /* Brighter gold gradient */
-        color: #001533; /* Dark text */
+        background: linear-gradient(135deg, #eec37a 0%, #f08c2e 100%); /* Brighter gold gradient */
+        color: #0f2240; /* Dark text */
         border: none;
         padding: 8px 15px;
         border-radius: 0.5rem;
@@ -77,7 +77,7 @@
         transition: all 0.3s ease;
     }
     .form-control::file-selector-button:hover {
-        background: linear-gradient(135deg, #ffdb58 0%, #ffc107 100%); /* Lighter gold on hover */
+        background: linear-gradient(135deg, #ffdb58 0%, #eec37a 100%); /* Lighter gold on hover */
         transform: translateY(-1px);
     }
     .btn-restore {
@@ -86,9 +86,9 @@
         margin-top: 20px;
     }
     .alert-warning {
-        background: rgba(255, 193, 7, 0.25) !important; /* More opaque */
-        border: 1px solid #ffc107 !important; /* Brighter gold border */
-        color: #f0f0f0 !important; /* Lighter text */
+        background: rgba(238, 195, 122, 0.25) !important; /* More opaque */
+        border: 1px solid #eec37a !important; /* Brighter gold border */
+        color: #f5f1e8 !important; /* Lighter text */
     }
     .alert-warning .btn-close {
         filter: invert(1); /* White close button */
@@ -98,7 +98,7 @@
 <div class="container-fluid">
     <div class="main-content glass-panel">
         <div class="restore-header">
-            <i class="bi bi-arrow-repeat" style="font-size: 28px; color: #ffc107;"></i>
+            <i class="bi bi-arrow-repeat" style="font-size: 28px; color: #eec37a;"></i>
             <div>
                 <h5 class="mb-0">Restore Database</h5>
                 <small>Upload a backup file to restore the database</small>
@@ -126,7 +126,7 @@
                 <div class="mb-3">
                     <label for="backup_file" class="form-label"><i class="bi bi-file-earmark-arrow-down"></i> Select Backup File</label>
                     <input type="file" class="form-control form-control-lg" id="backup_file" name="backup_file" accept=".db,.sqlite,.sqlite3" required>
-                    <small style="color: #b0b0b0; display: block; margin-top: 8px;">Accepted formats: .db, .sqlite, .sqlite3</small>
+                    <small style="color: #b9c2ce; display: block; margin-top: 8px;">Accepted formats: .db, .sqlite, .sqlite3</small>
                 </div>
 
                 <button type="submit" class="btn btn-restore btn-lg w-100">

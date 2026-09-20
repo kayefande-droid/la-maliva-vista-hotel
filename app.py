@@ -240,6 +240,10 @@ class User(UserMixin, db.Model):
     # ---- Password management ----
     password_changed = db.Column(db.Boolean, default=False)  # True once user changes from default
 
+    # ---- Native-app API access ----
+    api_token = db.Column(db.String(64), nullable=True, index=True)
+    api_token_issued = db.Column(db.DateTime, nullable=True)
+
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     room_number = db.Column(db.String(10), unique=True)
@@ -525,11 +529,10 @@ def create_initial_data():
                 admin_row.email_verified = True
                 db.session.commit()
 
-            # Clear existing room data to ensure only the new, specified rooms are present
-            Room.query.delete()
-            db.session.commit()
-
-            rooms_data = [
+            # Seed rooms only when the table is empty (FK constraints now
+            # prevent wiping rooms that reservations reference).
+            if Room.query.count() == 0:
+                rooms_data = [
                 # Standard Rooms
                 {'number': '101', 'type': 'Standard', 'price': 10000, 'description': 'Basic comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
                 {'number': '102', 'type': 'Standard', 'price': 15000, 'description': 'Comfort with a view', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
@@ -546,19 +549,20 @@ def create_initial_data():
                 {'number': '207', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=1920&auto=format&fit=crop'},
                 {'number': '208', 'type': 'Deluxe', 'price': 15000, 'description': 'Spacious comfort', 'image_url': 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1920&auto=format&fit=crop'},
                 {'number': '209', 'type': 'Deluxe', 'price': 20000, 'description': 'With fridge and couch', 'image_url': 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=1920&auto=format&fit=crop'},
-                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'}
-            ]
+                {'number': '210', 'type': 'Deluxe', 'price': 20000, 'description': 'With smart TV', 'image_url': 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?q=80&w=1920&auto=format&fit=crop'},
+                ]
 
-            for r_data in rooms_data:
-                new_room = Room(
-                    room_number=r_data['number'],
-                    room_type=r_data['type'],
-                    price=r_data['price'],
-                    status='Available',
-                    description=r_data['description'],
-                    image_url=r_data['image_url'] # Assign image URL
-                )
-                db.session.add(new_room)
+                for r_data in rooms_data:
+                    new_room = Room(
+                        room_number=r_data['number'],
+                        room_type=r_data['type'],
+                        price=r_data['price'],
+                        status='Available',
+                        description=r_data['description'],
+                        image_url=r_data['image_url'] # Assign image URL
+                    )
+                    db.session.add(new_room)
+                db.session.commit()
 
             if not Hotel.query.first():
                 hotel = Hotel()
@@ -589,6 +593,8 @@ def _migrate_schema():
                 ("verification_sent_at", "DATETIME"),
                 ("access_secret_hash", "VARCHAR(128)"),
                 ("password_changed", "BOOLEAN DEFAULT 0"),
+                ("api_token", "VARCHAR(64)"),
+                ("api_token_issued", "DATETIME"),
             ]
             for column, ddl in migrations:
                 if column not in existing:
@@ -836,7 +842,7 @@ def rooms():
 @log_activity("Viewed Reservations List") # Log activity
 def reservations():
     res_list = Reservation.query.all()
-    return render_template('reservations.html', reservations=res_list)
+    return render_template('reservations.html', reservations=res_list, now=datetime.now(timezone.utc))
 
 @app.route('/guests')
 @login_required
@@ -952,7 +958,6 @@ def invoice(res_id):
     return render_template('invoice.html', res=res, guest=res.guest, room=res.room, days=days, now=datetime.now(timezone.utc))
 
 @app.route('/download_booking_proof/<int:res_id>')
-@login_required
 @log_activity("Downloaded Booking Proof") # Log activity
 def download_booking_proof(res_id):
     res = Reservation.query.get_or_404(res_id)
@@ -1488,6 +1493,306 @@ def api_register_device():
     platform = (data.get('platform') or 'unknown')[:40]
     _perform_log(f"App session from {platform}")
     return jsonify({'ok': True})
+
+
+# ===================== APP API: AUTH (token-based, same database) =====================
+
+def _issue_api_token(user):
+    """Generate and persist a bearer token for the native app / PWA."""
+    user.api_token = secrets.token_hex(32)
+    user.api_token_issued = datetime.now(timezone.utc)
+    db.session.commit()
+    return user.api_token
+
+
+def _current_api_user():
+    """Resolve the API caller from their Bearer token (or web session as fallback)."""
+    auth = request.headers.get('Authorization', '')
+    if auth.startswith('Bearer '):
+        token = auth[7:].strip()
+        if token:
+            return User.query.filter_by(api_token=token).first()
+    if current_user.is_authenticated:
+        return current_user
+    return None
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_auth_login():
+    """Native-app login against the SAME user database as the website."""
+    data = request.get_json(silent=True) or {}
+    identifier = (data.get('username') or data.get('email') or '').strip()
+    password = data.get('password') or ''
+    if not identifier or not password:
+        return jsonify({'ok': False, 'error': 'Username and password are required.'}), 400
+
+    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+    if not user or not check_password_hash(user.password_hash, password):
+        return jsonify({'ok': False, 'error': 'Invalid username/email or password.'}), 401
+
+    if not user.email_verified:
+        return jsonify({'ok': False, 'error': 'Email not verified. Check your inbox for the verification link.', 'needs_verification': True}), 403
+
+    is_default_admin = (
+        user.role == 'admin'
+        and not user.password_changed
+        and check_password_hash(user.password_hash, 'lamaliva@2026')
+    )
+    token = _issue_api_token(user)
+    return jsonify({
+        'ok': True,
+        'token': token,
+        'must_change_password': is_default_admin,
+        'user': {
+            'id': user.id, 'username': user.username, 'email': user.email,
+            'role': user.role,
+        },
+    })
+
+
+@app.route('/api/auth/me')
+def api_auth_me():
+    user = _current_api_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
+    return jsonify({'ok': True, 'user': {
+        'id': user.id, 'username': user.username, 'email': user.email, 'role': user.role,
+        'must_change_password': user.role == 'admin' and not user.password_changed,
+    }})
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_auth_logout():
+    user = _current_api_user()
+    if user and request.headers.get('Authorization', '').startswith('Bearer '):
+        user.api_token = None
+        db.session.commit()
+    return jsonify({'ok': True})
+
+
+@app.route('/api/auth/change-password', methods=['POST'])
+def api_auth_change_password():
+    user = _current_api_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
+    data = request.get_json(silent=True) or {}
+    current_pw = data.get('current_password', '')
+    new_pw = data.get('new_password', '')
+    if not check_password_hash(user.password_hash, current_pw):
+        return jsonify({'ok': False, 'error': 'Current password is incorrect.'}), 400
+    if len(new_pw) < 8:
+        return jsonify({'ok': False, 'error': 'New password must be at least 8 characters.'}), 400
+    user.password_hash = generate_password_hash(new_pw)
+    user.password_changed = True
+    db.session.commit()
+    return jsonify({'ok': True, 'message': 'Password updated.'})
+
+
+# ===================== APP API: GUEST DATA =====================
+
+@app.route('/api/my-bookings')
+def api_my_bookings():
+    """Bookings for the token holder, matched by account email."""
+    user = _current_api_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
+    matches = Guest.query.filter(
+        (Guest.email == user.email) | (Guest.email == user.username)
+    ).all() if user.email else []
+    guest_ids = [g.id for g in matches]
+    bookings = Reservation.query.filter(Reservation.guest_id.in_(guest_ids)).order_by(Reservation.check_in.desc()).all() if guest_ids else []
+    return jsonify({'ok': True, 'bookings': [{
+        'id': r.id, 'room': r.room.room_number if r.room else None,
+        'room_type': r.room.room_type if r.room else None,
+        'check_in': r.check_in.isoformat(), 'check_out': r.check_out.isoformat(),
+        'status': r.status, 'amount': r.amount,
+        'guest_name': r.guest.name if r.guest else None,
+    } for r in bookings]})
+
+
+@app.route('/api/booking/<int:res_id>')
+def api_booking_detail(res_id):
+    """Single booking receipt — owner or staff/admin only."""
+    user = _current_api_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
+    r = Reservation.query.get(res_id)
+    if not r:
+        return jsonify({'ok': False, 'error': 'Not found.'}), 404
+    owns = r.guest and user.email and (r.guest.email == user.email or r.guest.email == user.username)
+    if not owns and user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Insufficient permissions.'}), 403
+    hotel = _get_hotel()
+    return jsonify({'ok': True, 'booking': {
+        'id': r.id,
+        'guest_name': r.guest.name if r.guest else None,
+        'guest_email': r.guest.email if r.guest else None,
+        'guest_phone': r.guest.phone if r.guest else None,
+        'room': r.room.room_number if r.room else None,
+        'room_type': r.room.room_type if r.room else None,
+        'check_in': r.check_in.isoformat(), 'check_out': r.check_out.isoformat(),
+        'status': r.status, 'amount': r.amount,
+        'hotel': {'name': hotel.name, 'address': hotel.address, 'phone': '(+237) 679-915-967'},
+    }})
+
+
+# ===================== APP API: STAFF/ADMIN TOOLS =====================
+
+@app.route('/api/staff/overview')
+def api_staff_overview():
+    """Live ops snapshot for the app's staff/admin dashboard."""
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    total = Room.query.count()
+    occupied = Room.query.filter_by(status='Occupied').count()
+    today = datetime.now(timezone.utc).date()
+    start = datetime.combine(today, datetime.min.time(), tzinfo=timezone.utc)
+    end = datetime.combine(today, datetime.max.time(), tzinfo=timezone.utc)
+    arrivals = Reservation.query.filter(Reservation.check_in >= start, Reservation.check_in <= end).count()
+    departures = Reservation.query.filter(Reservation.check_out >= start, Reservation.check_out <= end).count()
+    return jsonify({'ok': True, 'total_rooms': total, 'occupied': occupied,
+                    'free': total - occupied, 'arrivals_today': arrivals, 'departures_today': departures})
+
+
+@app.route('/api/staff/reservations')
+def api_staff_reservations():
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    status = request.args.get('status')
+    q = Reservation.query.order_by(Reservation.check_in.desc())
+    if status:
+        q = q.filter_by(status=status)
+    recent = q.limit(50).all()
+    return jsonify({'ok': True, 'reservations': [{
+        'id': r.id,
+        'guest_name': r.guest.name if r.guest else '—',
+        'guest_phone': r.guest.phone if r.guest else None,
+        'room': r.room.room_number if r.room else '—',
+        'check_in': r.check_in.isoformat(), 'check_out': r.check_out.isoformat(),
+        'status': r.status, 'amount': r.amount,
+    } for r in recent]})
+
+
+@app.route('/api/staff/checkin/<int:res_id>', methods=['POST'])
+def api_staff_checkin(res_id):
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    r = Reservation.query.get(res_id)
+    if not r:
+        return jsonify({'ok': False, 'error': 'Not found.'}), 404
+    if r.status != 'Checked-In':
+        r.status = 'Checked-In'
+        room = Room.query.get(r.room_id)
+        if room:
+            room.status = 'Occupied'
+        db.session.commit()
+    return jsonify({'ok': True, 'status': r.status})
+
+
+@app.route('/api/staff/checkout/<int:res_id>', methods=['POST'])
+def api_staff_checkout(res_id):
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    r = Reservation.query.get(res_id)
+    if not r:
+        return jsonify({'ok': False, 'error': 'Not found.'}), 404
+    if r.status != 'Checked-Out':
+        r.status = 'Checked-Out'
+        room = Room.query.get(r.room_id)
+        if room:
+            room.status = 'Available'
+        db.session.commit()
+    return jsonify({'ok': True, 'status': r.status})
+
+
+# ===================== APP API: ADMIN CONTROLS =====================
+
+@app.route('/api/admin/toggles', methods=['POST'])
+def api_admin_toggles():
+    """Admin flips payments/snackbar switches from the native app."""
+    user = _current_api_user()
+    if not user or user.role != 'admin':
+        return jsonify({'ok': False, 'error': 'Admin access only.'}), 403
+    data = request.get_json(silent=True) or {}
+    hotel = _get_hotel()
+    if 'payments_active' in data:
+        hotel.payments_active = bool(data['payments_active'])
+    if 'snackbar_active' in data:
+        hotel.snackbar_active = bool(data['snackbar_active'])
+    db.session.commit()
+    _perform_log(f"App toggle by {user.username}: payments={hotel.payments_active} snackbar={hotel.snackbar_active}")
+    return jsonify({'ok': True, 'payments_active': hotel.payments_active, 'snackbar_active': hotel.snackbar_active})
+
+
+@app.route('/api/admin/users', methods=['GET', 'POST'])
+def api_admin_users():
+    """Admin lists users / creates staff accounts from the native app."""
+    user = _current_api_user()
+    if not user or user.role != 'admin':
+        return jsonify({'ok': False, 'error': 'Admin access only.'}), 403
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        username = (data.get('username') or '').strip()
+        email = (data.get('email') or '').strip().lower()
+        password = data.get('password') or ''
+        role = data.get('role') or 'staff'
+        if role not in ('staff', 'admin'):
+            return jsonify({'ok': False, 'error': 'Role must be staff or admin.'}), 400
+        if not username or not email or len(password) < 8:
+            return jsonify({'ok': False, 'error': 'Username, email and 8+ char password required.'}), 400
+        if User.query.filter((User.username == username) | (User.email == email)).first():
+            return jsonify({'ok': False, 'error': 'Username or email already exists.'}), 409
+        nu = User(username=username, email=email, password_hash=generate_password_hash(password),
+                  role=role, first_login_done=True)
+        nu.email_verified = True
+        nu.password_changed = True  # admin sets the password, so no default prompt
+        db.session.add(nu)
+        db.session.commit()
+        return jsonify({'ok': True, 'user': {'id': nu.id, 'username': nu.username, 'role': nu.role}})
+    users = User.query.order_by(User.registered_on.desc()).all()
+    return jsonify({'ok': True, 'users': [{
+        'id': u.id, 'username': u.username, 'email': u.email, 'role': u.role,
+        'verified': bool(u.email_verified), 'registered': u.registered_on.isoformat() if u.registered_on else None,
+    } for u in users]})
+
+
+@app.route('/api/snackbar/items', methods=['GET', 'POST'])
+def api_snackbar_items():
+    """List (public, gated by toggle) and add (staff/admin, multipart photo upload)."""
+    if request.method == 'GET':
+        return api_snackbar()
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    name = (request.form.get('name') or '').strip()
+    category = (request.form.get('category') or 'Drinks').strip()
+    try:
+        price = float(request.form.get('price') or 0)
+    except ValueError:
+        price = 0
+    if not name or price <= 0:
+        return jsonify({'ok': False, 'error': 'Name and positive price required.'}), 400
+    image_url = (request.form.get('image_url') or '').strip() or None
+    file = request.files.get('image')
+    if file and file.filename:
+        from werkzeug.utils import secure_filename
+        import uuid as _uuid
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext in ('.png', '.jpg', '.jpeg', '.webp', '.gif'):
+            fname = f"snack_{_uuid.uuid4().hex[:10]}{secure_filename(ext)}"
+            upload_dir = os.path.join(basedir, 'static', 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            file.save(os.path.join(upload_dir, fname))
+            image_url = url_for('static', filename=f'uploads/{fname}', _external=True)
+    item = SnackbarItem(name=name, category=category, price=price, image_url=image_url)
+    db.session.add(item)
+    db.session.commit()
+    return jsonify({'ok': True, 'item': {'id': item.id, 'name': item.name, 'category': item.category,
+                                          'price': item.price, 'image_url': item.image_url}})
 
 
 @app.route('/api/validate-email', methods=['POST'])

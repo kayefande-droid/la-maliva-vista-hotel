@@ -3,7 +3,7 @@
 <style>
     /* Specific styles for reservations.html, overriding/extending base.html where needed */
     .reservations-header {
-        background: linear-gradient(135deg, rgba(0, 21, 51, 0.6), rgba(0, 42, 102, 0.6)); /* Deeper dark blue gradient */
+        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
         color: white;
         padding: 25px;
         border-radius: 0.75rem;
@@ -18,13 +18,13 @@
         -webkit-backdrop-filter: blur(12px);
     }
     .reservations-header h5 {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
     .reservations-header small {
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
@@ -32,7 +32,7 @@
     }
     .reservations-container {
         background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-        border: 1px solid rgba(255, 193, 7, 0.5); /* Brighter gold border */
+        border: 1px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
         border-radius: 0.75rem;
         padding: 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -46,41 +46,41 @@
     }
     .reservations-table {
         background-color: rgba(255, 255, 255, 0.08) !important; /* Transparent table background */
-        border: 1px solid rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
+        border: 1px solid rgba(238, 195, 122, 0.5) !important; /* Brighter gold border */
         border-radius: 0.75rem;
         overflow: hidden;
         animation: fadeIn 0.6s ease-out;
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
     }
     .reservations-table thead {
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue gradient header */
-        color: #ffc107 !important; /* Brighter gold text */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient header */
+        color: #eec37a !important; /* Brighter gold text */
         font-weight: bold;
     }
     .reservations-table thead th {
-        border-color: rgba(255, 193, 7, 0.5) !important; /* Brighter gold border */
+        border-color: rgba(238, 195, 122, 0.5) !important; /* Brighter gold border */
         padding: 18px 15px;
         text-transform: uppercase;
         font-size: 12px;
         letter-spacing: 0.5px;
-        border-bottom: 2px solid rgba(255, 193, 7, 0.5) !important;
+        border-bottom: 2px solid rgba(238, 195, 122, 0.5) !important;
         position: relative;
     }
     .reservations-table thead th i {
         margin-right: 8px;
-        color: #ffc107;
+        color: #eec37a;
     }
     .reservations-table tbody tr {
         border-bottom: 1px solid rgba(255, 255, 255, 0.15);
         transition: all 0.3s ease;
     }
     .reservations-table tbody tr:hover {
-        background: rgba(255, 193, 7, 0.15); /* Subtle brighter gold hover */
-        box-shadow: inset 3px 0 0 #ffc107; /* Brighter gold left border on hover */
+        background: rgba(238, 195, 122, 0.15); /* Subtle brighter gold hover */
+        box-shadow: inset 3px 0 0 #eec37a; /* Brighter gold left border on hover */
         transform: translateX(5px);
-        color: #ffc107; /* Brighter gold text on hover */
+        color: #eec37a; /* Brighter gold text on hover */
     }
     .reservations-table tbody td {
         padding: 16px 15px;
@@ -135,15 +135,15 @@
     }
     .btn-invoice {
         @extend .btn-teal; /* Use teal button style */
-        background: linear-gradient(135deg, #001533, #002a66) !important; /* Deeper dark blue for invoice */
+        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue for invoice */
         color: white !important;
     }
     .btn-invoice:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 21, 51, 0.5);
+        box-shadow: 0 8px 20px rgba(10, 22, 40, 0.5);
     }
     .guest-name {
-        color: #ffc107; /* Brighter gold text */
+        color: #eec37a; /* Brighter gold text */
         font-weight: bold;
         font-size: 14px;
         display: flex;
@@ -151,35 +151,35 @@
         gap: 8px;
     }
     .guest-name i {
-        color: #ffc107;
+        color: #eec37a;
     }
     .room-badge {
-        background: linear-gradient(135deg, #ffc107, #ff9800); /* Brighter gold gradient */
-        color: #001533;
+        background: linear-gradient(135deg, #d97a2b, #f08c2e); /* Brighter gold gradient */
+        color: #0f2240;
         padding: 6px 12px;
         border-radius: 0.5rem;
         font-weight: bold;
         display: inline-block;
         font-size: 12px;
-        border: 2px solid #ff9800;
+        border: 2px solid #f08c2e;
     }
     .datetime-info {
         font-size: 12px;
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
         line-height: 1.4;
     }
     .datetime-info strong {
-        color: #ffc107; /* Brighter gold for strong text */
+        color: #eec37a; /* Brighter gold for strong text */
     }
     .no-reservations {
         text-align: center;
         padding: 50px;
-        color: #f0f0f0; /* Brighter text */
+        color: #f5f1e8; /* Brighter text */
         font-size: 18px;
     }
     .no-reservations i {
         font-size: 48px;
-        color: #ffc107;
+        color: #eec37a;
         margin-bottom: 20px;
     }
     .status-badge {
@@ -217,7 +217,7 @@
                 <small>View and manage all guest reservations</small>
             </div>
             <div style="text-align: right;">
-                <div style="font-size: 18px; font-weight: bold; color: #ffc107;">{{ reservations|length }}</div>
+                <div style="font-size: 18px; font-weight: bold; color: #eec37a;">{{ reservations|length }}</div>
                 <small style="color: rgba(240,240,240,0.8);">Total Reservations</small>
             </div>
         </div>
@@ -270,7 +270,7 @@
                                         <strong>{{ res.access_deadline.strftime('%d %b %Y') }}</strong><br>
                                         <i class="bi bi-clock"></i> {{ res.access_deadline.strftime('%H:%M') }}
                                     </div>
-                                    {% if res.access_deadline < datetime.utcnow() and not res.customer_arrived_paid %}
+                                    {% if res.access_deadline and res.access_deadline.timestamp() < now.timestamp() and not res.customer_arrived_paid %}
                                         <span class="badge bg-danger status-badge">Expired</span>
                                     {% endif %}
                                 {% else %}
@@ -307,7 +307,7 @@
                                 <div class="no-reservations">
                                     <i class="bi bi-calendar-x"></i>
                                     <div>No reservations found</div>
-                                    <small style="color: #b0b0b0;">Create a new reservation to get started</small>
+                                    <small style="color: #b9c2ce;">Create a new reservation to get started</small>
                                 </div>
                             </td>
                         </tr>
