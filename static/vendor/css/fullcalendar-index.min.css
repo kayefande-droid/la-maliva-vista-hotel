@@ -1,0 +1,9 @@
+/* FullCalendar v6 injects its own styles via JS. This file carries the
+   brand overrides for the resource-timeline used on /calendar. */
+:root { --fc-border-color: rgba(255,255,255,0.14); --fc-page-bg-color: transparent; --fc-neutral-bg-color: rgba(255,255,255,0.06); --fc-today-bg-color: rgba(217,122,43,0.12); }
+.fc { font-family: 'Jost', sans-serif; color: #f5f1e8; }
+.fc .fc-col-header-cell-cushion, .fc .fc-daygrid-day-number { color: #f5f1e8; text-decoration: none; padding: 8px; }
+.fc .fc-button { background: #16305c; border: 1px solid rgba(238,195,122,0.4); color: #f5f1e8; text-transform: capitalize; }
+.fc .fc-button:hover, .fc .fc-button-active { background: #0f2240 !important; border-color: #eec37a !important; }
+.fc .fc-event { border-radius: 6px; border: 1px solid rgba(238,195,122,0.55); }
+.fc-theme-standard td, .fc-theme-standard th { border-color: var(--fc-border-color); }

@@ -2,617 +2,428 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LA-MALIVA VISTA HOTEL - A Taste of Paradise</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>{% block title %}LA-MALIVA VISTA HOTEL{% endblock %} — A Taste of Paradise</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#08123A">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <!-- Vendored locally: the shell works even with no internet (PWA offline) -->
+    <link href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/css/bootstrap-icons.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/luxury.css') }}" rel="stylesheet">
-    <!-- Using FullCalendar Scheduler for Resource Timeline View -->
-    <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.15/index.global.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="{{ url_for('static', filename='vendor/css/fullcalendar-index.min.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='vendor/js/chart.umd.min.js') }}"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
-        /* --- General Body & Background --- */
+        /* ==========================================================
+           LA-MALIVA VISTA — APP SHELL
+           Desktop (≥992px): multi-panel (icon sidebar | content | context)
+           Mobile  (<992px): app-style (top bar + drawer + bottom nav)
+           No dropdown menus: every option is its own direct link.
+           ========================================================== */
+        :root {
+            --shell-navy: #0a1628;
+            --shell-navy-2: #0f2240;
+            --shell-navy-3: #16305c;
+            --shell-line: rgba(253, 250, 244, 0.12);
+            --shell-text: #f5f1e8;
+            --shell-muted: #b9c2ce;
+            --shell-gold: #eec37a;
+            --shell-orange: #f08c2e;
+            --shell-orange-deep: #d97a2b;
+            --sidebar-w: 236px;
+            --context-w: 280px;
+            --topbar-h: 58px;
+            --bottomnav-h: 62px;
+        }
+
+        html, body { height: 100%; }
         body {
-            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper, richer dark blue gradient */
-            background-attachment: fixed; /* Keep gradient fixed during scroll */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            font-family: 'Jost', 'Segoe UI', sans-serif;
             font-size: 14px;
-            min-height: 100vh;
-            color: #f5f1e8; /* Brighter text for better visibility */
+            color: var(--shell-text);
+            background: linear-gradient(135deg, #0f2240 0%, #0a1628 100%);
+            background-attachment: fixed;
+            overflow-x: hidden;
         }
-
-        /* --- Glassmorphism Effect for Panels/Cards --- */
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-            backdrop-filter: blur(12px); /* Stronger frosted effect */
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.4); /* More prominent light border */
-            border-radius: 0.75rem; /* Slightly more rounded */
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3); /* Enhanced shadow */
-            color: #f5f1e8; /* Lighter text */
-        }
-
-        /* --- Accent Colors --- */
-        .text-gold { color: #eec37a !important; } /* Brighter gold */
-        .bg-gold-gradient {
-            background: linear-gradient(135deg, #eec37a 0%, #f08c2e 100%); /* Brighter gold gradient */
-            color: #0f2240; /* Dark text for contrast */
-        }
-        .bg-darkblue-gradient {
-            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient */
-            color: #f5f1e8;
-        }
-        .bg-teal-gradient { /* New Teal Gradient */
-            background: linear-gradient(135deg, #008080 0%, #006666 100%);
-            color: #f5f1e8;
-        }
-
-        /* --- General Card Styling --- */
-        .card {
-            border-radius: 0.75rem; /* Slightly more rounded */
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.1);
-            background-color: rgba(255, 255, 255, 0.1); /* Subtle glass effect for cards */
-            border: 1px solid rgba(255, 255, 255, 0.25); /* Slightly more prominent border */
-            color: #f5f1e8;
-        }
-        .card-header {
-            background-color: rgba(255, 255, 255, 0.08); /* Slightly more opaque */
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-            color: #eec37a; /* Brighter gold header text */
-        }
-        .card-body {
-            color: #f5f1e8;
-        }
-
-        /* --- Buttons --- */
-        .btn {
-            border-radius: 0.5rem; /* Slightly more rounded */
-            font-weight: 600; /* Bolder text */
-            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); /* Enhanced animation */
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        .btn-gold {
-            @extend .bg-gold-gradient; /* Use the gold gradient */
-            border: none;
-            color: #0f2240; /* Dark text for contrast */
-        }
-        .btn-gold:hover {
-            transform: translateY(-3px); /* More pronounced lift */
-            box-shadow: 0 8px 20px rgba(238, 195, 122, 0.5); /* Enhanced gold shadow */
-            color: #0f2240;
-        }
-        .btn-gold:active {
-            transform: translateY(0);
-            box-shadow: inset 0 3px 8px rgba(0,0,0,0.4); /* Deeper pressed feel */
-        }
-        .btn-teal { /* New Teal Button Style */
-            @extend .bg-teal-gradient;
-            border: none;
-            color: #f5f1e8;
-        }
-        .btn-teal:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(0, 128, 128, 0.5);
-            color: #f5f1e8;
-        }
-        .btn-teal:active {
-            transform: translateY(0);
-            box-shadow: inset 0 3px 8px rgba(0,0,0,0.4);
-        }
-
-
-        /* --- Main Content Area --- */
-        .main-content {
-            @extend .glass-panel;
-            padding: 25px; /* Slightly more padding */
-            margin-top: 20px;
-            margin-bottom: 20px;
-        }
-
-        /* --- Headers and Titles --- */
         h1, h2, h3, h4, h5, h6 {
-            color: #eec37a; /* Brighter gold for all headers */
-            font-weight: 700; /* Bolder */
-            text-shadow: 1px 1px 3px rgba(0,0,0,0.4); /* Subtle text shadow */
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            color: var(--shell-gold);
+            letter-spacing: 0.3px;
         }
-        .text-primary { color: #007bff !important; } /* Keep Bootstrap primary for specific uses */
-        .text-warning { color: #eec37a !important; } /* Use brighter gold for warning */
-        .text-danger { color: #dc3545 !important; }
-        .text-success { color: #28a745 !important; }
+        a { text-decoration: none; }
 
-        /* --- Badges --- */
-        .badge {
-            padding: 0.5em 0.8em; /* Slightly larger */
-            border-radius: 0.4rem;
-            font-weight: 600;
+        /* ---------- Layout frame ---------- */
+        .shell { display: flex; min-height: 100vh; }
+
+        /* ============ DESKTOP SIDEBAR ============ */
+        .sidebar {
+            width: var(--sidebar-w);
+            flex: 0 0 var(--sidebar-w);
+            background: linear-gradient(180deg, #0a1628, #0d1b33);
+            border-right: 1px solid var(--shell-line);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            z-index: 500;
+        }
+        .sidebar-brand {
+            display: flex; align-items: center; gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid var(--shell-line);
+        }
+        .sidebar-brand img { width: 40px; height: 40px; border-radius: 9px; }
+        .sidebar-brand .b-name { font-weight: 600; font-size: 14.5px; line-height: 1.15; color: var(--shell-text); letter-spacing: 1px; }
+        .sidebar-brand .b-sub { font-size: 10px; color: var(--shell-muted); letter-spacing: 2px; }
+
+        .side-section { padding: 14px 12px 4px; }
+        .side-label {
+            font-size: 10px; letter-spacing: 2.2px; font-weight: 600;
+            color: var(--shell-muted); text-transform: uppercase;
+            padding: 0 10px 6px;
+        }
+        .side-link {
+            display: flex; align-items: center; gap: 12px;
+            padding: 9px 12px; margin: 2px 0;
+            border-radius: 10px;
+            color: var(--shell-text);
+            font-size: 13.5px; font-weight: 500;
+            transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+        }
+        .side-link i { font-size: 16px; color: var(--shell-gold); width: 20px; text-align: center; }
+        .side-link:hover { background: rgba(238, 195, 122, 0.12); color: var(--shell-gold); transform: translateX(3px); }
+        .side-link.active {
+            background: linear-gradient(90deg, rgba(240, 140, 46, 0.22), rgba(240, 140, 46, 0.06));
+            color: #fff;
+            box-shadow: inset 3px 0 0 var(--shell-orange);
+        }
+        .side-link.active i { color: var(--shell-orange); }
+        .side-divide { border-top: 1px solid var(--shell-line); margin: 10px 12px; }
+
+        /* Admin switch rows (toggle forms) live in the sidebar — no dropdowns */
+        .side-switch {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 7px 12px; margin: 2px 0;
+            border-radius: 10px; font-size: 12.5px; color: var(--shell-muted);
+        }
+        .side-switch:hover { background: rgba(253,250,244,0.05); }
+        .side-switch .badge-dot {
+            width: 7px; height: 7px; border-radius: 50%; margin-right: 8px;
+            background: #6c757d; display: inline-block;
+        }
+        .side-switch .badge-dot.on { background: #2ea043; box-shadow: 0 0 8px rgba(46,160,67,0.8); }
+        .side-switch .form-check-input { cursor: pointer; }
+
+        .sidebar-foot { margin-top: auto; padding: 14px 18px; font-size: 10.5px; color: var(--shell-muted); }
+
+        /* ============ MAIN COLUMN ============ */
+        .main-col { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+
+        /* Top bar (all sizes) */
+        .topbar {
+            height: var(--topbar-h);
+            display: flex; align-items: center; gap: 12px;
+            padding: 0 18px;
+            background: rgba(10, 22, 40, 0.85);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--shell-line);
+            position: sticky; top: 0; z-index: 400;
+        }
+        .topbar .page-title { font-size: 15.5px; font-weight: 600; letter-spacing: 0.4px; margin: 0; }
+        .topbar .spacer { flex: 1; }
+        .burger {
+            display: none;
+            background: none; border: 1px solid var(--shell-line); border-radius: 9px;
+            width: 38px; height: 38px; color: var(--shell-gold); font-size: 18px;
+        }
+        .user-chip {
+            display: flex; align-items: center; gap: 9px;
+            padding: 5px 12px 5px 6px;
+            border: 1px solid var(--shell-line); border-radius: 999px;
+            background: rgba(253,250,244,0.05);
+            font-size: 12.5px; color: var(--shell-text);
+        }
+        .user-chip .avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--shell-navy-3);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 12px; color: var(--shell-gold);
+        }
+        .user-chip .role { color: var(--shell-muted); font-size: 10px; letter-spacing: 1px; }
+        .btn-logout {
+            border: 1px solid rgba(220, 53, 69, 0.45); color: #ff8f9c;
+            background: rgba(220, 53, 69, 0.08);
+            border-radius: 999px; padding: 6px 14px; font-size: 12.5px;
+            transition: all 0.2s ease;
+        }
+        .btn-logout:hover { background: rgba(220, 53, 69, 0.2); color: #fff; }
+
+        /* Content area */
+        .content-scroll { flex: 1; padding: 18px 22px 40px; }
+        .page-view { animation: pageIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes pageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+        /* ---------- Flash messages ---------- */
+        .flash-stack { margin-bottom: 14px; }
+        .flash-stack .alert { border-radius: 12px; }
+        .alert { border: 1px solid transparent; }
+        .alert-success { background: rgba(46,160,67,0.16); border-color: rgba(46,160,67,0.5); color: #b6ecc4; }
+        .alert-info { background: rgba(23,162,184,0.15); border-color: rgba(23,162,184,0.5); color: #b8e7f0; }
+        .alert-warning { background: rgba(238,195,122,0.15); border-color: rgba(238,195,122,0.55); color: #f4e3c0; }
+        .alert-danger { background: rgba(220,53,69,0.16); border-color: rgba(220,53,69,0.55); color: #ffc2c9; }
+        .alert .btn-close { filter: invert(1); }
+
+        /* ---------- Action grid: consistent, aligned buttons ---------- */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        .action-grid > * { width: 100%; margin: 0; }
+        .action-btn {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            padding: 11px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--shell-line);
+            background: rgba(253, 250, 244, 0.05);
+            color: var(--shell-text);
+            font-size: 13px; font-weight: 500;
+            text-align: center;
+            transition: all 0.2s ease;
+            height: 100%;
+        }
+        .action-btn i { color: var(--shell-gold); }
+        .action-btn:hover { background: rgba(240, 140, 46, 0.14); border-color: rgba(240,140,46,0.5); color: #fff; transform: translateY(-2px); }
+        .action-btn.primary { background: linear-gradient(135deg, #d97a2b, #f08c2e); border: none; color: #fff; font-weight: 600; }
+        .action-btn.primary i { color: #fff; }
+        .action-btn.primary:hover { filter: brightness(1.08); }
+        .action-btn.danger { border-color: rgba(220,53,69,0.45); color: #ff8f9c; }
+        .action-btn.danger i { color: #ff8f9c; }
+
+        /* ---------- Generic cards/panels inside content ---------- */
+        .glass-panel {
+            background: rgba(253, 250, 244, 0.06);
+            border: 1px solid var(--shell-line);
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+            color: var(--shell-text);
+        }
+        .main-content { padding: 22px; margin-bottom: 18px; }
+        .card {
+            background: rgba(253, 250, 244, 0.06);
+            border: 1px solid var(--shell-line);
+            border-radius: 16px; color: var(--shell-text);
+        }
+        .card-header { background: rgba(253,250,244,0.05); border-bottom: 1px solid var(--shell-line); color: var(--shell-gold); }
+        .btn { border-radius: 10px; }
+        .btn-gold { background: linear-gradient(135deg, #d97a2b, #f08c2e); border: none; color: #fff; font-weight: 600; }
+        .btn-gold:hover { color: #fff; filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(240,140,46,0.35); }
+        .btn-outline-gold { border: 1px solid rgba(238,195,122,0.55); color: var(--shell-gold); }
+        .btn-outline-gold:hover { background: rgba(238,195,122,0.15); color: #fff; }
+        .btn-light { background: rgba(253,250,244,0.08); border: 1px solid var(--shell-line); color: var(--shell-text); }
+        .btn-light:hover { background: rgba(238,195,122,0.18); color: var(--shell-gold); }
+        .btn-primary { background: var(--shell-navy-3); border-color: var(--shell-navy-3); }
+        .form-control, .form-select {
+            background: rgba(10, 22, 40, 0.5);
+            border: 1px solid var(--shell-line);
+            color: var(--shell-text);
+        }
+        .form-control:focus, .form-select:focus {
+            background: rgba(10, 22, 40, 0.7);
+            border-color: var(--shell-orange);
+            color: #fff;
+            box-shadow: 0 0 0 0.2rem rgba(240, 140, 46, 0.2);
+        }
+        .form-control::placeholder { color: rgba(185,194,206,0.6); }
+        .form-label { color: var(--shell-gold); font-weight: 500; }
+        table.table { color: var(--shell-text); }
+        .table > :not(caption) > * > * { background: transparent; color: var(--shell-text); }
+        .table thead th { color: var(--shell-gold); border-color: var(--shell-line); }
+        .table td, .table th { border-color: var(--shell-line); }
+        .table-hover > tbody > tr:hover > * { color: #fff; background: rgba(240, 140, 46, 0.09); }
+        .modal-content { background: #0d1b33; border: 1px solid var(--shell-line); color: var(--shell-text); }
+        .nav-tabs .nav-link { color: var(--shell-muted); border: 1px solid transparent; }
+        .nav-tabs .nav-link.active { background: rgba(240,140,46,0.14); color: var(--shell-gold); border-color: var(--shell-line); }
+        .badge.bg-warning { color: #0a1628; }
+        hr { border-color: var(--shell-line); }
+        .text-muted { color: var(--shell-muted) !important; }
+        .dropdown-menu { background: #0d1b33; border: 1px solid var(--shell-line); }
+        .dropdown-item { color: var(--shell-text); }
+        .dropdown-item:hover { background: rgba(240,140,46,0.15); color: var(--shell-gold); }
+        .page-link { background: rgba(253,250,244,0.06); border-color: var(--shell-line); color: var(--shell-text); }
+
+        /* ============ RIGHT CONTEXT PANEL (desktop) ============ */
+        .context-col {
+            width: var(--context-w);
+            flex: 0 0 var(--context-w);
+            padding: 18px 22px 18px 0;
+            display: flex; flex-direction: column; gap: 14px;
+        }
+        .context-card {
+            background: rgba(253, 250, 244, 0.05);
+            border: 1px solid var(--shell-line);
+            border-radius: 16px;
+            padding: 16px;
+        }
+        .context-card h6 { font-size: 13px; letter-spacing: 1.6px; text-transform: uppercase; color: var(--shell-gold); margin-bottom: 12px; }
+        .ctx-stat { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+        .ctx-stat b { color: #fff; }
+        .ctx-stat .ok { color: #7ee2a0; }
+
+        /* ============ MOBILE: drawer + bottom nav ============ */
+        .drawer-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(4, 8, 18, 0.62);
+            z-index: 1030;
+            opacity: 0; transition: opacity 0.28s ease;
+        }
+        .drawer {
+            position: fixed; top: 0; left: 0; bottom: 0;
+            width: 280px; max-width: 84vw;
+            background: linear-gradient(180deg, #0a1628, #0d1b33);
+            border-right: 1px solid var(--shell-line);
+            z-index: 1040;
+            transform: translateX(-105%);   /* fully off-screen when closed */
+            transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+            overflow-y: auto;
+            display: flex; flex-direction: column;
+            visibility: hidden;             /* never intercepts taps when closed */
+        }
+        .drawer.open { transform: translateX(0); visibility: visible; }
+        .drawer-backdrop.show { display: block; opacity: 1; }
+        .drawer .side-link, .drawer .side-switch, .drawer .side-label { font-size: 14px; }
+
+        .bottom-nav {
+            display: none;
+            position: fixed; left: 0; right: 0; bottom: 0;
+            height: calc(var(--bottomnav-h) + env(safe-area-inset-bottom));
+            padding-bottom: env(safe-area-inset-bottom);
+            background: rgba(10, 22, 40, 0.96);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--shell-line);
+            z-index: 900;
+            display: none;
+        }
+        .bottom-nav .bn-inner {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: 1fr;
+            height: var(--bottomnav-h);
+        }
+        .bn-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 3px; color: var(--shell-muted); font-size: 10px;
+            transition: color 0.18s ease;
+        }
+        .bn-item i { font-size: 19px; }
+        .bn-item.active { color: var(--shell-orange); }
+        .bn-item.active i { text-shadow: 0 0 14px rgba(240,140,46,0.6); }
+
+        @media (max-width: 991.98px) {
+            .sidebar { display: none; }           /* replaced by drawer */
+            .context-col { display: none; }       /* single column on phones */
+            .burger { display: inline-flex; align-items: center; justify-content: center; }
+            .bottom-nav { display: block; }
+            .content-scroll { padding: 14px 14px calc(var(--bottomnav-h) + 34px); }
+            .topbar { padding: 0 12px; }
+            .user-chip .u-name { display: none; }
+            body { padding-top: 0; }
         }
 
-        /* --- Alerts --- */
-        .alert {
-            border-radius: 0.5rem;
-            background-color: rgba(255, 255, 255, 0.15); /* Slightly more opaque */
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            color: #f5f1e8;
-        }
-        .alert-success { background-color: rgba(40, 167, 69, 0.25); border-color: #28a745; }
-        .alert-info { background-color: rgba(23, 162, 184, 0.25); border-color: #17a2b8; }
-        .alert-warning { background-color: rgba(238, 195, 122, 0.25); border-color: #eec37a; }
-        .alert-danger { background-color: rgba(220, 53, 69, 0.25); border-color: #dc3545; }
-        .alert .btn-close { filter: invert(1); } /* Ensure close button is visible */
-
-
-        /* --- SPLASH SCREEN STYLES (brand badge on navy) --- */
+        /* ---------- Splash (PWA launch) ---------- */
         #pwa-splash {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            position: fixed; inset: 0; z-index: 9999;
             background:
                 radial-gradient(60% 50% at 50% 38%, rgba(42, 82, 136, 0.35), transparent 70%),
                 linear-gradient(160deg, #0a1628 0%, #08123a 55%, #060d24 100%);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 22px;
-            color: #fdfaf4;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 22px; color: #fdfaf4;
             transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1);
         }
-
-        #pwa-splash.hidden {
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .splash-badge {
-            position: relative;
-            width: 132px;
-            height: 132px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: splashBadgeIn .9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-        }
-
+        #pwa-splash.hidden { opacity: 0; pointer-events: none; }
+        .splash-badge { position: relative; width: 132px; height: 132px; display: flex; align-items: center; justify-content: center; animation: splashBadgeIn .9s cubic-bezier(0.34,1.56,0.64,1) both; }
         .splash-badge::before {
-            content: "";
-            position: absolute;
-            inset: -9px;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            border-top-color: #eec37a;
-            border-right-color: rgba(238, 195, 122, 0.35);
+            content: ""; position: absolute; inset: -9px; border-radius: 50%;
+            border: 2px solid transparent; border-top-color: #eec37a;
+            border-right-color: rgba(238,195,122,0.35);
             animation: splashSpin 1.15s linear infinite;
         }
-
-        .splash-badge img {
-            width: 118px;
-            height: 118px;
-            object-fit: contain;
-            filter: drop-shadow(0 10px 28px rgba(0, 0, 0, 0.45));
-        }
-
-        .splash-title {
-            font-family: 'Cormorant Garamond', serif;
-            font-size: 1.6rem;
-            font-weight: 600;
-            letter-spacing: .34em;
-            text-indent: .34em;
-            text-transform: uppercase;
-            color: #fdfaf4;
-            animation: splashRise .8s cubic-bezier(0.22, 1, 0.36, 1) .25s both;
-        }
-
-        .splash-motto {
-            font-family: 'Jost', sans-serif;
-            font-size: .68rem;
-            font-weight: 500;
-            letter-spacing: .5em;
-            text-indent: .5em;
-            text-transform: uppercase;
-            color: #eec37a;
-            animation: splashRise .8s cubic-bezier(0.22, 1, 0.36, 1) .4s both;
-        }
-
-        .splash-bar {
-            width: 168px;
-            height: 2px;
-            border-radius: 2px;
-            overflow: hidden;
-            background: rgba(253, 250, 244, 0.14);
-            animation: splashRise .8s cubic-bezier(0.22, 1, 0.36, 1) .55s both;
-        }
-
-        .splash-bar span {
-            display: block;
-            height: 100%;
-            width: 40%;
-            border-radius: 2px;
-            background: linear-gradient(90deg, transparent, #eec37a, #f08c2e, transparent);
-            animation: splashSweep 1.5s cubic-bezier(0.22, 1, 0.36, 1) infinite;
-        }
-
+        .splash-badge img { width: 118px; height: 118px; object-fit: contain; filter: drop-shadow(0 10px 28px rgba(0,0,0,0.45)); }
+        .splash-title { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; letter-spacing: .34em; text-indent: .34em; text-transform: uppercase; animation: splashRise .8s cubic-bezier(0.22,1,0.36,1) .25s both; }
+        .splash-motto { font-size: .68rem; letter-spacing: .5em; text-indent: .5em; text-transform: uppercase; color: #eec37a; animation: splashRise .8s cubic-bezier(0.22,1,0.36,1) .4s both; }
+        .splash-bar { width: 168px; height: 2px; border-radius: 2px; overflow: hidden; background: rgba(253,250,244,0.14); animation: splashRise .8s cubic-bezier(0.22,1,0.36,1) .55s both; }
+        .splash-bar span { display: block; height: 100%; width: 40%; background: linear-gradient(90deg, transparent, #eec37a, #f08c2e, transparent); animation: splashSweep 1.5s cubic-bezier(0.22,1,0.36,1) infinite; }
         @keyframes splashBadgeIn { from { opacity: 0; transform: scale(.72); } to { opacity: 1; transform: scale(1); } }
         @keyframes splashSpin { to { transform: rotate(360deg); } }
         @keyframes splashRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
         @keyframes splashSweep { from { transform: translateX(-110%); } to { transform: translateX(300%); } }
 
-        @media (max-width: 480px) {
-            .splash-badge { width: 108px; height: 108px; }
-            .splash-badge img { width: 96px; height: 96px; }
-            .splash-title { font-size: 1.25rem; }
-        }
-
-        /* --- CHATBOT WIDGET STYLES --- */
-        #chatbot-widget {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 10000;
-            display: block !important;
-        }
+        /* ---------- Chatbot ---------- */
+        #chatbot-widget { position: fixed; bottom: 20px; right: 20px; z-index: 1000; }
+        @media (max-width: 991.98px) { #chatbot-widget { bottom: calc(var(--bottomnav-h) + 14px); } }
         #chatbot-toggle {
-            @extend .btn-gold; /* Gold gradient button */
-            border-radius: 50%;
-            width: 70px; /* Larger */
-            height: 70px;
-            font-size: 30px;
-            cursor: pointer;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
-            color: #0f2240; /* Dark text for contrast */
-            animation: pulse-chat 2s infinite;
+            width: 54px; height: 54px; border-radius: 50%;
+            background: linear-gradient(135deg, #d97a2b, #f08c2e); color: #fff;
+            border: none; font-size: 22px; cursor: pointer;
+            box-shadow: 0 8px 22px rgba(0,0,0,0.45); animation: pulse-chat 2s infinite;
         }
         #chatbot-window {
-            position: fixed;
-            bottom: 90px; /* Adjusted position */
-            right: 20px;
-            width: 380px; /* Wider for better visibility */
-            max-width: calc(100% - 40px);
-            @extend .glass-panel; /* Glassmorphism for chatbot window */
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            z-index: 10001;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+            position: fixed; bottom: 88px; right: 20px; width: 360px; max-width: calc(100vw - 32px);
+            background: #0d1b33; border: 1px solid var(--shell-line); border-radius: 16px;
+            display: none; flex-direction: column; overflow: hidden; z-index: 1001;
+            box-shadow: 0 18px 44px rgba(0,0,0,0.5);
         }
-        #chatbot-header {
-            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient header */
-            padding: 12px 18px; /* More padding */
-            font-weight: bold;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-        }
-        #chatbot-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 20px;
-            cursor: pointer;
-        }
-        #chatbot-messages {
-            height: 280px; /* Taller */
-            overflow-y: auto;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.15); /* Slightly darker transparent background */
-            display: flex;
-            flex-direction: column;
-            gap: 10px; /* More space between messages */
-        }
-        .message {
-            max-width: 85%; /* Wider messages */
-            padding: 10px 15px;
-            border-radius: 18px; /* More rounded */
-            font-size: 13px;
-            line-height: 1.5;
-        }
-        .user-message {
-            background: linear-gradient(135deg, #16305c, #0f2240); /* Dark blue gradient for user messages */
-            color: #f5f1e8;
-            align-self: flex-end;
-            border-bottom-right-radius: 5px;
-        }
-        .bot-message {
-            background: rgba(255, 255, 255, 0.25); /* Lighter transparent for bot messages */
-            color: #f5f1e8;
-            align-self: flex-start;
-            border-bottom-left-radius: 5px;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-        }
-        #chatbot-input-area {
-            display: flex;
-            border-top: 1px solid rgba(255, 255, 255, 0.4);
-            background: rgba(0, 0, 0, 0.25); /* Darker transparent input area */
-            padding: 10px;
-        }
-        #chatbot-input {
-            flex: 1;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 20px; /* More rounded */
-            padding: 8px 15px;
-            outline: none;
-            font-size: 13px;
-            margin-right: 8px;
-            background: rgba(255, 255, 255, 0.15);
-            color: white;
-        }
-        #chatbot-input::placeholder {
-            color: rgba(255, 255, 255, 0.7);
-        }
-        #chatbot-send {
-            @extend .btn-gold; /* Gold gradient send button */
-            width: 40px; /* Slightly larger */
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-        }
+        @media (max-width: 991.98px) { #chatbot-window { bottom: calc(var(--bottomnav-h) + 76px); } }
+        #chatbot-header { background: linear-gradient(135deg, #0f2240, #16305c); padding: 12px 16px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--shell-line); }
+        #chatbot-close { background: none; border: none; color: #fff; font-size: 18px; }
+        #chatbot-messages { height: 270px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 85%; padding: 9px 14px; border-radius: 16px; font-size: 13px; line-height: 1.5; }
+        .user-message { background: linear-gradient(135deg, #16305c, #0f2240); color: #f5f1e8; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .bot-message { background: rgba(253,250,244,0.08); color: #f5f1e8; align-self: flex-start; border: 1px solid var(--shell-line); border-bottom-left-radius: 4px; }
+        #chatbot-input-area { display: flex; gap: 8px; padding: 10px; border-top: 1px solid var(--shell-line); }
+        #chatbot-input { flex: 1; border: 1px solid var(--shell-line); border-radius: 999px; padding: 8px 14px; background: rgba(10,22,40,0.6); color: #fff; outline: none; font-size: 13px; }
+        #chatbot-send { width: 40px; height: 40px; border-radius: 50%; border: none; background: linear-gradient(135deg, #d97a2b, #f08c2e); color: #fff; font-size: 16px; }
 
-        /* --- Top Menu --- */
-        .top-menu {
-            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient */
-            color: white;
-            padding: 10px 20px; /* More padding */
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.4); /* Enhanced shadow */
-        }
-        .top-menu .navbar-nav .nav-link {
-            color: #f5f1e8 !important; /* Brighter text */
-            font-weight: 600;
-            padding: 0.6rem 1.2rem; /* More padding */
-            border-radius: 0.4rem;
-            transition: all 0.3s ease;
-        }
-        .top-menu .navbar-nav .nav-link:hover {
-            background-color: rgba(238, 195, 122, 0.25); /* Brighter gold transparent hover */
-            color: #eec37a !important; /* Brighter gold text on hover */
-            transform: translateY(-3px);
-        }
-        .top-menu .dropdown-menu {
-            @extend .glass-panel; /* Glassmorphism for dropdowns */
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 0.5rem; /* More rounded */
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-            padding: 0;
-            overflow: hidden;
-        }
-        .top-menu .dropdown-item {
-            color: #f5f1e8; /* Lighter text */
-            padding: 0.75rem 1.25rem; /* More padding */
-            transition: all 0.2s ease;
-        }
-        .top-menu .dropdown-item:hover {
-            background-color: rgba(238, 195, 122, 0.25); /* Brighter gold transparent hover */
-            color: #eec37a; /* Brighter gold text on hover */
-        }
-        .top-menu .dropdown-item i {
-            margin-right: 10px;
-            color: #eec37a; /* Brighter gold icons */
-        }
+        @keyframes pulse-chat { 0% { transform: scale(1); } 50% { transform: scale(1.08); } 100% { transform: scale(1); } }
 
-        /* --- Sidebar --- */
-        .sidebar {
-            @extend .glass-panel;
-            padding: 25px;
-            width: 240px; /* Slightly wider */
-        }
-        .sidebar h6 {
-            color: #eec37a; /* Brighter gold for sidebar titles */
-            font-weight: 700;
-        }
-        .sidebar .btn-outline-primary, .sidebar .btn-outline-success, .sidebar .btn-outline-warning {
-            border-width: 2px; /* Thicker border */
-            font-weight: 600;
-            color: #f5f1e8;
-            border-color: rgba(255, 255, 255, 0.4);
-            transition: all 0.3s ease;
-            border-radius: 0.5rem;
-        }
-        .sidebar .btn-outline-primary:hover, .sidebar .btn-outline-success:hover, .sidebar .btn-outline-warning:hover {
-            background-color: rgba(238, 195, 122, 0.25);
-            color: #eec37a;
-            border-color: #eec37a;
-            transform: translateY(-3px);
-        }
-        .sidebar .text-success { color: #28a745 !important; } /* Keep success green */
-
-        /* --- Right Panel --- */
-        .right-panel {
-            @extend .glass-panel;
-            width: 280px; /* Slightly wider */
-        }
-        .right-panel h6 {
-            color: #eec37a; /* Brighter gold for right panel titles */
-            font-weight: 700;
-        }
-        .right-panel p {
-            color: #f5f1e8;
-        }
-
-        /* --- Toolbar --- */
-        .toolbar {
-            @extend .glass-panel;
-            padding: 12px 18px;
-            margin: 15px 20px 0 20px; /* Adjusted margin */
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px; /* More space between buttons */
-        }
-        .toolbar .btn {
-            @extend .btn-gold; /* Apply gold gradient to toolbar buttons */
-            font-size: 14px;
-            padding: 10px 18px;
-        }
-        .toolbar .btn-light { /* Override for specific light buttons if needed */
-            background-color: rgba(255, 255, 255, 0.15);
-            color: #f5f1e8;
-            border: 1px solid rgba(255, 255, 255, 0.4);
-        }
-        .toolbar .btn-light:hover {
-            background-color: rgba(238, 195, 122, 0.25);
-            color: #eec37a;
-            border-color: #eec37a;
-        }
-        .btn-create-reservation { /* New style for Create Reservation button */
-            @extend .btn-teal;
-        }
-
-
-        /* --- Mobile Menu --- */
-        .mobile-offcanvas {
-            background: linear-gradient(135deg, #0f2240, #16305c); /* Deeper dark blue gradient */
-            color: white;
-            width: 280px;
-            border-right: 1px solid rgba(255, 255, 255, 0.4);
-        }
-        .mobile-offcanvas .offcanvas-header {
-            border-bottom: 1px solid rgba(255, 255, 255, 0.4);
-        }
-        .mobile-offcanvas .offcanvas-title {
-            color: #eec37a; /* Brighter gold title */
-        }
-        .mobile-offcanvas .btn-close {
-            filter: invert(1);
-        }
-        .mobile-offcanvas a {
-            color: #f5f1e8 !important; /* Brighter text */
-            padding: 15px 20px; /* More padding */
-            border-bottom: 1px solid rgba(255,255,255,0.15);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        .mobile-offcanvas a:hover {
-            background-color: rgba(238, 195, 122, 0.25); /* Brighter gold transparent hover */
-            color: #eec37a !important; /* Brighter gold text on hover */
-            transform: translateX(8px); /* More pronounced slide */
-        }
-        .mobile-offcanvas small {
-            color: #b9c2ce !important; /* Slightly brighter muted text */
-        }
-        .mobile-offcanvas .list-group-flush .list-group-item {
-            background-color: transparent;
-            color: #f5f1e8;
-        }
-        .mobile-offcanvas .list-group-flush .list-group-item:hover {
-            background-color: rgba(238, 195, 122, 0.25);
-            color: #eec37a;
-        }
-        .mobile-offcanvas .text-muted {
-            color: #eec37a !important; /* Brighter gold for admin tools label */
-        }
-
-        /* --- PWA Install Button --- */
-        #pwa-install-btn {
-            display: none;
-            position: fixed;
-            bottom: 20px;
-            right: 100px;
-            z-index: 9999;
-            @extend .btn-gold; /* Gold gradient button */
-            border-radius: 50px;
-            padding: 12px 25px; /* More padding */
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            font-weight: bold;
-        }
-
-        /* --- Media Queries --- */
-        @media (max-width: 992px) {
-            .mobile-menu-btn-container {
-                display: block;
-                margin-right: 15px;
-            }
-            .navbar-collapse, .sidebar { display: none !important; }
-            .toolbar { display: flex; overflow-x: auto; padding-bottom: 15px; }
-            .toolbar button { flex: 0 0 auto; }
-            .main-content { margin: 10px; padding: 15px; }
-        }
-
-        /* --- Mobile Menu Button Redesign --- */
-        .mobile-menu-btn {
-            background: none;
-            border: none;
-            width: 40px;
-            height: 40px;
-            position: relative;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            padding: 0;
-            transition: all 0.3s ease;
-        }
-        .mobile-menu-btn .hamburger-line {
-            width: 100%;
-            height: 3px;
-            background-color: #eec37a; /* Gold lines */
-            border-radius: 2px;
-            transition: all 0.3s ease;
-        }
-        .mobile-menu-btn:hover .hamburger-line {
-            background-color: #f5f1e8; /* White on hover */
-        }
-        .mobile-menu-btn.active .hamburger-line:nth-child(1) {
-            transform: translateY(8px) rotate(45deg);
-        }
-        .mobile-menu-btn.active .hamburger-line:nth-child(2) {
-            opacity: 0;
-        }
-        .mobile-menu-btn.active .hamburger-line:nth-child(3) {
-            transform: translateY(-8px) rotate(-45deg);
-        }
-
-        /* --- Floating Shapes for Splash Screen --- */
-        .floating-shape {
-            position: absolute;
-            background: rgba(255, 255, 255, 0.15); /* Slightly more opaque */
-            border-radius: 50%;
-            animation: float 12s infinite ease-in-out; /* Slower, smoother float */
-            z-index: -1;
-        }
+        /* Floating shapes on splash */
+        .floating-shape { position: absolute; background: rgba(255,255,255,0.12); border-radius: 50%; animation: float 12s infinite ease-in-out; }
         .floating-shape:nth-child(1) { animation-delay: 0s; width: 120px; height: 120px; left: 15%; top: 10%; }
         .floating-shape:nth-child(2) { animation-delay: 3s; width: 80px; height: 80px; right: 20%; bottom: 15%; }
         .floating-shape:nth-child(3) { animation-delay: 6s; width: 180px; height: 180px; left: 5%; bottom: 5%; }
         .floating-shape:nth-child(4) { animation-delay: 9s; width: 100px; height: 100px; right: 10%; top: 5%; }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.6; }
-            25% { transform: translateY(-25px) translateX(15px) scale(1.05); opacity: 0.7; }
-            50% { transform: translateY(0px) translateX(0px) scale(1); opacity: 0.6; }
-            75% { transform: translateY(25px) translateX(-15px) scale(0.95); opacity: 0.5; }
-        }
-    @keyframes pulse-chat {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
-}
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-22px); } }
 
+        /* Auth-style centered card (change password etc.) */
+        .login-card, .auth-card {
+            max-width: 460px; margin: 24px auto;
+            background: rgba(253,250,244,0.06);
+            border: 1px solid var(--shell-line);
+            border-radius: 18px; padding: 28px;
+        }
+        .login-card .logo { width: 74px; height: 74px; border-radius: 50%; display: block; margin: 0 auto 12px; }
+
+        /* Print */
+        @media print {
+            .sidebar, .context-col, .topbar, .bottom-nav, #chatbot-widget, #pwa-splash, .drawer, .drawer-backdrop, .flash-stack { display: none !important; }
+            body { background: #fff; color: #111; }
+            .content-scroll { padding: 0; }
+        }
     </style>
-    <!-- Fonts for Splash -->
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
-<!-- SPLASH SCREEN (Only shows on PWA launch or first visit) -->
+<!-- SPLASH SCREEN (PWA launch / first visit) -->
 <div id="pwa-splash">
-    <!-- Floating background shapes -->
     <div class="floating-shape"></div>
     <div class="floating-shape"></div>
     <div class="floating-shape"></div>
     <div class="floating-shape"></div>
-
     <div class="splash-badge">
         <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista">
     </div>
@@ -621,7 +432,215 @@
     <div class="splash-bar"><span></span></div>
 </div>
 
-<!-- CHATBOT WIDGET START -->
+<div class="shell">
+    <!-- ================= DESKTOP SIDEBAR ================= -->
+    <aside class="sidebar" id="sideNav">
+        <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista">
+            <div>
+                <div class="b-name">LA-MALIVA VISTA</div>
+                <div class="b-sub">PARADISE IN BUEA</div>
+            </div>
+        </a>
+
+        <div class="side-section">
+            <div class="side-label">Overview</div>
+            <a class="side-link {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'calendar' }}" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'occupancy_report' }}" href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+        </div>
+
+        <div class="side-section">
+            <div class="side-label">Operations</div>
+            <a class="side-link {{ 'active' if request.endpoint == 'new_reservation' }}" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'reservations' }}" href="{{ url_for('reservations') }}"><i class="bi bi-list-check"></i> Reservations</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'rooms' }}" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i> Room List</a>
+            {% if current_user.is_authenticated and current_user.role in ('admin', 'staff') %}
+            <a class="side-link {{ 'active' if request.endpoint == 'guests' }}" href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest List</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'todays_arrivals' }}" href="{{ url_for('todays_arrivals') }}"><i class="bi bi-box-arrow-in-down"></i> Today's Arrivals</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'todays_departures' }}" href="{{ url_for('todays_departures') }}"><i class="bi bi-box-arrow-up"></i> Departures</a>
+            {% endif %}
+        </div>
+
+        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+        <div class="side-section">
+            <div class="side-label">Administration</div>
+            <a class="side-link {{ 'active' if request.endpoint == 'users' }}" href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'admin_monitoring' }}" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'snackbar_admin' }}" href="{{ url_for('snackbar_admin') }}"><i class="bi bi-cup-straw"></i> Snackbar &amp; Restaurant</a>
+            <a class="side-link" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'restore' }}" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a>
+        </div>
+        <div class="side-section">
+            <div class="side-label">Feature Switches</div>
+            <form method="POST" action="{{ url_for('admin_toggles') }}" class="side-switch">
+                <span><span class="badge-dot {{ 'on' if payments_active }}"></span>Payments</span>
+                <input class="form-check-input" type="checkbox" role="switch" name="payments_active" {% if payments_active %}checked{% endif %} onchange="this.form.submit()">
+            </form>
+            <form method="POST" action="{{ url_for('admin_toggles') }}" class="side-switch">
+                <span><span class="badge-dot {{ 'on' if snackbar_active }}"></span>Snackbar Menu</span>
+                <input class="form-check-input" type="checkbox" role="switch" name="snackbar_active" {% if snackbar_active %}checked{% endif %} onchange="this.form.submit()">
+            </form>
+        </div>
+        {% endif %}
+
+        <div class="side-section">
+            <div class="side-label">Help</div>
+            <a class="side-link {{ 'active' if request.endpoint == 'user_manual' }}" href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'about' }}" href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a>
+            <a class="side-link" href="{{ url_for('public_home') }}"><i class="bi bi-globe"></i> Public Website</a>
+        </div>
+
+        <div class="sidebar-foot">v2.2.0 · Buea, Cameroon<br>© La-Maliva Vista Hotel</div>
+    </aside>
+
+    <!-- ================= MAIN COLUMN ================= -->
+    <div class="main-col">
+        <header class="topbar">
+            <button class="burger" id="burgerBtn" aria-label="Open menu"><i class="bi bi-list"></i></button>
+            <h1 class="page-title">{% block page_title %}{% endblock %}La-Maliva Vista</h1>
+            <div class="spacer"></div>
+            {% if current_user.is_authenticated %}
+            <span class="user-chip">
+                <span class="avatar">{{ current_user.username|first|upper }}</span>
+                <span>
+                    <span class="u-name">{{ current_user.username }}</span><br>
+                    <span class="role">{{ current_user.role|upper }}</span>
+                </span>
+            </span>
+            <a class="btn-logout" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            {% endif %}
+        </header>
+
+        <main class="content-scroll">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="flash-stack">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else category if category != 'message' else 'info' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            {% endwith %}
+
+            <div class="page-view">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= RIGHT CONTEXT PANEL (desktop) ================= -->
+    {% if current_user.is_authenticated %}
+    <aside class="context-col d-none d-lg-flex">
+        <div class="context-card">
+            <h6><i class="bi bi-pie-chart me-1"></i> Occupancy</h6>
+            <div style="position: relative; height: 170px;">
+                <canvas id="sidebarChart"></canvas>
+            </div>
+            <div class="ctx-stat mt-2"><span>Occupied</span><b id="ctxOccupied">…</b></div>
+            <div class="ctx-stat"><span>Free</span><b class="ok" id="ctxFree">…</b></div>
+            <div class="ctx-stat"><span>Rate</span><b id="occupancyPercent">0%</b></div>
+        </div>
+        <div class="context-card">
+            <h6><i class="bi bi-lightning-charge me-1"></i> Quick actions</h6>
+            <div class="action-grid" style="grid-template-columns: 1fr 1fr;">
+                <a class="action-btn" href="{{ url_for('todays_arrivals') }}"><i class="bi bi-box-arrow-in-down"></i> Arrivals</a>
+                <a class="action-btn" href="{{ url_for('todays_departures') }}"><i class="bi bi-box-arrow-up"></i> Departures</a>
+                <a class="action-btn" href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Report</a>
+                <a class="action-btn primary" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-lg"></i> Book</a>
+            </div>
+        </div>
+        <div class="context-card">
+            <h6><i class="bi bi-printer me-1"></i> Shortcuts</h6>
+            <div class="action-grid" style="grid-template-columns: 1fr;">
+                <button class="action-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print this page</button>
+                <button class="action-btn" onclick="document.documentElement.requestFullscreen()"><i class="bi bi-arrows-fullscreen"></i> Full screen</button>
+                <a class="action-btn" href="{{ url_for('export_data') if current_user.role in ('admin','staff') else url_for('dashboard') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export data</a>
+            </div>
+        </div>
+    </aside>
+    {% endif %}
+</div>
+
+<!-- ================= MOBILE DRAWER (off-canvas) ================= -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<nav class="drawer" id="mobileDrawer" aria-hidden="true">
+    <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista">
+        <div>
+            <div class="b-name">LA-MALIVA VISTA</div>
+            <div class="b-sub">PARADISE IN BUEA</div>
+        </div>
+    </a>
+    <div class="side-section">
+        <div class="side-label">Menu</div>
+        <a class="side-link" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+        <a class="side-link" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+        <a class="side-link" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+        <a class="side-link" href="{{ url_for('reservations') }}"><i class="bi bi-list-check"></i> Reservations</a>
+        <a class="side-link" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i> Room List</a>
+        <a class="side-link" href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
+        {% if current_user.is_authenticated and current_user.role in ('admin', 'staff') %}
+        <a class="side-link" href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest List</a>
+        <a class="side-link" href="{{ url_for('todays_arrivals') }}"><i class="bi bi-box-arrow-in-down"></i> Today's Arrivals</a>
+        <a class="side-link" href="{{ url_for('todays_departures') }}"><i class="bi bi-box-arrow-up"></i> Departures</a>
+        {% endif %}
+    </div>
+    {% if current_user.is_authenticated and current_user.role == 'admin' %}
+    <div class="side-section">
+        <div class="side-label">Administration</div>
+        <a class="side-link" href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
+        <a class="side-link" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
+        <a class="side-link" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
+        <a class="side-link" href="{{ url_for('snackbar_admin') }}"><i class="bi bi-cup-straw"></i> Snackbar &amp; Restaurant</a>
+        <a class="side-link" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a>
+        <a class="side-link" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a>
+    </div>
+    <div class="side-section">
+        <div class="side-label">Feature Switches</div>
+        <form method="POST" action="{{ url_for('admin_toggles') }}" class="side-switch">
+            <span><span class="badge-dot {{ 'on' if payments_active }}"></span>Payments</span>
+            <input class="form-check-input" type="checkbox" role="switch" name="payments_active" {% if payments_active %}checked{% endif %} onchange="this.form.submit()">
+        </form>
+        <form method="POST" action="{{ url_for('admin_toggles') }}" class="side-switch">
+            <span><span class="badge-dot {{ 'on' if snackbar_active }}"></span>Snackbar Menu</span>
+            <input class="form-check-input" type="checkbox" role="switch" name="snackbar_active" {% if snackbar_active %}checked{% endif %} onchange="this.form.submit()">
+        </form>
+    </div>
+    {% endif %}
+    <div class="side-section">
+        <div class="side-label">Help</div>
+        <a class="side-link" href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
+        <a class="side-link" href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a>
+        <a class="side-link" href="{{ url_for('public_home') }}"><i class="bi bi-globe"></i> Public Website</a>
+        <a class="side-link" href="{{ url_for('change_password') }}"><i class="bi bi-shield-lock"></i> Change Password</a>
+        {% if current_user.is_authenticated %}
+        <a class="side-link" style="color:#ff8f9c" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" style="color:#ff8f9c"></i> Logout</a>
+        {% endif %}
+    </div>
+    <div class="sidebar-foot">v2.2.0 · Buea, Cameroon</div>
+</nav>
+
+<!-- ================= MOBILE BOTTOM NAV ================= -->
+<nav class="bottom-nav">
+    <div class="bn-inner">
+        <a class="bn-item {{ 'active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}"><i class="bi bi-house-door"></i><span>Home</span></a>
+        <a class="bn-item {{ 'active' if request.endpoint == 'calendar' }}" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i><span>Calendar</span></a>
+        <a class="bn-item {{ 'active' if request.endpoint == 'new_reservation' }}" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i><span>Book</span></a>
+        {% if current_user.is_authenticated and current_user.role in ('admin', 'staff') %}
+        <a class="bn-item {{ 'active' if request.endpoint == 'reservations' }}" href="{{ url_for('reservations') }}"><i class="bi bi-list-check"></i><span>Bookings</span></a>
+        {% else %}
+        <a class="bn-item {{ 'active' if request.endpoint == 'rooms' }}" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i><span>Rooms</span></a>
+        {% endif %}
+        <button class="bn-item" id="bnMore" type="button"><i class="bi bi-list"></i><span>Menu</span></button>
+    </div>
+</nav>
+
+<!-- CHATBOT -->
 <div id="chatbot-widget">
     <button id="chatbot-toggle" title="Chat with Assistant" onclick="toggleChat()"><i class="bi bi-chat-dots-fill"></i></button>
     <div id="chatbot-window">
@@ -638,230 +657,46 @@
         </div>
     </div>
 </div>
-<!-- CHATBOT WIDGET END -->
 
-<nav class="top-menu navbar navbar-expand-lg">
-    <div class="container-fluid p-0">
-        <div class="d-flex align-items-center w-100">
-            <div class="mobile-menu-btn-container">
-                <button class="mobile-menu-btn" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileMenu">
-                    <div class="hamburger-line"></div>
-                    <div class="hamburger-line"></div>
-                    <div class="hamburger-line"></div>
-                </button>
-            </div>
-
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 40px; width: auto; border-radius: 6px;">
-                <div style="color: white; line-height: 1.2;">
-                    <strong style="font-size: 14px; display: block;">LA-MALIVA VISTA</strong>
-                    <small style="color: #b9c2ce; font-size: 10px;">Paradise in Buea</small>
-                </div>
-            </div>
-
-            <!-- DESKTOP MENU -->
-            <div class="collapse navbar-collapse ms-4">
-                <ul class="navbar-nav me-auto">
-                    <!-- File -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">File</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a></li>
-                            <li><a class="dropdown-item" href="#" onclick="window.print()"><i class="bi bi-printer"></i> Print</a></li>
-                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-                            <li><a class="dropdown-item" href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a></li>
-                            {% endif %}
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Tools (STRICTLY ADMIN ONLY) -->
-                    {% if current_user.is_authenticated and current_user.role == 'admin' %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Tools</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Settings (Hotel Info)</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('snackbar_admin') }}"><i class="bi bi-cup-straw"></i> Snackbar &amp; Restaurant</a></li>
-                            <li>
-                                <form method="POST" action="{{ url_for('admin_toggles') }}" class="dropdown-item-text d-flex justify-content-between align-items-center px-2 py-1">
-                                    <span><i class="bi bi-cash-coin"></i> Payments</span>
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" name="payments_active" {% if payments_active %}checked{% endif %} onchange="this.form.submit()">
-                                    </div>
-                                </form>
-                            </li>
-                            <li>
-                                <form method="POST" action="{{ url_for('admin_toggles') }}" class="dropdown-item-text d-flex justify-content-between align-items-center px-2 py-1">
-                                    <span><i class="bi bi-cup-hot"></i> Snackbar Menu</span>
-                                    <div class="form-check form-switch m-0">
-                                        <input class="form-check-input" type="checkbox" role="switch" name="snackbar_active" {% if snackbar_active %}checked{% endif %} onchange="this.form.submit()">
-                                    </div>
-                                </form>
-                            </li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a></li>
-                        </ul>
-                    </li>
-                    {% endif %}
-
-                    <!-- View -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">View</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i> Room List</a></li>
-                            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-                            <li><a class="dropdown-item" href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest List</a></li>
-                            {% endif %}
-                            <li><a class="dropdown-item" href="#" onclick="document.documentElement.requestFullscreen()"><i class="bi bi-arrows-fullscreen"></i> Full Screen</a></li>
-                        </ul>
-                    </li>
-
-                    <!-- Help -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Help</a>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a></li>
-                            <li><a class="dropdown-item" href="tel:+237679915967"><i class="bi bi-telephone"></i> Contact Support</a></li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</nav>
-
-<!-- MOBILE MENU (Restricted by Role) -->
-<div class="offcanvas offcanvas-start mobile-offcanvas" tabindex="-1" id="mobileMenu">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title">Menu</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas"></button>
-    </div>
-    <div class="offcanvas-body p-0">
-        <div class="list-group list-group-flush bg-transparent">
-            <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
-            <a href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
-            <a href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
-
-            <!-- Quick Actions -->
-            <div class="border-top my-2 border-secondary"></div>
-            <a href="{{ url_for('todays_arrivals') }}"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
-            <a href="{{ url_for('todays_departures') }}"><i class="bi bi-arrow-up-circle"></i> Departures</a>
-            <a href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy Report</a>
-
-            <!-- ADMIN TOOLS (Hidden for non-admins) -->
-            {% if current_user.is_authenticated and current_user.role == 'admin' %}
-            <div class="border-top my-2 border-secondary"></div>
-            <small class="text-muted ms-3 fw-bold">ADMIN TOOLS</small>
-            <a href="{{ url_for('users') }}"><i class="bi bi-people"></i> User Management</a>
-            <a href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
-            <a href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
-            <a href="{{ url_for('snackbar_admin') }}"><i class="bi bi-cup-straw"></i> Snackbar Menu</a>
-            <a href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup DB</a>
-            {% endif %}
-
-            <!-- STAFF TOOLS (Hidden for Guests) -->
-            {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-            <div class="border-top my-2 border-secondary"></div>
-            <a href="{{ url_for('guests') }}"><i class="bi bi-person-lines-fill"></i> Guest Database</a>
-            <a href="{{ url_for('export_data') }}"><i class="bi bi-file-earmark-spreadsheet"></i> Export Data</a>
-            {% endif %}
-
-            <div class="border-top my-2 border-secondary"></div>
-            <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> User Manual</a>
-            <a href="tel:+237679915967"><i class="bi bi-telephone"></i> Support</a>
-            <a href="{{ url_for('logout') }}" class="text-danger"><i class="bi bi-box-arrow-right"></i> Logout</a>
-        </div>
-    </div>
-</div>
-
-<div class="toolbar d-none d-lg-block">
-    <button onclick="window.location.href='/dashboard'" class="btn btn-sm btn-light me-1"><i class="bi bi-house-door"></i> Dashboard</button>
-    <button onclick="window.location.href='/calendar'" class="btn btn-sm btn-light me-1"><i class="bi bi-calendar3"></i> Calendar</button>
-    <button onclick="window.location.href='/rooms'" class="btn btn-sm btn-light me-1"><i class="bi bi-door-open"></i> Rooms</button>
-    {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-    <button onclick="window.location.href='/guests'" class="btn btn-sm btn-light me-1"><i class="bi bi-people"></i> Guests</button>
-    <button onclick="window.location.href='/reservations'" class="btn btn-sm btn-light me-1"><i class="bi bi-list"></i> Reservations</button>
-    {% endif %}
-    <button onclick="window.location.href='/new_reservation'" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> New Booking</button>
-</div>
-
-<div class="toolbar d-none d-lg-block">
-    <button onclick="window.location.href='/dashboard'" class="btn btn-sm btn-light me-1"><i class="bi bi-house-door"></i> Dashboard</button>
-    <button onclick="window.location.href='/calendar'" class="btn btn-sm btn-light me-1"><i class="bi bi-calendar3"></i> Calendar</button>
-    <button onclick="window.location.href='/rooms'" class="btn btn-sm btn-light me-1"><i class="bi bi-door-open"></i> Rooms</button>
-    {% if current_user.is_authenticated and (current_user.role == 'admin' or current_user.role == 'staff') %}
-    <button onclick="window.location.href='/guests'" class="btn btn-sm btn-light me-1"><i class="bi bi-people"></i> Guests</button>
-    <button onclick="window.location.href='/reservations'" class="btn btn-sm btn-light me-1"><i class="bi bi-list"></i> Reservations</button>
-    {% endif %}
-    <button onclick="window.location.href='/new_reservation'" class="btn btn-sm btn-primary"><i class="bi bi-plus-circle"></i> New Booking</button>
-</div>
-
-<div class="container-fluid mt-2">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        <div class="flash-stack">
-            {% for category, message in messages %}
-            <div class="alert alert-{{ 'danger' if category == 'error' else category if category != 'message' else 'info' }} alert-dismissible fade show shadow-sm" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-    {% endwith %}
-    <div class="row">
-        <!-- LEFT SIDEBAR (Desktop Only) -->
-        <div class="col-md-auto sidebar d-none d-lg-block">
-            <h6 class="mb-3"><i class="bi bi-lightning-charge"></i> Quick Actions</h6>
-            <a href="/todays_arrivals" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-down-circle"></i> Today's Arrivals</a>
-            <a href="/todays_departures" class="btn btn-sm btn-outline-primary w-100 mb-2"><i class="bi bi-arrow-up-circle"></i> Departures</a>
-            <a href="/occupancy_report" class="btn btn-sm btn-outline-success w-100 mb-2"><i class="bi bi-graph-up"></i> Occupancy Report</a>
-            <a href="/new_reservation" class="btn btn-sm btn-outline-warning w-100"><i class="bi bi-plus-lg"></i> New Booking</a>
-            <hr>
-            <small><i class="bi bi-door-open"></i> Free Rooms: <span id="freeRoomsCount" class="text-success fw-bold">...</span></small>
-        </div>
-        <!-- MAIN AREA -->
-        <div class="col p-0">
-            {% block content %}{% endblock %}
-        </div>
-
-        <!-- RIGHT PANEL (Desktop Only) -->
-        <div class="col-md-auto d-none d-lg-block" style="width:270px; background-color: #ffffff; border-left: 1px solid #dee2e6; padding: 20px; border-radius: 0.5rem;">
-            <h6 style="color: #343a40; margin-bottom: 15px;"><i class="bi bi-pie-chart"></i> Occupancy</h6>
-            <div style="position: relative; height: 200px;">
-                <canvas id="sidebarChart"></canvas>
-            </div>
-            <p class="text-center mt-3" style="font-weight: bold; color: #343a40; font-size: 14px;">
-                <span id="occupancyPercent">0</span>% Occupied
-            </p>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.min.js') }}"></script>
 <script>
-    // SPLASH SCREEN LOGIC (1.5 Seconds Delay)
-    window.addEventListener('load', function() {
+    /* ---------- Splash ---------- */
+    window.addEventListener('load', function () {
         const splash = document.getElementById('pwa-splash');
-        // Only show splash if not already hidden (e.g., by previous navigation)
         if (splash && splash.style.display !== 'none') {
             setTimeout(() => {
                 splash.classList.add('hidden');
-                setTimeout(() => {
-                    splash.style.display = 'none';
-                }, 1500); // Match CSS transition duration
-            }, 1500); // 1.5 seconds delay
+                setTimeout(() => { splash.style.display = 'none'; }, 950);
+            }, 1400);
         }
     });
 
-    // --- CHATBOT JS ---
+    /* ---------- Mobile drawer (off-canvas, correct stacking) ---------- */
+    (function () {
+        const burger = document.getElementById('burgerBtn');
+        const more = document.getElementById('bnMore');
+        const drawer = document.getElementById('mobileDrawer');
+        const backdrop = document.getElementById('drawerBackdrop');
+        function open() {
+            drawer.classList.add('open');
+            backdrop.classList.add('show');
+            drawer.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+        }
+        function close() {
+            drawer.classList.remove('open');
+            backdrop.classList.remove('show');
+            drawer.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+        }
+        if (burger) burger.addEventListener('click', open);
+        if (more) more.addEventListener('click', open);
+        if (backdrop) backdrop.addEventListener('click', close);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+        drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+    })();
+
+    /* ---------- Chatbot ---------- */
     function toggleChat() {
         const box = document.getElementById('chatbot-window');
         if (box.style.display === 'none' || box.style.display === '') {
@@ -871,7 +706,6 @@
             box.style.display = 'none';
         }
     }
-
     function addMessage(text, type) {
         const div = document.createElement('div');
         div.className = 'message ' + (type === 'user' ? 'user-message' : 'bot-message');
@@ -880,7 +714,6 @@
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
     }
-
     function sendChat() {
         const input = document.getElementById('chatbot-input');
         const text = input.value.trim();
@@ -889,28 +722,42 @@
         input.value = '';
         fetch('/chat', {
             method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: text})
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
         })
         .then(r => r.json()).then(data => addMessage(data.response, 'bot'))
         .catch(() => addMessage("I'm sorry, I'm having trouble connecting right now.", 'bot'));
     }
 
-    // PWA & Stats Logic
-    let deferredPrompt;
-    const installBtn = document.getElementById('pwa-install-btn');
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault(); deferredPrompt = e;
-        installBtn.style.display = 'block';
-    });
-    installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            if (outcome === 'accepted') installBtn.style.display = 'none';
-            deferredPrompt = null;
-        }
-    });
+    /* ---------- Sidebar occupancy widget (desktop context panel) ---------- */
+    (function () {
+        const canvas = document.getElementById('sidebarChart');
+        if (!canvas) return;
+        fetch('/api/rooms').then(r => r.json()).then(rooms => {
+            const occupied = rooms.filter(r => r.extendedProps.status === 'Occupied').length;
+            const free = rooms.length - occupied;
+            const pct = rooms.length ? Math.round(occupied / rooms.length * 100) : 0;
+            const elO = document.getElementById('ctxOccupied');
+            const elF = document.getElementById('ctxFree');
+            const elP = document.getElementById('occupancyPercent');
+            if (elO) elO.textContent = occupied;
+            if (elF) elF.textContent = free;
+            if (elP) elP.textContent = pct + '%';
+            new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Occupied', 'Free'],
+                    datasets: [{
+                        data: [occupied, free],
+                        backgroundColor: ['#f08c2e', '#2ea043'],
+                        borderColor: 'rgba(10,22,40,0.9)',
+                        borderWidth: 2
+                    }]
+                },
+                options: { plugins: { legend: { display: false } }, cutout: '68%' }
+            });
+        }).catch(() => {});
+    })();
 </script>
 </body>
 </html>
