@@ -102,6 +102,13 @@
             <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" style="height: 40px; opacity: 0.8;">
         </div>
 
+        <div class="action-grid mb-4">
+            <a class="action-btn primary" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a class="action-btn" href="{{ url_for('reservations') }}"><i class="bi bi-list-check"></i> Reservations</a>
+            <a class="action-btn" href="{{ url_for('todays_arrivals') }}"><i class="bi bi-box-arrow-in-down"></i> Arrivals</a>
+            <button class="action-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print List</button>
+        </div>
+
         <div class="table-responsive">
             <table class="table table-hover table-sm guests-table mb-0">
                 <thead>

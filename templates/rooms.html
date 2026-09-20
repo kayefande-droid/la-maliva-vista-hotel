@@ -155,11 +155,20 @@
             <small>Browse and manage all available hotel rooms</small>
         </div>
 
+        <div class="action-grid mb-4">
+            <a class="action-btn primary" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a class="action-btn" href="{{ url_for('rooms_admin') }}"><i class="bi bi-door-closed"></i> Manage Rooms &amp; Photos</a>
+            {% endif %}
+            <a class="action-btn" href="{{ url_for('occupancy_report') }}"><i class="bi bi-graph-up"></i> Occupancy</a>
+            <button class="action-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print List</button>
+        </div>
+
         <div class="row">
             {% for room in rooms %}
             <div class="col-md-6 col-lg-4 mb-4">
                 <a href="{{ url_for('new_reservation', room_id=room.id) }}" class="room-card">
-                    <div class="room-image" style="background-image: url('{{ room.image_url if room.image_url else 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=600&h=400&fit=crop&crop=entropy&cs=tinysrgb&q=80' }}');">
+                    <div class="room-image" style="background-image: url('{{ room.image_url if room.image_url else '/static/uploads/rooms/room_1571003123894.jpg' }}');">
                         <i class="bi bi-door-open"></i>
                     </div>
                     <div class="card-body">

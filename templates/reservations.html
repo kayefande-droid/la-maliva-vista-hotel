@@ -222,6 +222,13 @@
             </div>
         </div>
 
+        <div class="action-grid mb-4">
+            <a class="action-btn primary" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a class="action-btn" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar View</a>
+            <a class="action-btn" href="{{ url_for('guests') }}"><i class="bi bi-people"></i> Guest List</a>
+            <button class="action-btn" onclick="window.print()"><i class="bi bi-printer"></i> Print Report</button>
+        </div>
+
         <div class="reservations-container">
             <div class="table-responsive">
                 <table class="table table-hover reservations-table mb-0">

@@ -556,6 +556,7 @@ class UserProfile {
 class Features {
   final String hotelName;
   final String hotelAddress;
+  final String mapsUrl;
   final bool paymentsActive;
   final bool snackbarActive;
   final String version;
@@ -563,6 +564,7 @@ class Features {
   Features({
     this.hotelName = 'LA-MALIVA VISTA HOTEL',
     this.hotelAddress = 'Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon',
+    this.mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon',
     this.paymentsActive = false,
     this.snackbarActive = false,
     this.version = kAppVersion,
@@ -571,6 +573,9 @@ class Features {
   factory Features.fromJson(Map<String, dynamic> j) => Features(
         hotelName: ((j['hotel'] ?? const {})['name'] ?? 'LA-MALIVA VISTA HOTEL').toString(),
         hotelAddress: ((j['hotel'] ?? const {})['address'] ?? '').toString(),
+        mapsUrl: ((j['hotel'] ?? const {})['maps_url'] as String?)?.isNotEmpty == true
+            ? (j['hotel']['maps_url'] as String)
+            : 'https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon',
         paymentsActive: j['payments_active'] == true,
         snackbarActive: j['snackbar_active'] == true,
         version: (j['version'] ?? kAppVersion).toString(),
@@ -617,7 +622,11 @@ class SessionService {
         features = Features.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('features_cache', jsonEncode({
-          'hotel': {'name': features.hotelName, 'address': features.hotelAddress},
+          'hotel': {
+            'name': features.hotelName,
+            'address': features.hotelAddress,
+            'maps_url': features.mapsUrl,
+          },
           'payments_active': features.paymentsActive,
           'snackbar_active': features.snackbarActive,
           'version': features.version,
@@ -672,6 +681,7 @@ class SessionService {
     features = Features(
       hotelName: features.hotelName,
       hotelAddress: features.hotelAddress,
+      mapsUrl: features.mapsUrl,
       paymentsActive: payments ?? features.paymentsActive,
       snackbarActive: snackbar ?? features.snackbarActive,
       version: features.version,
@@ -1246,7 +1256,7 @@ class HomePage extends StatelessWidget {
                   _quick(context, Icons.credit_card, 'Payments', const PaymentsPage()),
                   _quick(context, Icons.local_bar, 'Snackbar', const SnackbarPage()),
                   _quick(context, Icons.place_outlined, 'Location', null,
-                      onTapUrl: kBaseUrl),
+                      onTapUrl: SessionService.instance.features.mapsUrl),
                   _quick(context, Icons.support_agent, 'Call us', null,
                       onTapUrl: 'tel:+237679915967'),
                 ],

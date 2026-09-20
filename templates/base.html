@@ -7,6 +7,12 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#08123A">
+    <!-- iOS standalone (add-to-home-screen) support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="La-Maliva">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <!-- Vendored locally: the shell works even with no internet (PWA offline) -->
     <link href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='vendor/css/bootstrap-icons.css') }}" rel="stylesheet">
@@ -184,6 +190,48 @@
             gap: 10px;
         }
         .action-grid > * { width: 100%; margin: 0; }
+
+        /* ---------- Luxury component layer (shared by inner pages) ---------- */
+        .page-title { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 1.65rem; color: #fff; margin: 0; }
+        .text-muted-lux { color: rgba(245, 241, 232, 0.66) !important; }
+        .lux-serif { font-family: 'Cormorant Garamond', serif; font-weight: 700; color: #fff; }
+        .lux-orange { color: #f08c2e; }
+        .btn-lux-orange { background: linear-gradient(135deg, #d97a2b, #f08c2e); border: none; color: #fff; font-weight: 600; border-radius: 10px; }
+        .btn-lux-orange:hover { color: #fff; filter: brightness(1.08); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(240,140,46,0.35); }
+        .btn-lux-outline { border: 1px solid var(--shell-line); color: var(--shell-text); background: rgba(253,250,244,0.05); border-radius: 10px; }
+        .btn-lux-outline:hover { border-color: rgba(240,140,46,0.5); background: rgba(240,140,46,0.14); color: #fff; }
+        .btn-lux-danger { background: rgba(220,53,69,0.85); border: none; color: #fff; border-radius: 10px; }
+        .btn-lux-danger:hover { background: rgba(220,53,69,1); color: #fff; }
+        .btn-lux-danger-outline { border: 1px solid rgba(220,53,69,0.45); color: #ff8f9c; background: transparent; border-radius: 10px; }
+        .btn-lux-danger-outline:hover { background: rgba(220,53,69,0.14); color: #ffc2c9; }
+        .lux-input, .lux-input:focus {
+            background: rgba(10, 22, 40, 0.5);
+            border: 1px solid var(--shell-line);
+            color: var(--shell-text);
+            border-radius: 10px;
+        }
+        .lux-input:focus { outline: none; border-color: rgba(240,140,46,0.55); box-shadow: 0 0 0 0.2rem rgba(240,140,46,0.15); }
+        .form-label-lux { font-size: 12.5px; letter-spacing: 0.6px; text-transform: uppercase; color: rgba(245,241,232,0.66); margin-bottom: 6px; display: block; }
+        .lux-modal { background: #0d1b33; border: 1px solid var(--shell-line); border-radius: 18px; color: var(--shell-text); }
+        .lux-modal .modal-header, .lux-modal .modal-footer { border-color: var(--shell-line); }
+        .lux-modal .btn-close { filter: invert(1); }
+        .lux-room-card {
+            background: rgba(253, 250, 244, 0.06);
+            border: 1px solid var(--shell-line);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            display: flex; flex-direction: column;
+        }
+        .lux-room-card:hover { transform: translateY(-4px); border-color: rgba(240,140,46,0.45); box-shadow: 0 16px 36px rgba(0,0,0,0.35); }
+        .room-img-wrap { position: relative; aspect-ratio: 16 / 10; overflow: hidden; background: rgba(10,22,40,0.6); }
+        .room-img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .room-img-fallback { width: 100%; height: 100%; color: rgba(245,241,232,0.4); }
+        .room-status-badge { position: absolute; top: 10px; left: 10px; font-size: 11px; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 999px; backdrop-filter: blur(6px); }
+        .room-status-badge.status-available { background: rgba(46,160,67,0.85); color: #fff; }
+        .room-status-badge.status-occupied { background: rgba(220,53,69,0.85); color: #fff; }
+        .room-status-badge.status-maintenance { background: rgba(238,195,122,0.9); color: #08123A; }
+        .lux-empty { color: rgba(245,241,232,0.6); }
         .action-btn {
             display: flex; align-items: center; justify-content: center; gap: 8px;
             padding: 11px 14px;
@@ -469,6 +517,7 @@
             <a class="side-link {{ 'active' if request.endpoint == 'admin_monitoring' }}" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
             <a class="side-link {{ 'active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
             <a class="side-link {{ 'active' if request.endpoint == 'snackbar_admin' }}" href="{{ url_for('snackbar_admin') }}"><i class="bi bi-cup-straw"></i> Snackbar &amp; Restaurant</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'rooms_admin' }}" href="{{ url_for('rooms_admin') }}"><i class="bi bi-door-closed"></i> Room Management</a>
             <a class="side-link" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a>
             <a class="side-link {{ 'active' if request.endpoint == 'restore' }}" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a>
         </div>
@@ -597,6 +646,7 @@
         <a class="side-link" href="{{ url_for('admin_monitoring') }}"><i class="bi bi-eye"></i> Admin Monitoring</a>
         <a class="side-link" href="{{ url_for('settings') }}"><i class="bi bi-gear"></i> Hotel Settings</a>
         <a class="side-link" href="{{ url_for('snackbar_admin') }}"><i class="bi bi-cup-straw"></i> Snackbar &amp; Restaurant</a>
+        <a class="side-link" href="{{ url_for('rooms_admin') }}"><i class="bi bi-door-closed"></i> Room Management</a>
         <a class="side-link" href="{{ url_for('backup') }}"><i class="bi bi-database-down"></i> Backup Database</a>
         <a class="side-link" href="{{ url_for('restore') }}"><i class="bi bi-database-up"></i> Restore Database</a>
     </div>

@@ -273,6 +273,20 @@
             </div>
         </div>
 
+        <div class="action-grid mb-4">
+            <a class="action-btn primary" href="{{ url_for('new_reservation') }}"><i class="bi bi-plus-circle"></i> New Reservation</a>
+            <a class="action-btn" href="{{ url_for('reservations') }}"><i class="bi bi-list-check"></i> Reservations</a>
+            <a class="action-btn" href="{{ url_for('calendar') }}"><i class="bi bi-calendar3"></i> Calendar</a>
+            <a class="action-btn" href="{{ url_for('rooms') }}"><i class="bi bi-door-open"></i> Rooms</a>
+            {% if current_user.is_authenticated and current_user.role in ('admin', 'staff') %}
+            <a class="action-btn" href="{{ url_for('todays_arrivals') }}"><i class="bi bi-box-arrow-in-down"></i> Arrivals</a>
+            <a class="action-btn" href="{{ url_for('todays_departures') }}"><i class="bi bi-box-arrow-up"></i> Departures</a>
+            {% endif %}
+            {% if current_user.is_authenticated and current_user.role == 'admin' %}
+            <a class="action-btn" href="{{ url_for('rooms_admin') }}"><i class="bi bi-door-closed"></i> Manage Rooms</a>
+            {% endif %}
+        </div>
+
         <div class="row">
             <!-- Stats Cards -->
             <div class="col-12 col-sm-6 col-md-3 mb-3">
@@ -430,7 +444,7 @@
         <div class="row mt-4">
             <div class="col-12 col-md-6 mb-4">
                 <div class="card shadow-sm">
-                    <img src="https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=500&h=300&fit=crop" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
+                    <img src="/static/uploads/rooms/room_1566073771259.jpg" alt="Luxury Hotel" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
                     <div class="card-body">
                         <h6><i class="bi bi-star-fill"></i> PREMIUM EXPERIENCE</h6>
                         <p class="small text-muted">Discover luxury accommodations with world-class amenities and exceptional service.</p>
@@ -439,7 +453,7 @@
             </div>
             <div class="col-12 col-md-6 mb-4">
                 <div class="card shadow-sm">
-                    <img src="https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=500&h=300&fit=crop" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
+                    <img src="/static/uploads/rooms/room_1542314831.jpg" alt="Hotel Restaurant" class="hotel-image-animated" style="width: 100%; height: 250px; object-fit: cover;">
                     <div class="card-body">
                         <h6><i class="bi bi-cup-hot"></i> FINE DINING</h6>
                         <p class="small text-muted">Experience culinary excellence with our award-winning restaurant and bar.</p>

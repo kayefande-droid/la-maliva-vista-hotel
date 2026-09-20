@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="La-Maliva">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a1628">
     <title>Rooms &amp; Suites — La-Maliva Vista Hotel</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
@@ -18,7 +24,7 @@
 
     <header class="page-hero">
         <div class="hero-bg">
-            <img src="https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?q=80&w=2400&auto=format&fit=crop" alt="Luxury suite">
+            <img src="/static/uploads/rooms/room_1571003123894.jpg" alt="Luxury suite">
         </div>
         <div class="container-lux">
             <span class="kicker">Accommodation</span>
@@ -34,7 +40,7 @@
                 <article class="room-card reveal" data-delay="{{ loop.index0 % 3 + 1 }}">
                     <div class="room-media">
                         <span class="room-badge">Room {{ room.room_number }}</span>
-                        <img src="{{ room.image_url if room.image_url else 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=900&auto=format&fit=crop' }}"
+                        <img src="{{ room.image_url if room.image_url else '/static/uploads/rooms/room_1520250497591.jpg' }}"
                              alt="Room {{ room.room_number }} — {{ room.room_type }}" loading="lazy">
                     </div>
                     <div class="room-body">

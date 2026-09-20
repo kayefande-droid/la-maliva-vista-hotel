@@ -3,6 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="La-Maliva">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a1628">
     <title>Sign In — La-Maliva Vista Hotel</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
@@ -138,7 +144,7 @@
     <div class="auth-split">
         <!-- Visual side -->
         <aside class="auth-visual">
-            <img class="bg" src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?q=80&w=1600&auto=format&fit=crop" alt="">
+            <img class="bg" src="/static/uploads/rooms/room_1520250497591.jpg" alt="">
             <div class="visual-content">
                 <span class="kicker">Members' Entrance</span>
                 <h2>Welcome back to the mountain.</h2>
