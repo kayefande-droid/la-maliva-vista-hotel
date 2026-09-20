@@ -1,0 +1,65 @@
+<!-- Shared luxury navigation -->
+<nav class="lux-nav" id="luxNav">
+  <div class="nav-inner">
+    <a class="brand-lockup" href="{{ url_for('public_home') }}">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista Hotel">
+      <span>
+        <span class="brand-name">La-Maliva Vista</span>
+        <span class="brand-sub">A Taste of Paradise</span>
+      </span>
+    </a>
+    <div class="nav-links">
+      <a href="{{ url_for('public_home') }}" class="{{ 'active' if active_nav == 'home' }}">Home</a>
+      <a href="{{ url_for('stay') }}" class="{{ 'active' if active_nav == 'stay' }}">Rooms &amp; Suites</a>
+      <a href="{{ url_for('about') }}" class="{{ 'active' if active_nav == 'about' }}">About</a>
+      <a href="{{ url_for('contact') }}" class="{{ 'active' if active_nav == 'contact' }}">Contact</a>
+      <a href="{{ url_for('downloads') }}">Get the App</a>
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('dashboard') }}" class="nav-book">My Dashboard</a>
+      {% else %}
+        <a href="{{ url_for('login') }}" class="nav-book">Reserve</a>
+      {% endif %}
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu"><i class="bi bi-list"></i></button>
+  </div>
+</nav>
+
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<aside class="mobile-drawer" id="mobileDrawer" aria-hidden="true">
+  <button class="drawer-close" id="drawerClose" aria-label="Close menu"><i class="bi bi-x-lg"></i></button>
+  <a href="{{ url_for('public_home') }}"><i class="bi bi-house"></i> Home</a>
+  <a href="{{ url_for('stay') }}"><i class="bi bi-door-open"></i> Rooms &amp; Suites</a>
+  <a href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a>
+  <a href="{{ url_for('contact') }}"><i class="bi bi-envelope"></i> Contact</a>
+  <a href="{{ url_for('downloads') }}"><i class="bi bi-phone"></i> Get the App</a>
+  <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> Guest Guide</a>
+  {% if current_user.is_authenticated %}
+    <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> My Dashboard</a>
+  {% else %}
+    <a href="{{ url_for('login') }}" style="color: var(--orange-400)"><i class="bi bi-calendar-check"></i> Reserve Now</a>
+  {% endif %}
+</aside>
+
+<script>
+  (function () {
+    var nav = document.getElementById('luxNav');
+    var toggle = document.getElementById('navToggle');
+    var drawer = document.getElementById('mobileDrawer');
+    var backdrop = document.getElementById('drawerBackdrop');
+    var closeBtn = document.getElementById('drawerClose');
+
+    var onScroll = function () {
+      if (window.scrollY > 40) nav.classList.add('scrolled');
+      else nav.classList.remove('scrolled');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    var open = function () { drawer.classList.add('open'); backdrop.classList.add('show'); drawer.setAttribute('aria-hidden', 'false'); };
+    var close = function () { drawer.classList.remove('open'); backdrop.classList.remove('show'); drawer.setAttribute('aria-hidden', 'true'); };
+    if (toggle) toggle.addEventListener('click', open);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    if (backdrop) backdrop.addEventListener('click', close);
+    drawer.querySelectorAll('a').forEach(function (a) { a.addEventListener('click', close); });
+  })();
+</script>

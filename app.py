@@ -26,7 +26,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -889,6 +889,18 @@ def restore():
                 _perform_log(f"Failed Database Restore: {str(e)}")
     return render_template('restore.html')
 
+@app.route('/stay')
+def stay():
+    """Public rooms & suites showcase page."""
+    rooms_list = Room.query.order_by(Room.price).all()
+    return render_template('stay.html', rooms=rooms_list)
+
+@app.route('/contact')
+def contact():
+    """Public contact page."""
+    hotel = Hotel.query.first()
+    return render_template('contact.html', hotel=hotel)
+
 @app.route('/about')
 def about(): return render_template('about.html')
 
@@ -977,8 +989,8 @@ def user_manual():
 
 # ===================== DOWNLOADS & VERSIONING =====================
 APP_RELEASES = {
-    'android': {'file': 'la-maliva-vista-{v}.apk', 'label': 'Android APK', 'min_os': 'Android 8.0+', 'size': '~18 MB'},
-    'windows': {'file': 'La-Maliva-Vista-Setup-{v}.exe', 'label': 'Windows Installer', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~65 MB'},
+    'android': {'file': 'la-maliva-vista-{v}.apk', 'label': 'Android APK', 'min_os': 'Android 8.0+', 'size': '~46 MB'},
+    'windows': {'file': 'La-Maliva-Vista-{v}-windows.zip', 'label': 'Windows App', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~13 MB'},
     'pwa': {'file': None, 'label': 'Progressive Web App', 'min_os': 'Any modern browser', 'size': '~2 MB'},
 }
 
@@ -988,12 +1000,18 @@ def _release_meta(platform_key):
     meta['version'] = APP_VERSION
     meta['channel'] = BUILD_CHANNEL
     meta['filename'] = meta['file'].format(v=APP_VERSION) if meta['file'] else None
+    release_path = os.path.join(basedir, 'static', 'releases', meta['filename'] or '')
+    meta['available'] = os.path.exists(release_path)
+    try:
+        meta['size_bytes'] = os.path.getsize(release_path) if meta['available'] else 0
+    except OSError:
+        meta['size_bytes'] = 0
     return meta
 
 
 @app.route('/downloads')
 def downloads():
-    """Native app downloads page (APK / EXE / PWA) with live version info."""
+    """Native app downloads page (APK / Windows / PWA) with live version info."""
     return render_template(
         'downloads.html',
         app_version=APP_VERSION,
@@ -1015,20 +1033,35 @@ def api_version():
 
 @app.route('/downloads/<platform>')
 def download_release(platform):
-    """Serve the requested native bundle if present in static/releases."""
+    """Serve the requested native bundle from static/releases."""
     platform = platform.lower()
     if platform not in APP_RELEASES or platform == 'pwa':
-        flash('❌ Unknown platform requested.', 'error')
+        flash('Unknown platform requested.', 'error')
         return redirect(url_for('downloads'))
-    filename = _release_meta(platform)['filename']
-    release_path = os.path.join(basedir, 'static', 'releases', filename)
-    if os.path.exists(release_path):
-        return send_file(release_path, as_attachment=True, download_name=filename)
-    flash(f'ℹ️ {filename} is being packaged — the build pipeline publishes it to /static/releases shortly.', 'info')
+    meta = _release_meta(platform)
+    release_path = os.path.join(basedir, 'static', 'releases', meta['filename'])
+    if meta['available']:
+        return send_file(release_path, as_attachment=True, download_name=meta['filename'])
+    flash(f"The {meta['label']} for v{APP_VERSION} is being packaged — check back shortly.", 'info')
     return redirect(url_for('downloads'))
 
 
 # ===================== EMAIL VALIDATION API =====================
+@app.route('/api/public-rooms')
+def api_public_rooms():
+    """Public room list for the native mobile/desktop apps (offline cache seed)."""
+    rooms = Room.query.order_by(Room.price).all()
+    return jsonify([{
+        'id': r.id,
+        'room_number': r.room_number,
+        'room_type': r.room_type,
+        'price': r.price,
+        'description': r.description,
+        'image_url': r.image_url,
+        'status': r.status,
+    } for r in rooms])
+
+
 @app.route('/api/validate-email', methods=['POST'])
 def api_validate_email():
     """Live endpoint powering the signup form's real-time email verification."""

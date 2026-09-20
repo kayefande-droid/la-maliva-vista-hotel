@@ -156,34 +156,37 @@
             <p>Native builds for Android and Windows, plus an installable PWA with full offline support — all versioned from one source of truth and published straight from the build pipeline.</p>
         </div>
 
+        {% set android = releases['android'] %}
+        {% set windows = releases['windows'] %}
+        {% set pwa = releases['pwa'] %}
         <div class="grid">
             <div class="card">
                 <div class="card-ico gold"><i class="bi bi-android2"></i></div>
-                <h3>Android APK</h3>
-                <p class="desc">Direct-install package for Android phones &amp; tablets. No store account needed — download, tap, allow installs, done.</p>
+                <h3>Android App</h3>
+                <p class="desc">The full La-Maliva experience, native on your phone — offline room browsing, booking alerts and one-tap reservations.</p>
                 <ul class="meta">
                     <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
-                    <li><span class="k">Channel</span><span class="v">{{ build_channel }}</span></li>
                     <li><span class="k">Requires</span><span class="v">Android 8.0+</span></li>
-                    <li><span class="k">Size</span><span class="v">~18 MB</span></li>
+                    <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(android.size_bytes / 1048576) if android.available else '~' }} MB</span></li>
+                    <li><span class="k">Status</span><span class="v" style="color:#2e9e63">{{ 'Available now' if android.available else 'Packaging…' }}</span></li>
                 </ul>
-                <a class="dl-btn gold" href="{{ url_for('download_release', platform='android') }}">
+                <a class="dl-btn gold {{ 'disabled' if not android.available }}" href="{{ url_for('download_release', platform='android') }}">
                     <i class="bi bi-download"></i> Download APK
                 </a>
             </div>
 
             <div class="card">
                 <div class="card-ico"><i class="bi bi-windows"></i></div>
-                <h3>Windows Installer</h3>
-                <p class="desc">Desktop executable for Windows 10/11 front-desk machines. Full management suite with offline caching.</p>
+                <h3>Windows App</h3>
+                <p class="desc">Native desktop app for Windows 10/11 — unzip, run the exe, and manage your stay from the front desk or your couch.</p>
                 <ul class="meta">
                     <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
-                    <li><span class="k">Channel</span><span class="v">{{ build_channel }}</span></li>
-                    <li><span class="k">Requires</span><span class="v">Windows 10/11</span></li>
-                    <li><span class="k">Size</span><span class="v">~65 MB</span></li>
+                    <li><span class="k">Requires</span><span class="v">Windows 10/11 (64-bit)</span></li>
+                    <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(windows.size_bytes / 1048576) if windows.available else '~' }} MB</span></li>
+                    <li><span class="k">Status</span><span class="v" style="color:#2e9e63">{{ 'Available now' if windows.available else 'Packaging…' }}</span></li>
                 </ul>
-                <a class="dl-btn gold" href="{{ url_for('download_release', platform='windows') }}">
-                    <i class="bi bi-download"></i> Download EXE
+                <a class="dl-btn gold {{ 'disabled' if not windows.available }}" href="{{ url_for('download_release', platform='windows') }}">
+                    <i class="bi bi-download"></i> Download for Windows
                 </a>
             </div>
 
@@ -193,7 +196,6 @@
                 <p class="desc">Installs straight from the browser — no download needed. Works fully offline with cached bookings, rooms and rates.</p>
                 <ul class="meta">
                     <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
-                    <li><span class="k">Channel</span><span class="v">{{ build_channel }}</span></li>
                     <li><span class="k">Requires</span><span class="v">Any modern browser</span></li>
                     <li><span class="k">Size</span><span class="v">~2 MB</span></li>
                 </ul>
@@ -207,7 +209,7 @@
             <h2>How installation works</h2>
             <div class="grid">
                 <div class="step"><div class="n">1</div><p>Download the bundle for your platform — the version badge always reflects the latest release.</p></div>
-                <div class="step"><div class="n">2</div><p>APK: allow "install unknown apps" for your browser. EXE: run the installer and follow the wizard.</p></div>
+                <div class="step"><div class="n">2</div><p>APK: allow "install unknown apps" for your browser when prompted — the app will request notification permission on first launch. Windows: unzip and double-click the exe.</p></div>
                 <div class="step"><div class="n">3</div><p>PWA: tap Install PWA (or browser menu → Install app) while visiting this site.</p></div>
                 <div class="step"><div class="n">4</div><p>Launch — cached data, rooms and rates are available even with zero connectivity.</p></div>
             </div>

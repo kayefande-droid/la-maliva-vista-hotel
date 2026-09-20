@@ -1,0 +1,61 @@
+<!-- Shared luxury footer -->
+<footer class="lux-footer">
+  <div class="container-lux">
+    <div class="foot-grid">
+      <div>
+        <div class="f-brand">
+          <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista Hotel">
+          <span>
+            <span class="t">La-Maliva Vista Hotel</span>
+            <span class="s">A Taste of Paradise</span>
+          </span>
+        </div>
+        <p>
+          An intimate luxury retreat opposite Fako Heart Entrance, GRA Bokwaongo —
+          where Mount Cameroon's green slopes meet warm, attentive hospitality.
+        </p>
+        <div class="socials">
+          <a href="#" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+          <a href="#" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+          <a href="#" aria-label="X (Twitter)"><i class="bi bi-twitter-x"></i></a>
+          <a href="https://wa.me/237679915967" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        </div>
+      </div>
+
+      <div>
+        <h5>Explore</h5>
+        <ul>
+          <li><a href="{{ url_for('public_home') }}">Home</a></li>
+          <li><a href="{{ url_for('stay') }}">Rooms &amp; Suites</a></li>
+          <li><a href="{{ url_for('about') }}">About the Hotel</a></li>
+          <li><a href="{{ url_for('contact') }}">Contact Us</a></li>
+          <li><a href="{{ url_for('user_manual') }}">Guest Guide</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h5>Reservations</h5>
+        <ul>
+          <li><a href="{{ url_for('login') }}">Book a Room</a></li>
+          <li><a href="{{ url_for('signup') }}">Create an Account</a></li>
+          <li><a href="{{ url_for('downloads') }}">Download the App</a></li>
+          <li><a href="{{ url_for('downloads') }}">Install PWA</a></li>
+        </ul>
+</div>
+
+      <div>
+        <h5>Contact</h5>
+        <div class="contact-line"><i class="bi bi-geo-alt"></i><span>Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon</span></div>
+        <div class="contact-line"><i class="bi bi-telephone"></i><a href="tel:+237679915967" style="color:inherit;text-decoration:none">(+237) 679-915-967</a></div>
+        <div class="contact-line"><i class="bi bi-envelope"></i><a href="mailto:lamalivastahotel@lamaliva.com" style="color:inherit;text-decoration:none">lamalivastahotel@lamaliva.com</a></div>
+        <div class="contact-line"><i class="bi bi-clock"></i><span>Reception 24/7 · Check-in 2 PM · Check-out 12 PM</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot-bar">
+    <div class="container-lux">
+      © {{ now().year if now is defined else 2026 }} La-Maliva Vista Hotel · Buea, Cameroon ·
+      <a href="{{ url_for('downloads') }}">Get the app</a>
+    </div>
+  </div>
+</footer>
