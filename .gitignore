@@ -14,3 +14,8 @@ venv.bak/
 
 # Instance folder
 instance/
+# Flutter build artifacts
+mobile_app/build/
+mobile_app/.gradle/
+mobile_app/*.log
+*.log
