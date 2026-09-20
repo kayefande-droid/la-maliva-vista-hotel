@@ -26,7 +26,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.1.0"
+APP_VERSION = "2.1.1"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
