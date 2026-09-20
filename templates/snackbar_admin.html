@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="snack-admin">
+    <div class="d-flex justify-content-between align-items-center flex-wrap mb-4 gap-2">
+        <div>
+            <h4 class="mb-1" style="color: var(--gold); font-weight: 700;"><i class="bi bi-cup-straw me-2"></i>Snackbar &amp; Restaurant</h4>
+            <small class="text-muted">Manage the menu guests see in the app and on the web.</small>
+        </div>
+        <form method="POST" action="{{ url_for('admin_toggles') }}">
+            <div class="form-check form-switch" style="transform: scale(1.2);">
+                <input class="form-check-input" type="checkbox" role="switch" id="sbActive" name="snackbar_active"
+                       {% if snackbar_active %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label ms-1" for="sbActive">
+                    {{ 'Menu is LIVE in the app' if snackbar_active else 'Menu hidden (coming soon)' }}
+                </label>
+            </div>
+        </form>
+    </div>
+
+    {% if not snackbar_active %}
+    <div class="alert alert-warning d-flex align-items-center gap-2">
+        <i class="bi bi-eye-slash fs-5"></i>
+        <div>The menu is currently <b>hidden</b> — guests see “Coming Soon”. Flip the switch above to publish it.</div>
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Add item form -->
+        <div class="col-lg-4">
+            <div class="glass-panel p-4 h-100">
+                <h6 class="mb-3" style="color: var(--gold);"><i class="bi bi-plus-circle me-2"></i>Add Menu Item</h6>
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('snackbar_admin') }}">
+                    <input type="hidden" name="action" value="add">
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" placeholder="e.g. Grilled Chicken" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select class="form-select" name="category">
+                            <option>Drinks</option>
+                            <option>Beer</option>
+                            <option>Wine</option>
+                            <option>Whisky</option>
+                            <option>Meals</option>
+                            <option>Snacks</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Price (FCFA)</label>
+                        <input type="number" class="form-control" name="price" min="100" step="50" placeholder="2000" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Photo — pick from this device</label>
+                        <input type="file" class="form-control" name="image_file" accept="image/*" onchange="previewImage(this)">
+                        <div class="text-center my-2 d-none" id="imgPreviewWrap">
+                            <img id="imgPreview" style="max-height: 110px; border-radius: 10px;" alt="preview">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">…or paste an image link</label>
+                        <input type="url" class="form-control" name="image_url" placeholder="https://…">
+                    </div>
+                    <button class="btn btn-gold w-100"><i class="bi bi-plus-lg me-1"></i> Add to menu</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Item list -->
+        <div class="col-lg-8">
+            <div class="row g-3">
+                {% for item in items %}
+                <div class="col-md-6 col-xl-4">
+                    <div class="glass-panel snack-card h-100">
+                        <div class="snack-img">
+                            {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+                            {% else %}
+                            <div class="snack-placeholder"><i class="bi bi-cup-hot"></i></div>
+                            {% endif %}
+                            <span class="badge snack-cat">{{ item.category }}</span>
+                        </div>
+                        <div class="p-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="mb-1 fw-bold">{{ item.name }}</h6>
+                                <span class="snack-price">FCFA {{ '{:,.0f}'.format(item.price) }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="badge {% if item.available %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ 'Available' if item.available else 'Hidden' }}
+                                </span>
+                                <div class="d-flex gap-2">
+                                    <form method="POST" action="{{ url_for('snackbar_toggle_item', item_id=item.id) }}">
+                                        <button class="btn btn-sm btn-outline-light" title="Show/hide">
+                                            <i class="bi bi-{% if item.available %}eye-slash{% else %}eye{% endif %}"></i>
+                                        </button>
+                                    </form>
+                                    <form method="POST" action="{{ url_for('snackbar_admin') }}">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="item_id" value="{{ item.id }}">
+                                        <button class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="glass-panel p-5 text-center text-muted">
+                        <i class="bi bi-cup-straw" style="font-size: 2.5rem; color: var(--gold);"></i>
+                        <p class="mt-3 mb-0">No items yet — add your first drink or meal with the form.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .snack-card { overflow: hidden; transition: transform .25s ease, box-shadow .25s ease; }
+    .snack-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,.35); }
+    .snack-img { position: relative; height: 130px; overflow: hidden; background: rgba(255,255,255,.06); }
+    .snack-img img { width: 100%; height: 100%; object-fit: cover; }
+    .snack-placeholder { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2.2rem; color: rgba(255,255,255,.25); }
+    .snack-cat { position: absolute; top: 10px; left: 10px; background: rgba(8,18,58,.85); color: var(--gold); border: 1px solid rgba(255,255,255,.25); }
+    .snack-price { color: var(--gold); font-weight: 700; white-space: nowrap; }
+</style>
+
+<script>
+    function previewImage(input) {
+        if (input.files && input.files[0]) {
+            var wrap = document.getElementById('imgPreviewWrap');
+            var img = document.getElementById('imgPreview');
+            img.src = URL.createObjectURL(input.files[0]);
+            wrap.classList.remove('d-none');
+        }
+    }
+</script>
+{% endblock %}
