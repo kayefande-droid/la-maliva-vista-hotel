@@ -17,7 +17,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.1.1';
+const String kAppVersion = '2.1.2';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +29,7 @@ Future<void> main() async {
 // ------------------------------------------------------------
 class AppColors {
   static const navy950 = Color(0xFF0A1628);
+  static const brandNavy = Color(0xFF08123A); // exact badge navy from logo.png
   static const navy900 = Color(0xFF0F2240);
   static const navy800 = Color(0xFF16305C);
   static const orange500 = Color(0xFFF08C2E);
@@ -92,7 +93,7 @@ class _SplashGateState extends State<SplashGate> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.navy950,
+      backgroundColor: AppColors.brandNavy,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
