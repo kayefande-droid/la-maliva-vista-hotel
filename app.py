@@ -2118,6 +2118,7 @@ def downloads():
         'downloads.html',
         app_version=APP_VERSION,
         build_channel=BUILD_CHANNEL,
+        site_url=SITE_URL,
         releases={k: _release_meta(k) for k in APP_RELEASES},
     )
 
@@ -2131,6 +2132,19 @@ def api_version():
         'channel': BUILD_CHANNEL,
         'releases': {k: _release_meta(k) for k in APP_RELEASES},
     })
+
+
+@app.route('/apk')
+def apk_shortcut():
+    """Short, copyable direct link — clicking it downloads the APK.
+    Share it on WhatsApp/SMS: https://la-maliva-vista-hotel.onrender.com/apk"""
+    return redirect(url_for('download_release', platform='android'))
+
+
+@app.route('/exe')
+def exe_shortcut():
+    """Short direct link for the Windows build."""
+    return redirect(url_for('download_release', platform='windows'))
 
 
 @app.route('/downloads/<platform>')
