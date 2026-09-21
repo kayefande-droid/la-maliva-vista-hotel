@@ -28,7 +28,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.2.0';
+const String kAppVersion = '2.2.1';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -381,7 +381,8 @@ class NotificationService {
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
-  ApiException(this.message, {this.statusCode});
+  final bool needsMfa; // server demands a TOTP code — prompt and retry
+  ApiException(this.message, {this.statusCode, this.needsMfa = false});
   @override
   String toString() => message;
 }
@@ -532,6 +533,7 @@ class UserProfile {
   final String email;
   final String role;
   final bool mustChangePassword;
+  final bool mustEnrollMfa;
 
   UserProfile({
     required this.id,
@@ -539,6 +541,7 @@ class UserProfile {
     required this.email,
     required this.role,
     this.mustChangePassword = false,
+    this.mustEnrollMfa = false,
   });
 
   bool get isStaff => role == 'staff' || role == 'admin';
@@ -550,6 +553,7 @@ class UserProfile {
         email: (j['email'] ?? '').toString(),
         role: (j['role'] ?? 'user').toString(),
         mustChangePassword: j['must_change_password'] == true,
+        mustEnrollMfa: j['must_enroll_mfa'] == true,
       );
 }
 
@@ -635,12 +639,18 @@ class SessionService {
     } catch (_) {/* keep cached */}
   }
 
-  Future<UserProfile> login(String identifier, String password) async {
+  /// Sign in. Throws [ApiException] with `needsMfa` set when the account
+  /// requires a TOTP code — retry with [otp] filled in.
+  Future<UserProfile> login(String identifier, String password, {String? otp}) async {
     final data = await Api.post('/api/auth/login', {
       'username': identifier,
       'password': password,
+      if (otp != null) 'otp': otp,
     });
     if (data['ok'] != true) {
+      if (data['needs_mfa'] == true) {
+        throw ApiException((data['error'] ?? 'MFA code required').toString(), needsMfa: true);
+      }
       throw ApiException((data['error'] ?? 'Login failed').toString());
     }
     token = data['token'] as String?;
@@ -2430,20 +2440,28 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final _id = TextEditingController();
   final _pw = TextEditingController();
+  final _otp = TextEditingController();
   bool _busy = false;
   bool _obscure = true;
+  bool _needsMfa = false; // server asked for a TOTP code
   String? _error;
 
   Future<void> _submit() async {
     setState(() { _busy = true; _error = null; });
     try {
-      final user = await SessionService.instance.login(_id.text.trim(), _pw.text);
+      final user = await SessionService.instance.login(
+          _id.text.trim(), _pw.text,
+          otp: _needsMfa && _otp.text.trim().isNotEmpty ? _otp.text.trim() : null);
       await NotificationService.instance.notify(
           'Welcome back, ${user.username}',
           user.isStaff ? 'Staff tools are unlocked in the menu.' : 'Your bookings are synced.');
       if (mounted) Navigator.pop(context, user);
     } on ApiException catch (e) {
-      setState(() => _error = e.message);
+      if (e.needsMfa) {
+        setState(() { _needsMfa = true; _error = 'Enter the 8-digit code from your authenticator app.'; });
+      } else {
+        setState(() => _error = e.message);
+      }
     } catch (_) {
       setState(() => _error = 'No connection — sign in needs internet.');
     } finally {
@@ -2494,6 +2512,19 @@ class _LoginPageState extends State<LoginPage> {
               ),
             ),
           ),
+          if (_needsMfa) ...[
+            const SizedBox(height: 14),
+            TextField(
+              controller: _otp,
+              keyboardType: TextInputType.number,
+              maxLength: 8,
+              style: const TextStyle(color: Colors.white, letterSpacing: 6, fontSize: 18),
+              decoration: _dec('Authenticator code', Icons.phonelink_lock_outlined).copyWith(
+                counterText: '',
+              ),
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12.5),

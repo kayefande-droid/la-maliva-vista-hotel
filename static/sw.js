@@ -8,7 +8,7 @@
      - Offline fallback       : /offline page + cached shell
    ============================================================ */
 
-const VERSION = 'v2.2.0';
+const VERSION = 'v2.2.1';
 const SHELL_CACHE = 'lmv-shell-' + VERSION;
 const PAGES_CACHE = 'lmv-pages-' + VERSION;
 const ASSETS_CACHE = 'lmv-assets-' + VERSION;

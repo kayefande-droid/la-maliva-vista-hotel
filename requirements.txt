@@ -30,3 +30,6 @@ anyio==4.12.1
 # --- Real email verification (syntax + DNS MX deliverability) ---
 email-validator==2.2.0
 dnspython==2.7.0
+# --- ASVS L3 security ---
+argon2-cffi==25.1.0
+qrcode==8.2
