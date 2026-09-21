@@ -30,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.1';
+const String kAppVersion = '2.3.2';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1929,6 +1929,13 @@ class _HomeShellState extends State<HomeShell> {
       );
     });
   }
+
+  /// Opens the shell's slide-in menu. Pages live in their OWN Scaffolds, so
+  /// `Scaffold.of(context)` from inside a page finds the page's scaffold
+  /// (which has no drawer) — always go through the shell instead.
+  void openMenu(BuildContext context) {
+    _scaffoldKey.currentState?.openDrawer();
+  }
 }
 
 // ------------------------------------------------------------
@@ -2160,7 +2167,10 @@ class HomePage extends StatelessWidget {
         leading: Builder(
           builder: (ctx) => IconButton(
             icon: const Icon(Icons.menu),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
+            tooltip: 'Menu',
+            onPressed: () => context
+                .findAncestorStateOfType<_HomeShellState>()
+                ?.openMenu(ctx),
           ),
         ),
         title: Row(children: const [
