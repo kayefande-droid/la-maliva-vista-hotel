@@ -30,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.0';
+const String kAppVersion = '2.3.1';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -2309,6 +2309,16 @@ class HomePage extends StatelessWidget {
 }
 
 Future<void> _openBooking(BuildContext context, Room room) async {
+  // Guests: reservation is online-only. Staff/admin get the office tool
+  // instead, which also works offline (queued + synced later).
+  final user = SessionService.instance.user;
+  final isStaff = user != null && user.isStaff;
+  if (!NetService.instance.online.value && !isStaff) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Reservations need internet. Please reconnect to book.'),
+        backgroundColor: AppColors.orange600));
+    return;
+  }
   await showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -2559,6 +2569,26 @@ class _BookingSheetState extends State<BookingSheet> {
   bool _busy = false;
   String? _error;
 
+  /// Guest reservations are ONLINE-ONLY — real-time availability in the
+  /// database means an offline booking could double-book a room.
+  bool get _online => NetService.instance.online.value;
+  StreamSubscription<bool>? _netSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Re-enable/disable the whole form the moment connectivity changes
+    _netSub = NetService.instance.onChange.listen((_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _netSub?.cancel();
+    super.dispose();
+  }
+
   int get _nights => _out.difference(_in).inDays < 1 ? 1 : _out.difference(_in).inDays;
   double get _total => _nights * widget.room.price;
 
@@ -2628,16 +2658,37 @@ class _BookingSheetState extends State<BookingSheet> {
           Text('${widget.room.type} · FCFA ${widget.room.price.toStringAsFixed(0)} / night',
               style: TextStyle(color: AppColors.ink500)),
           const SizedBox(height: 18),
-          TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder())),
+          // ONLINE-ONLY notice: shown whenever the sheet opens without internet
+          ValueListenableBuilder<bool>(
+            valueListenable: NetService.instance.online,
+            builder: (context, online, _) => online
+                ? const SizedBox.shrink()
+                : Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(13),
+                    decoration: BoxDecoration(
+                        color: AppColors.gold.withOpacity(0.16),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.gold.withOpacity(0.45))),
+                    child: Row(children: [
+                      Icon(Icons.wifi_off, size: 18, color: AppColors.orange600),
+                      const SizedBox(width: 10),
+                      Expanded(
+                          child: Text('Reservations need internet (live room availability). '
+                              'You are offline — please reconnect to book.',
+                              style: const TextStyle(fontSize: 12, height: 1.45)))]),
+                  ),
+          ),
+          TextField(controller: _name, enabled: _online, decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone (e.g. 679…)', border: OutlineInputBorder())),
+          TextField(controller: _phone, enabled: _online, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: 'Phone (e.g. 679…)', border: OutlineInputBorder())),
           const SizedBox(height: 12),
-          TextField(controller: _email, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email (optional — links receipts to your account)', border: OutlineInputBorder())),
+          TextField(controller: _email, enabled: _online, keyboardType: TextInputType.emailAddress, decoration: const InputDecoration(labelText: 'Email (optional — links receipts to your account)', border: OutlineInputBorder())),
           const SizedBox(height: 14),
           Row(children: [
-            Expanded(child: _dateTile('Check-in', _in, () => _pickDate(true))),
+            Expanded(child: _dateTile('Check-in', _in, _online ? () => _pickDate(true) : () {})),
             const SizedBox(width: 10),
-            Expanded(child: _dateTile('Check-out', _out, () => _pickDate(false))),
+            Expanded(child: _dateTile('Check-out', _out, _online ? () => _pickDate(false) : () {})),
           ]),
           SizedBox(height: 16),
           Container(
@@ -2656,16 +2707,22 @@ class _BookingSheetState extends State<BookingSheet> {
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _busy ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.orange500, foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: NetService.instance.online,
+              builder: (context, online, _) => ElevatedButton(
+                onPressed: (_busy || !online) ? null : _submit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.orange500,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: AppColors.ink500.withOpacity(0.4),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                ),
+                child: _busy
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(online ? 'CONFIRM BOOKING' : 'OFFLINE — RESERVATION UNAVAILABLE',
+                        style: const TextStyle(letterSpacing: 1.2, fontWeight: FontWeight.w700, fontSize: 12.5)),
               ),
-              child: _busy
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('CONFIRM BOOKING', style: TextStyle(letterSpacing: 1.4, fontWeight: FontWeight.w700)),
             ),
           ),
         ]),
@@ -4065,16 +4122,66 @@ class OfflineRegisterPage extends StatefulWidget {
 
 class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
   List<OfflineRegistration> _regs = [];
+  bool _syncing = false;
+  StreamSubscription<bool>? _netSub;
 
   @override
   void initState() {
     super.initState();
     _reload();
+    // Auto-sync pending records the moment internet returns
+    _netSub = NetService.instance.onChange.listen((online) {
+      if (online) _syncNow(silent: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _netSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _reload() async {
     final regs = await OfflineRegStore.instance.all();
     if (mounted) setState(() => _regs = regs);
+  }
+
+  /// Push every queued registration into the hotel database right now.
+  Future<void> _syncNow({bool silent = false}) async {
+    if (_syncing || !NetService.instance.online.value) return;
+    setState(() => _syncing = true);
+    try {
+      final regs = await OfflineRegStore.instance.all();
+      if (regs.isEmpty) {
+        if (!silent && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Nothing to sync — all records are in the database')));
+        }
+        return;
+      }
+      final data = await Api.post('/api/sync-offline-registrations', {
+        'registrations': regs.map((r) => r.toMap()).toList(),
+      });
+      if (data['ok'] == true) {
+        for (final reg in regs) {
+          await OfflineRegStore.instance.remove(reg.id);
+        }
+        await NotificationService.instance.notify('Registrations synced',
+            '${data['synced']} guest record(s) uploaded to the hotel database.');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('${data['synced']} record(s) uploaded to the database ✓')));
+        }
+      }
+    } catch (_) {
+      if (!silent && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Could not reach the server — records stay queued')));
+      }
+    } finally {
+      await _reload();
+      if (mounted) setState(() => _syncing = false);
+    }
   }
 
   Future<void> _openForm() async {
@@ -4089,21 +4196,60 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Guest Register (Offline)')),
+      appBar: AppBar(title: const Text('Guest Register')),
       body: ListView(padding: EdgeInsets.all(16), children: [
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-              color: AppColors.gold.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: AppColors.gold.withOpacity(0.4))),
-          child: Row(children: [
-            Icon(Icons.cloud_off, color: AppColors.orange600),
-            SizedBox(width: 12),
-            Expanded(child: Text('Register guests with no internet. Invoices print '
-                'straight from this device — data stays on the phone until synced.',
-                style: TextStyle(fontSize: 12, height: 1.5))),
-          ]),
+        ValueListenableBuilder<bool>(
+          valueListenable: NetService.instance.online,
+          builder: (context, online, _) => Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+                color: (online ? Colors.green : AppColors.orange600).withOpacity(0.12),
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(
+                    color: (online ? Colors.green : AppColors.orange600).withOpacity(0.4))),
+            child: Row(children: [
+              Icon(online ? Icons.cloud_done : Icons.cloud_off,
+                  color: online ? Colors.green : AppColors.orange600),
+              const SizedBox(width: 12),
+              Expanded(
+                  child: Text(online
+                      ? 'Online — guest records save directly to the hotel database.'
+                      : 'Offline — records are queued on this device and upload to the database automatically when internet returns.',
+                      style: const TextStyle(fontSize: 12, height: 1.5))),
+            ]),
+          ),
+        ),
+        // Pending-sync queue banner
+        ValueListenableBuilder<bool>(
+          valueListenable: NetService.instance.online,
+          builder: (context, online, _) => FutureBuilder<List<OfflineRegistration>>(
+            future: OfflineRegStore.instance.all(),
+            builder: (context, snap) {
+              final pending = snap.data?.length ?? 0;
+              if (pending == 0) return const SizedBox.shrink();
+              return Container(
+                margin: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.all(13),
+                decoration: BoxDecoration(
+                    color: AppColors.gold.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: AppColors.gold.withOpacity(0.4))),
+                child: Row(children: [
+                  Icon(Icons.pending_outlined, size: 18, color: AppColors.orange600),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('$pending record(s) waiting to sync',
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5))),
+                  TextButton(
+                    onPressed: (_syncing || !online) ? null : () => _syncNow(),
+                    child: _syncing
+                        ? const SizedBox(width: 14, height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text('Sync now', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ]),
+              );
+            },
+          ),
         ),
         SizedBox(height: 14),
         ElevatedButton.icon(
@@ -4114,7 +4260,9 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
           ),
           icon: const Icon(Icons.person_add_alt),
-          label: const Text('REGISTER GUEST + INVOICE'),
+          label: Text(NetService.instance.online.value
+              ? 'REGISTER GUEST (SAVES TO DATABASE)'
+              : 'REGISTER GUEST (OFFLINE QUEUE)'),
         ),
         const SizedBox(height: 18),
         ..._regs.map((r) => Container(
@@ -4126,7 +4274,7 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text(r.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
-                  Text('OFFLINE', style: TextStyle(fontSize: 9.5, letterSpacing: 1.4,
+                  Text('PENDING SYNC', style: TextStyle(fontSize: 9.5, letterSpacing: 1.4,
                       color: AppColors.orange600, fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 3),
@@ -4195,8 +4343,17 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
   final _room = TextEditingController();
   int _nights = 1;
   double _rate = 15000;
+  bool _busy = false;
+  String? _error;
+
+  bool get _online => NetService.instance.online.value;
 
   Future<void> _save() async {
+    if ((_name.text.trim().isEmpty) || (_phone.text.trim().isEmpty)) {
+      setState(() => _error = 'Guest name and phone are required.');
+      return;
+    }
+    setState(() { _busy = true; _error = null; });
     final now = DateTime.now();
     final reg = OfflineRegistration(
       id: now.millisecondsSinceEpoch % 1000000000,
@@ -4208,8 +4365,61 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
       rate: _rate,
       createdAt: '${now.day}/${now.month}/${now.year}',
     );
+
+    if (_online) {
+      // ONLINE: write straight into the hotel database (same table the
+      // website dashboard reads), then keep a local invoice copy.
+      try {
+        final data = await Api.post('/api/sync-offline-registrations', {
+          'registrations': [reg.toMap()],
+        });
+        if (data['ok'] == true) {
+          String resId = '—';
+          final records = data['records'];
+          if (records is List && records.isNotEmpty && records.first is Map) {
+            resId = ((records.first as Map)['reservation_id'] ?? '—').toString();
+          }
+          await NotificationService.instance.notify('Guest registered',
+              '${reg.name} saved to the hotel database (reservation #$resId).');
+          if (mounted) {
+            Navigator.pop(context);
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('${reg.name} added to the hotel database ✓')));
+          }
+          return;
+        }
+        throw (data['error'] ?? 'Server rejected the record').toString();
+      } on ApiException catch (e) {
+        // Auth/server problem — fall through to the offline queue so the
+        // record is never lost; it syncs automatically later.
+        await OfflineRegStore.instance.add(reg);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text('Saved on device (${e.message}) — will sync when back online')));
+        }
+        return;
+      } catch (_) {
+        // Connection dropped mid-save — queue it.
+        await OfflineRegStore.instance.add(reg);
+        if (mounted) {
+          Navigator.pop(context);
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Connection dropped — saved on device, will sync automatically')));
+        }
+        return;
+      } finally {
+        if (mounted) setState(() => _busy = false);
+      }
+    }
+
+    // OFFLINE: queue locally; syncs to the database when internet returns.
     await OfflineRegStore.instance.add(reg);
-    if (mounted) Navigator.pop(context);
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Saved offline — uploads to the database automatically when back online')));
+    }
   }
 
   @override
@@ -4219,7 +4429,27 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(22),
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const Text('Register guest (offline)', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          Row(children: [
+            const Expanded(child: Text('Register guest', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+            // Live online/offline chip: tells staff exactly where the record goes
+            ValueListenableBuilder<bool>(
+              valueListenable: NetService.instance.online,
+              builder: (context, online, _) => Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                    color: (online ? Colors.green : AppColors.orange600).withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(999)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(online ? Icons.cloud_done : Icons.cloud_off, size: 13,
+                      color: online ? Colors.green : AppColors.orange600),
+                  const SizedBox(width: 5),
+                  Text(online ? 'ONLINE · saves to database' : 'OFFLINE · queued on device',
+                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w800,
+                          letterSpacing: 0.4, color: online ? Colors.green : AppColors.orange600)),
+                ]),
+              ),
+            ),
+          ]),
           const SizedBox(height: 16),
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'Guest full name', border: OutlineInputBorder())),
           const SizedBox(height: 12),
@@ -4259,15 +4489,22 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5, color: AppColors.orange600)),
             ]),
           ),
+          if (_error != null) ...[
+            SizedBox(height: 12),
+            Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12.5)),
+          ],
           SizedBox(height: 16),
           ElevatedButton(
-            onPressed: _save,
+            onPressed: _busy ? null : _save,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.orange500, foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 13),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
             ),
-            child: const Text('SAVE & KEEP ON DEVICE'),
+            child: _busy
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : Text(_online ? 'SAVE TO HOTEL DATABASE' : 'SAVE & QUEUE FOR SYNC',
+                    style: const TextStyle(letterSpacing: 1.2, fontWeight: FontWeight.w700, fontSize: 12.5)),
           ),
         ]),
       ),
