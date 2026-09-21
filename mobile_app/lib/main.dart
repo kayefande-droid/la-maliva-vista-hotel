@@ -30,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.3';
+const String kAppVersion = '2.3.4';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -732,6 +732,92 @@ extension UpdateFeedExtras on NotificationFeed {
   Future<void> addLocalIfNew(String title, String body) async {
     if (items.any((i) => i.title == title)) return;
     addLocal(title, body);
+  }
+}
+
+// ------------------------------------------------------------
+// Changelog — "What's new" entries served by the website backend,
+// cached on-device so the screen also opens offline.
+// ------------------------------------------------------------
+class ChangelogEntry {
+  final String version;
+  final String date;
+  final List<String> highlights;
+  final List<String> notes;
+  ChangelogEntry({
+    required this.version,
+    required this.date,
+    required this.highlights,
+    required this.notes,
+  });
+
+  factory ChangelogEntry.fromMap(Map<String, dynamic> m) => ChangelogEntry(
+        version: (m['version'] ?? '').toString(),
+        date: (m['date'] ?? '').toString(),
+        highlights: ((m['highlights'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .toList(),
+        notes: ((m['notes'] as List?) ?? const []).map((e) => e.toString()).toList(),
+      );
+
+  Map<String, dynamic> toMap() => {
+        'version': version,
+        'date': date,
+        'highlights': highlights,
+        'notes': notes,
+      };
+}
+
+class ChangelogRepository {
+  ChangelogRepository._();
+  static final ChangelogRepository instance = ChangelogRepository._();
+
+  static const _cacheKey = 'changelog_cache_v1';
+  final ValueNotifier<List<ChangelogEntry>> entries =
+      ValueNotifier<List<ChangelogEntry>>([]);
+  bool _loaded = false;
+
+  /// Cached entries immediately; server refresh when online.
+  Future<void> load() async {
+    if (_loaded) return;
+    _loaded = true;
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_cacheKey);
+    if (raw != null) {
+      try {
+        entries.value = ((jsonDecode(raw) as List)
+                .cast<Map<String, dynamic>>())
+            .map(ChangelogEntry.fromMap)
+            .toList();
+      } catch (_) {}
+    }
+    refresh();
+  }
+
+  Future<void> refresh() async {
+    try {
+      final res = await Api.get('/api/changelog');
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final list = ((data['changelog'] as List?) ?? const [])
+          .map((e) => ChangelogEntry.fromMap((e as Map).cast<String, dynamic>()))
+          .toList();
+      if (list.isEmpty) return;
+      entries.value = list;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_cacheKey,
+          jsonEncode(list.map((e) => e.toMap()).toList()));
+    } catch (_) {
+      // offline — cached entries stay available
+    }
+  }
+
+  /// Notes for a specific version (used by the update banner / update tile).
+  ChangelogEntry? forVersion(String v) {
+    for (final e in entries.value) {
+      if (e.version == v) return e;
+    }
+    return null;
   }
 }
 
@@ -1809,6 +1895,8 @@ class _HomeShellState extends State<HomeShell> {
     // Cached notification feed immediately; server feed when online
     NotificationFeed.instance.load();
     NotificationFeed.instance.refreshFromServer();
+    // Release notes (cached; refreshed from the website when online)
+    ChangelogRepository.instance.load();
     // Silent update check (notifies only when a newer build exists)
     UpdateService.instance.check();
     // When internet returns: refresh everything + sync offline bookings
@@ -1890,6 +1978,14 @@ class _HomeShellState extends State<HomeShell> {
                         child: Text('La-Maliva v$newest is available — tap to update',
                             style: TextStyle(fontSize: 12.5, color: AppColors.cream50,
                                 fontWeight: FontWeight.w600))),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (_) => const ChangelogPage())),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(Icons.info_outline, size: 16, color: AppColors.gold),
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () => setState(() => _updateDismissed = newest),
                       child: Padding(
@@ -3431,6 +3527,32 @@ class AccountPage extends StatefulWidget {
 }
 
 class _AccountPageState extends State<AccountPage> {
+  bool _changelogNew = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkChangelogNew();
+  }
+
+  /// NEW badge until the user opens the latest release notes.
+  Future<void> _checkChangelogNew() async {
+    await ChangelogRepository.instance.load();
+    final prefs = await SharedPreferences.getInstance();
+    final seen = prefs.getString('changelog_last_seen');
+    final list = ChangelogRepository.instance.entries.value;
+    if (!mounted) return;
+    setState(() => _changelogNew = list.isNotEmpty && list.first.version != seen);
+  }
+
+  Future<void> _openChangelog() async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => const ChangelogPage()));
+    final prefs = await SharedPreferences.getInstance();
+    final list = ChangelogRepository.instance.entries.value;
+    if (list.isNotEmpty) await prefs.setString('changelog_last_seen', list.first.version);
+    if (mounted) setState(() => _changelogNew = false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = SessionService.instance.user;
@@ -3456,7 +3578,26 @@ class _AccountPageState extends State<AccountPage> {
         Center(
             child: Text('Native App v$kAppVersion',
                 style: TextStyle(color: AppColors.ink500, fontSize: 11))),
-        const SizedBox(height: 20),
+        const SizedBox(height: 4),
+        Center(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(999),
+            onTap: _openChangelog,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text("What's new in this version",
+                    style: TextStyle(
+                        color: AppColors.orange600,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700)),
+                const SizedBox(width: 4),
+                Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.orange600),
+              ]),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         if (user == null)
           _SettingsTile(
             icon: Icons.login,
@@ -3532,6 +3673,26 @@ class _AccountPageState extends State<AccountPage> {
             setState(() {});
           },
         ),
+        _SettingsTile(
+          icon: Icons.history_edu,
+          title: "What's new",
+          subtitle: 'Release notes for every La-Maliva version',
+          trailing: _changelogNew
+              ? Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: AppColors.orange500,
+                      borderRadius: BorderRadius.circular(999)),
+                  child: const Text('NEW',
+                      style: TextStyle(
+                          fontSize: 9.5,
+                          letterSpacing: 1.4,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white)),
+                )
+              : null,
+          onTap: _openChangelog,
+        ),
         _UpdateTile(),
         _SettingsTile(
           icon: Icons.notifications_active_outlined,
@@ -3564,6 +3725,186 @@ class _AccountPageState extends State<AccountPage> {
             child: Text('© La-Maliva Vista Hotel · Buea, Cameroon',
                 style: TextStyle(color: AppColors.ink500, fontSize: 11))),
       ]),
+    );
+  }
+}
+
+// ------------------------------------------------------------
+// What's new — in-app changelog timeline (served by the website)
+// ------------------------------------------------------------
+class ChangelogPage extends StatelessWidget {
+  const ChangelogPage({super.key});
+
+  String _prettyDate(String iso) {
+    final d = DateTime.tryParse(iso);
+    if (d == null) return iso;
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final line = isDark ? Colors.white12 : AppColors.navy900.withOpacity(0.08);
+    return Scaffold(
+      appBar: AppBar(title: const Text("What's new")),
+      body: WavyBackground(
+        dark: isDark,
+        child: ValueListenableBuilder<List<ChangelogEntry>>(
+          valueListenable: ChangelogRepository.instance.entries,
+          builder: (context, list, _) {
+            if (list.isEmpty) {
+              return const Center(
+                  child: Text('No release notes yet — pull to refresh soon.',
+                      textAlign: TextAlign.center));
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+              itemCount: list.length,
+              itemBuilder: (context, i) {
+                final e = list[i];
+                final isCurrent = e.version == kAppVersion;
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Timeline rail with version dot
+                      SizedBox(
+                        width: 34,
+                        child: Column(children: [
+                          Container(
+                            width: 16, height: 16,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isCurrent ? AppColors.orange500 : AppColors.gold,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: [
+                                BoxShadow(
+                                    color: AppColors.orange600.withOpacity(0.35),
+                                    blurRadius: 8, spreadRadius: 1),
+                              ],
+                            ),
+                          ),
+                          if (i != list.length - 1)
+                            Expanded(child: Container(width: 2, color: line)),
+                        ]),
+                      ),
+                      const SizedBox(width: 14),
+                      // Card
+                      Expanded(
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 18),
+                          child: Material(
+                            color: Theme.of(context).cardColor,
+                            borderRadius: BorderRadius.circular(18),
+                            elevation: 0,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(18),
+                              onTap: () {},
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(children: [
+                                      Text('v${e.version}',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 16.5)),
+                                      const SizedBox(width: 8),
+                                      if (isCurrent)
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 9, vertical: 3),
+                                          decoration: BoxDecoration(
+                                              color: AppColors.orange500
+                                                  .withOpacity(0.15),
+                                              borderRadius:
+                                                  BorderRadius.circular(999)),
+                                          child: Text('INSTALLED',
+                                              style: TextStyle(
+                                                  fontSize: 9,
+                                                  letterSpacing: 1.6,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.orange600))),
+                                    ]),
+                                    const SizedBox(height: 2),
+                                    Text(_prettyDate(e.date),
+                                        style: TextStyle(
+                                            fontSize: 11.5,
+                                            color: AppColors.ink500)),
+                                    if (e.highlights.isNotEmpty) ...[
+                                      const SizedBox(height: 10),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 6,
+                                        children: e.highlights
+                                            .map((h) => Container(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                      horizontal: 10,
+                                                      vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                      color: AppColors.gold
+                                                          .withOpacity(0.16),
+                                                      borderRadius: BorderRadius
+                                                          .circular(999)),
+                                                  child: Text(h,
+                                                      style: TextStyle(
+                                                          fontSize: 10.5,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color: AppColors
+                                                              .orange600)),
+                                                ))
+                                            .toList(),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 10),
+                                    ...e.notes.map((n) => Padding(
+                                          padding:
+                                              const EdgeInsets.only(bottom: 7),
+                                          child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.only(
+                                                    top: 5),
+                                                child: Container(
+                                                    width: 5,
+                                                    height: 5,
+                                                    decoration: BoxDecoration(
+                                                        color: AppColors.orange500,
+                                                        shape: BoxShape.circle)),
+                                              ),
+                                              const SizedBox(width: 9),
+                                              Expanded(
+                                                  child: Text(n,
+                                                      style: const TextStyle(
+                                                          fontSize: 13,
+                                                          height: 1.5))),
+                                            ],
+                                          ),
+                                        )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        ),
+      ),
     );
   }
 }
@@ -3736,7 +4077,14 @@ class _UpdateTileState extends State<_UpdateTile> {
                   style: TextStyle(color: AppColors.ink500, fontSize: 12),
                 ),
               ])),
-              if (_latest != null)
+              if (_latest != null) ...[
+                TextButton(
+                  onPressed: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const ChangelogPage())),
+                  style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  child: const Text("What's new", style: TextStyle(fontSize: 12)),
+                ),
                 ElevatedButton(
                   onPressed: () => UpdateService.instance.downloadLatest(context),
                   style: ElevatedButton.styleFrom(
@@ -3747,6 +4095,7 @@ class _UpdateTileState extends State<_UpdateTile> {
                   ),
                   child: const Text('Download', style: TextStyle(fontSize: 12.5)),
                 ),
+              ],
             ]),
           ),
         ),
