@@ -1519,7 +1519,7 @@ def forgot_password():
         # Identical response either way — no account enumeration.
         flash('📩 If that account has an email on file, a reset link is on its way. Check your inbox (and spam).', 'info')
         return redirect(url_for('forgot_password'))
-    return render_template('forgot_password.html')
+    return render_template('forgot_password.html', smtp_ready=smtp_configured())
 
 
 @app.route('/reset-password/<token>', methods=['GET', 'POST'])
@@ -2310,6 +2310,7 @@ def api_health():
     return jsonify({
         'status': 'healthy' if db_ok else 'degraded',
         'database': 'up' if db_ok else 'down',
+        'email': 'configured' if smtp_configured() else 'not-configured',
         'version': APP_VERSION,
         'time': datetime.now(timezone.utc).isoformat(),
     }), (200 if db_ok else 503)
