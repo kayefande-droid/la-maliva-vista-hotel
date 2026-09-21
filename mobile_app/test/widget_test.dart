@@ -29,6 +29,20 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
   });
 
+  testWidgets('Slide menu button opens the drawer', (tester) async {
+    await tester.pumpWidget(const LamalivaApp());
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+
+    // The single ☰ at the top-left opens the shell drawer
+    await tester.tap(find.byIcon(Icons.menu).first);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    // Drawer slides in — its top items are on screen
+    expect(find.text('Snackbar / restaurant menu'), findsOneWidget);
+  });
+
   testWidgets('Snackbar shows Coming Soon while the toggle is off',
       (tester) async {
     SessionService.instance.features = Features(snackbarActive: false);
