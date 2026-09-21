@@ -91,4 +91,30 @@ void main() {
     expect(find.text('Change app theme'), findsOneWidget);
     expect(find.text('Native App v$kAppVersion'), findsOneWidget);
   });
+
+  testWidgets("What's new changelog renders entries and marks installed version",
+      (tester) async {
+    // Seed the repository directly (no network in tests).
+    ChangelogRepository.instance.entries.value = [
+      ChangelogEntry(
+          version: '9.9.9',
+          date: '2026-09-21',
+          highlights: ['Test highlight'],
+          notes: ['A test note for the newest release.']),
+      ChangelogEntry(
+          version: kAppVersion,
+          date: '2026-09-20',
+          highlights: ['Installed'],
+          notes: ['This is the installed version.']),
+    ];
+
+    await tester.pumpWidget(const MaterialApp(home: ChangelogPage()));
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('v9.9.9'), findsOneWidget);
+    expect(find.text('v$kAppVersion'), findsOneWidget);
+    expect(find.text('INSTALLED'), findsOneWidget);
+    expect(find.text('Test highlight'), findsOneWidget);
+    expect(find.text('A test note for the newest release.'), findsOneWidget);
+  });
 }

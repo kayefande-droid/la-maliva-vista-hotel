@@ -143,7 +143,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.3"
+APP_VERSION = "2.3.4"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -2411,6 +2411,81 @@ def api_version():
         'channel': BUILD_CHANNEL,
         'releases': {k: _release_meta(k) for k in APP_RELEASES},
     })
+
+
+# ---------------------------------------------------------------------------
+# Release changelog — shown in the app's in-app "What's new" screen.
+# Newest first. Add an entry here with every release; apps render it from
+# /api/changelog (cached offline), so notes reach users without a rebuild.
+# ---------------------------------------------------------------------------
+CHANGELOG = [
+    {
+        'version': '2.3.4',
+        'date': '2026-09-21',
+        'highlights': ["What's new screen"],
+        'notes': [
+            "New in-app 'What's new' screen — see what every La-Maliva version includes, right from Account.",
+            'The update banner now has an info button that opens the release notes for the new version.',
+            'You are reading these notes on the new screen — welcome!',
+        ],
+    },
+    {
+        'version': '2.3.3',
+        'date': '2026-09-21',
+        'highlights': ['Update banner', 'Battery saver', 'Style sync'],
+        'notes': [
+            'The app now tells you about new versions by itself — a banner appears at the top when an update is ready.',
+            'New Battery saver option (Account) — freezes background motion to save power, or leave full animation on.',
+            'Theme styles now match across the app, the website and the public site automatically.',
+            'Fixed the assistant chat not responding, and made it far more helpful — bookings, tutorials, feedback.',
+            'New Forgot password flow with real email reset links.',
+        ],
+    },
+    {
+        'version': '2.3.2',
+        'date': '2026-09-21',
+        'highlights': ['Menu fix', 'Regression tests'],
+        'notes': [
+            'Fixed the ☰ menu button at the top not opening the slide menu.',
+            'Added a test that keeps the menu button working in every future release.',
+        ],
+    },
+    {
+        'version': '2.3.1',
+        'date': '2026-09-20',
+        'highlights': ['Office reservations', 'Offline sync'],
+        'notes': [
+            'Staff and admins can register guests at the office with no internet — records sync to the database when back online.',
+            'Pending-sync list shows exactly what is waiting to upload.',
+        ],
+    },
+    {
+        'version': '2.3.0',
+        'date': '2026-09-20',
+        'highlights': ['Notifications center', 'In-app updates', 'New themes'],
+        'notes': [
+            'Notifications center: messages from the La-Maliva team and the hotel, with an unread badge.',
+            'Check for updates under Account — download the newest version right from the app.',
+            'Six luxury design styles with unique animated backgrounds.',
+            'Invoice download and print improved, now with correct number of nights.',
+        ],
+    },
+    {
+        'version': '2.2.3',
+        'date': '2026-09-19',
+        'highlights': ['Network fix'],
+        'notes': [
+            'Critical fix: the app could not use the internet on some devices — now fully connected.',
+            'Six switchable design styles introduced on the app and website.',
+        ],
+    },
+]
+
+
+@app.route('/api/changelog')
+def api_changelog():
+    """Release notes for the in-app What's-new screen (newest first)."""
+    return jsonify({'ok': True, 'current': APP_VERSION, 'changelog': CHANGELOG})
 
 
 @app.route('/apk')
