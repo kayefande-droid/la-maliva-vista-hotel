@@ -194,6 +194,18 @@
                         </div>
                     </div>
 
+                    {% if needs_mfa %}
+                    <div class="lux-field">
+                        <label for="otp">Two-factor code</label>
+                        <div class="control">
+                            <i class="bi bi-phone"></i>
+                            <input type="text" name="otp" id="otp" placeholder="8-digit code" inputmode="numeric"
+                                   pattern="[0-9]{8}" maxlength="8" autocomplete="one-time-code" required>
+                        </div>
+                    </div>
+                    <p class="text-muted-lux" style="font-size: 12.5px; margin-top: -6px;">Open your authenticator app and enter the current code.</p>
+                    {% endif %}
+
                     <div class="auth-options">
                         <label class="remember-me">
                             <input type="checkbox" name="remember">

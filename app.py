@@ -12,10 +12,120 @@ import re
 import base64
 import requests
 import secrets
+import struct as _struct
 from functools import wraps # Import wraps for decorator
 from email_utils import validate_email_real  # Real email verification (syntax + DNS + disposable)
 from mailer import send_verification_email, smtp_configured
 import logging
+import time as _time
+import hashlib as _hashlib
+import hmac as _hmac
+
+# ===================== ASVS L3 CRYPTO CORE =====================
+# Argon2id (OWASP PHC winner) with pbkdf2 fallback; deterministic wrappers keep
+# every password entry point (signup, login, change, admin-create, API) uniform.
+try:
+    from argon2 import PasswordHasher as _ArgonHasher
+    from argon2.exceptions import VerifyMismatchError as _ArgonMismatch
+    _argon = _ArgonHasher(time_cost=3, memory_cost=65536, parallelism=4)  # OWASP L3 params
+    _HAS_ARGON = True
+except ImportError:  # pragma: no cover
+    _HAS_ARGON = False
+
+
+def hash_password(pw: str) -> str:
+    """Argon2id when available, Werkzeug scrypt otherwise. Format is self-identifying."""
+    if _HAS_ARGON:
+        return _argon.hash(pw)
+    return generate_password_hash(pw)
+
+
+def verify_password(pw_hash: str, pw: str) -> bool:
+    """Constant-time verify for either format (defends against DB tampering)."""
+    if not pw_hash:
+        return False
+    try:
+        if '$argon2' in pw_hash:
+            return _argon.verify(pw_hash, pw) if _HAS_ARGON else False
+        return check_password_hash(pw_hash, pw)
+    except Exception:
+        return False
+
+
+def needs_rehash(pw_hash: str) -> bool:
+    """True when a stored hash should be upgraded to current parameters."""
+    if _HAS_ARGON and pw_hash and pw_hash.startswith('$argon2'):
+        return _argon.check_needs_rehash(pw_hash)
+    return bool(pw_hash) and not pw_hash.startswith('$argon2')  # legacy pbkdf2/scrypt
+
+
+# ---- NIST 800-63B password policy (ASVS 2.1) ----
+_PASSWORD_MIN = 12
+_COMMON_FRAGMENTS = ('lamaliva', 'password', '123456', 'qwerty', 'admin123', 'letmein', 'welcome')
+
+
+def password_policy_error(pw: str) -> str | None:
+    """Return an error message when `pw` violates policy, else None."""
+    if not pw or len(pw) < _PASSWORD_MIN:
+        return f'Password must be at least {_PASSWORD_MIN} characters.'
+    if not re.search(r'[A-Z]', pw) or not re.search(r'[a-z]', pw):
+        return 'Password needs both upper and lower case letters.'
+    if not re.search(r'\d', pw):
+        return 'Password needs at least one number.'
+    if not re.search(r'[^A-Za-z0-9]', pw):
+        return 'Password needs at least one symbol.'
+    low = pw.lower()
+    if any(f in low for f in _COMMON_FRAGMENTS):
+        return 'Password contains a banned common fragment.'
+    return None
+
+
+# ---- TOTP (RFC 6238, SHA-256, 30s step) — admin MFA without extra deps ----
+def totp_secret() -> str:
+    return base64.b32encode(secrets.token_bytes(20)).decode().rstrip('=')  # 160-bit, base32
+
+
+def totp_now(secret: str, step: int = 30, digits: int = 8) -> str:
+    key = base64.b32decode(secret + '=' * ((8 - len(secret) % 8) % 8), casefold=True)
+    counter = int(_time.time()) // step
+    msg = _struct.pack('>Q', counter)
+    digest = _hmac.new(key, msg, _hashlib.sha256).digest()
+    o = digest[-1] & 0x0F
+    code = (_struct.unpack('>I', digest[o:o + 4])[0] & 0x7FFFFFFF) % (10 ** digits)
+    return str(code).zfill(digits)
+
+
+def totp_verify(secret: str, code: str, window: int = 1) -> bool:
+    """Check code allowing ±window steps of clock drift."""
+    if not secret or not code or not code.strip().isdigit():
+        return False
+    code = code.strip()
+    for drift in range(-window, window + 1):
+        key = base64.b32decode(secret + '=' * ((8 - len(secret) % 8) % 8), casefold=True)
+        counter = int(_time.time()) // 30 + drift
+        msg = _struct.pack('>Q', counter)
+        digest = _hmac.new(key, msg, _hashlib.sha256).digest()
+        o = digest[-1] & 0x0F
+        want = str((_struct.unpack('>I', digest[o:o + 4])[0] & 0x7FFFFFFF) % (10 ** 8)).zfill(8)
+        if _hmac.compare_digest(want, code):
+            return True
+    return False
+
+
+def totp_provisioning_uri(secret: str, account: str) -> str:
+    from urllib.parse import quote as _q
+    issuer = 'LA-MALIVA+VISTA'
+    return (f"otpauth://totp/{issuer}:{_q(account)}?secret={secret}&issuer={issuer}"
+            f"&algorithm=SHA256&digits=8&period=30")
+
+
+# ---- API tokens stored hashed (ASVS 3.5) — plaintext only at issue time ----
+def _token_hash(token: str) -> str:
+    return _hashlib.sha256(token.encode()).hexdigest()
+
+
+def new_api_token() -> str:
+    return secrets.token_urlsafe(32)
 
 # ReportLab imports
 from reportlab.lib.pagesizes import letter
@@ -26,7 +136,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.2.0"
+APP_VERSION = "2.2.1"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -74,6 +184,40 @@ app.config.update(
     MAX_CONTENT_LENGTH=8 * 1024 * 1024,                # 8 MB upload cap (images)
     JSON_SORT_KEYS=False,
 )
+
+# ASVS 3.3: idle timeout — staff/admin sessions die after 30 min of inactivity
+_IDLE_TIMEOUT = timedelta(minutes=30)
+
+
+def _validate_image_upload(file_storage) -> str | None:
+    """ASVS 5.3.3: accept only real images — magic-byte check + full Pillow
+    re-encode (kills polyglot/malformed payloads). Returns an error or None."""
+    from PIL import Image as _PILImage
+    pos = file_storage.stream.tell()
+    header = file_storage.stream.read(16)
+    file_storage.stream.seek(pos)
+    magic_ok = (
+        header.startswith(b'\x89PNG\r\n\x1a\n')
+        or header.startswith(b'\xff\xd8\xff')            # JPEG
+        or header.startswith((b'RIFF', b'WEBP'))
+        or header.startswith((b'GIF87a', b'GIF89a'))
+    )
+    if not magic_ok:
+        return 'File is not a recognised image (PNG/JPEG/WebP/GIF).'
+    try:
+        img = _PILImage.open(file_storage.stream)
+        img.load()
+        fmt = (img.format or '').upper()
+        if fmt not in ('PNG', 'JPEG', 'WEBP', 'GIF'):
+            return f'Unsupported image format: {fmt}.'
+        # defence-in-depth: normalise through a clean re-encode
+        out = io.BytesIO()
+        img.save(out, format='PNG' if fmt == 'GIF' else fmt)
+        out.seek(0)
+        file_storage.stream = out
+        return None
+    except Exception:
+        return 'Image failed safety validation — re-export and try again.'
 
 # ---- 2. Database rules (SQLite PRAGMAs on every connection) ----
 @sa_event.listens_for(Engine, 'connect')
@@ -150,6 +294,7 @@ def inject_csrf_forms(response):
 _RATE_BUCKET = {}          # {key: [timestamps]}
 _RATE_RULES = {           # endpoint -> (max_hits, window_seconds)
     'login': (10, 300),              # 10 tries / 5 min / IP+identifier
+    'api_auth_login': (10, 300),     # same ceiling for the native-app login endpoint
     'signup': (5, 3600),             # 5 signups / hour / IP
     'resend_verification': (3, 600), # 3 emails / 10 min / IP
     'chat': (30, 60),                # 30 msgs / min / IP
@@ -240,8 +385,15 @@ class User(UserMixin, db.Model):
     # ---- Password management ----
     password_changed = db.Column(db.Boolean, default=False)  # True once user changes from default
 
+    # ---- ASVS L3: account lockout + session validity + TOTP MFA ----
+    failed_logins = db.Column(db.Integer, default=0, nullable=False)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    session_valid_after = db.Column(db.DateTime, nullable=True)  # invalidate old sessions on password change
+    totp_secret = db.Column(db.String(64), nullable=True)
+    totp_pending_secret = db.Column(db.String(64), nullable=True)  # enrollment not yet confirmed
+
     # ---- Native-app API access ----
-    api_token = db.Column(db.String(64), nullable=True, index=True)
+    api_token = db.Column(db.String(64), nullable=True, index=True)  # SHA-256 hash of the bearer token
     api_token_issued = db.Column(db.DateTime, nullable=True)
 
 class Room(db.Model):
@@ -342,6 +494,16 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    # ASVS 14.4: cache nothing that carries session data
+    if request.path.startswith('/api/') or request.path.startswith('/dashboard'):
+        response.headers['Cache-Control'] = 'no-store'
+    # ASVS 14.x: modern hardening headers
+    if _IS_PROD:
+        response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy',
+                                'camera=(), microphone=(), geolocation=(self), payment=()')
+    response.headers.setdefault('Cross-Origin-Opener-Policy', 'same-origin')
     # Content Security Policy: allows Bootstrap/FontAwesome CDNs and inline
     # scripts used by the templates, but blocks everything else.
     response.headers.setdefault('Content-Security-Policy',
@@ -351,7 +513,7 @@ def add_security_headers(response):
         "font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
         "connect-src 'self'; "
-        "frame-src 'self'; "
+        "frame-src 'self' https://www.google.com https://maps.google.com; "
         "worker-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
@@ -407,6 +569,39 @@ def log_activity(action_description):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+# ---- ASVS 3.3: idle timeout + session invalidation on security events ----
+@app.before_request
+def enforce_session_security():
+    """Idle timeout (30 min for staff/admin) + invalidate sessions that
+    pre-date a password change or other security event."""
+    if not current_user.is_authenticated:
+        return
+    # stale token/session created before a security event?
+    # (1s tolerance absorbs float/µs round-trip jitter so a session can
+    # never invalidate itself; events still kill older sessions)
+    sva = current_user.session_valid_after
+    if sva:
+        if sva.tzinfo is None:
+            sva = sva.replace(tzinfo=timezone.utc)
+        issued = session.get('_session_issued')
+        if issued and issued < sva.timestamp() - 1.0:
+            logout_user()
+            session.clear()
+            flash('🔒 Your session was signed out for security. Please sign in again.', 'info')
+            return redirect(url_for('login'))
+    # idle timeout only for elevated roles (guests keep 12h)
+    if current_user.role in ('staff', 'admin'):
+        last = session.get('_last_seen')
+        now = _time.time()
+        if last and now - last > _IDLE_TIMEOUT.total_seconds():
+            logout_user()
+            session.clear()
+            flash('⏱️ Signed out after 30 minutes of inactivity.', 'info')
+            return redirect(url_for('login'))
+        session['_last_seen'] = now
+
 
 # ===================== LOCK SYSTEM =====================
 @app.before_request
@@ -522,14 +717,14 @@ def create_initial_data():
             if not User.query.filter_by(username='admin').first():
                 # Default administrator: admin / lamaliva@2026 — change it in
                 # Change Password after first login.
-                admin = User(username='admin', email='admin@lamaliva.com', password_hash=generate_password_hash('lamaliva@2026'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True, first_login_done=True) # Admin's first login is done
+                admin = User(username='admin', email='admin@lamaliva.com', password_hash=hash_password('lamaliva@2026'), role='admin', registered_on=datetime.now(timezone.utc), can_be_monitored_by_admin=True, first_login_done=True) # Admin's first login is done
                 admin.email_verified = True  # seeded accounts skip email verification
                 db.session.add(admin)
 
             # Ensure the default admin always has the official password
             admin_row = User.query.filter_by(username='admin', role='admin').first()
-            if admin_row and not check_password_hash(admin_row.password_hash, 'lamaliva@2026') and not admin_row.password_changed:
-                admin_row.password_hash = generate_password_hash('lamaliva@2026')
+            if admin_row and not verify_password(admin_row.password_hash, 'lamaliva@2026') and not admin_row.password_changed:
+                admin_row.password_hash = hash_password('lamaliva@2026')
                 admin_row.email_verified = True
                 db.session.commit()
 
@@ -599,6 +794,12 @@ def _migrate_schema():
                 ("password_changed", "BOOLEAN DEFAULT 0"),
                 ("api_token", "VARCHAR(64)"),
                 ("api_token_issued", "DATETIME"),
+                # ASVS L3: lockout, session invalidation, TOTP MFA
+                ("failed_logins", "INTEGER DEFAULT 0"),
+                ("locked_until", "DATETIME"),
+                ("session_valid_after", "DATETIME"),
+                ("totp_secret", "VARCHAR(64)"),
+                ("totp_pending_secret", "VARCHAR(64)"),
             ]
             for column, ddl in migrations:
                 if column not in existing:
@@ -708,7 +909,12 @@ def signup():
             return redirect(url_for('signup'))
 
         # Default role for new signups is 'user'
-        new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
+        policy_err = password_policy_error(password)
+        if policy_err:
+            flash(f'❌ {policy_err}', 'error')
+            return redirect(url_for('signup'))
+
+        new_user = User(username=username, email=email, password_hash=hash_password(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
         new_user.email_verified = False
         db.session.add(new_user)
         db.session.commit()
@@ -728,40 +934,167 @@ def login():
     """Single unified login for guests, staff and admin.
 
     No separate secret-pass field: elevated powers come purely from the
-    account's role. The default seeded admin signs in with
-    admin / lamaliva@2026 and is prompted to change it.
+    account's role. Hardened per ASVS L3: lockout after 5 failures,
+    Argon2id verify + transparent rehash, TOTP MFA challenge for admins.
     """
     if request.method == 'POST':
         identifier = request.form['username']
         password = request.form['password']
+        otp = request.form.get('otp', '').strip()
+        pending_id = session.get('mfa_user_id')
+
+        # ---- Resume an in-progress MFA challenge ----
+        if pending_id and otp:
+            user = db.session.get(User, pending_id)
+            if user and user.totp_secret and totp_verify(user.totp_secret, otp):
+                session.pop('mfa_user_id', None)
+                _reset_failed_logins(user)
+                session.clear()  # rotate session id (fixation defence)
+                session['user_id'] = user.id
+                now_ts = _time.time()
+                session['_session_issued'] = now_ts
+                login_user(user)
+                # same instant for both — session must not invalidate itself
+                user.session_valid_after = datetime.fromtimestamp(now_ts, tz=timezone.utc)
+                db.session.commit()
+                return _post_login_redirect(user)
+            flash('❌ Invalid MFA code.', 'error')
+            return render_template('login.html', needs_mfa=True)
 
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
 
-        if user and check_password_hash(user.password_hash, password):
+        # ---- ASVS: lockout window ----
+        lock_msg = _lock_message(user) if user else None
+        if lock_msg:
+            flash(f'⛔ {lock_msg}', 'error')
+            return render_template('login.html')
+
+        if user and verify_password(user.password_hash, password):
+            # transparent Argon2id upgrade
+            if needs_rehash(user.password_hash):
+                user.password_hash = hash_password(password)
+                db.session.commit()
+
             # ---- Only gate: email must be verified before any login ----
             if not user.email_verified:
                 flash('⛔ Email not verified. Check your inbox for the verification link, feel free to resend it below.', 'error')
                 return render_template('login.html', pending_email=user.email, smtp_ready=smtp_configured())
 
+            # ---- Admin MFA challenge (second factor) ----
+            if user.role == 'admin' and user.totp_secret:
+                if not otp:
+                    session['mfa_user_id'] = user.id
+                    return render_template('login.html', needs_mfa=True)
+                if not totp_verify(user.totp_secret, otp):
+                    _register_failed_login(user)
+                    flash('❌ Invalid MFA code.', 'error')
+                    return render_template('login.html', needs_mfa=True)
+
+            _reset_failed_logins(user)
+            session.clear()  # rotate session id (fixation defence)
+            session['user_id'] = user.id
+            now_ts = _time.time()
+            session['_session_issued'] = now_ts
             login_user(user)
-            is_default_admin = (
-                user.role == 'admin'
-                and not user.password_changed
-                and check_password_hash(user.password_hash, 'lamaliva@2026')
-            )
-            if is_default_admin:
-                flash('👑 Welcome, Administrator. You are using the default password — please change it now under “Change Password”.', 'warning')
-                return redirect(url_for('change_password'))
-            if not user.first_login_done:
-                flash(f'🎉 Welcome to La-Maliva Vista Hotel, {user.username}! We\'re excited to have you. Please review our terms of service and privacy policy.', 'success')
-                user.first_login_done = True
-                db.session.commit()
-            else:
-                flash(f'Welcome back, {user.username}!', 'success') # Welcome message for all users
-            return redirect(url_for('dashboard'))
+            # same instant for both — session must not invalidate itself
+            user.session_valid_after = datetime.fromtimestamp(now_ts, tz=timezone.utc)
+            db.session.commit()
+            return _post_login_redirect(user)
         else:
+            if user:
+                _register_failed_login(user)
+                if _lock_message(user):
+                    flash('⛔ Too many failed attempts — account locked for 15 minutes.', 'error')
+                    return render_template('login.html')
             flash('❌ Invalid username/email or password.', 'error')
     return render_template('login.html')
+
+
+def _post_login_redirect(user):
+    """Shared post-login welcome/nudge logic (web + MFA paths)."""
+    is_default_admin = (
+        user.role == 'admin'
+        and not user.password_changed
+    )
+    if is_default_admin:
+        flash('👑 Welcome, Administrator. You are using the default password — please change it now under “Change Password”.', 'warning')
+        return redirect(url_for('change_password'))
+    if user.role == 'admin' and not user.totp_secret:
+        flash('🔐 Security policy: admins must enable two-factor authentication. Set it up now.', 'warning')
+        return redirect(url_for('mfa_setup'))
+    if not user.first_login_done:
+        flash(f'🎉 Welcome to La-Maliva Vista Hotel, {user.username}! We\'re excited to have you. Please review our terms of service and privacy policy.', 'success')
+        user.first_login_done = True
+        db.session.commit()
+    else:
+        flash(f'Welcome back, {user.username}!', 'success')
+    return redirect(url_for('dashboard'))
+
+
+# ===================== MFA (admin, TOTP) =====================
+@app.route('/mfa/setup', methods=['GET', 'POST'])
+@login_required
+def mfa_setup():
+    """Enroll the signed-in admin into TOTP MFA (Google Authenticator compatible)."""
+    if current_user.role != 'admin':
+        flash('MFA enrollment is for administrator accounts.', 'info')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip()
+        secret = current_user.totp_pending_secret
+        if secret and totp_verify(secret, code):
+            current_user.totp_secret = secret
+            current_user.totp_pending_secret = None
+            db.session.commit()
+            _perform_log(f"MFA enabled for {current_user.username}")
+            flash('✅ Two-factor authentication is now ACTIVE on your account.', 'success')
+            return redirect(url_for('dashboard'))
+        flash('❌ Code did not match — scan the QR again and retry.', 'error')
+
+    # (re)generate a pending secret for enrollment
+    if not current_user.totp_pending_secret:
+        current_user.totp_pending_secret = totp_secret()
+        db.session.commit()
+    secret = current_user.totp_pending_secret
+    uri = totp_provisioning_uri(secret, current_user.email or current_user.username)
+    qr = _qr_svg_data_uri(uri)
+    return render_template('mfa_setup.html', secret=secret, qr_uri=qr,
+                           mfa_active=bool(current_user.totp_secret))
+
+
+@app.route('/mfa/disable', methods=['POST'])
+@login_required
+def mfa_disable():
+    """Turning MFA off requires the password + a valid current code."""
+    if current_user.role != 'admin':
+        return redirect(url_for('dashboard'))
+    pw = request.form.get('password', '')
+    code = request.form.get('code', '').strip()
+    if not verify_password(current_user.password_hash, pw) or not totp_verify(current_user.totp_secret or '', code):
+        flash('❌ Password or MFA code incorrect — MFA remains active.', 'error')
+        return redirect(url_for('mfa_setup'))
+    current_user.totp_secret = None
+    current_user.totp_pending_secret = None
+    db.session.commit()
+    _perform_log(f"MFA disabled for {current_user.username}")
+    flash('⚠️ Two-factor authentication disabled. Re-enable it as soon as possible.', 'warning')
+    return redirect(url_for('mfa_setup'))
+
+
+def _qr_svg_data_uri(uri: str) -> str:
+    """Render an otpauth URI as a QR (SVG data-URI) with zero third-party calls."""
+    try:
+        import qrcode
+        import qrcode.image.svg
+        img = qrcode.make(uri, image_factory=qrcode.image.svg.SvgPathImage,
+                          box_size=12, border=2)
+        buf = io.BytesIO()
+        img.save(buf)
+        b64 = base64.b64encode(buf.getvalue()).decode()
+        return f'data:image/svg+xml;base64,{b64}'
+    except ImportError:
+        return ''
 
 
 @app.route('/change_password', methods=['GET', 'POST'])
@@ -773,20 +1106,24 @@ def change_password():
         new_pw = request.form.get('new_password', '')
         confirm_pw = request.form.get('confirm_password', '')
 
-        if not check_password_hash(current_user.password_hash, current_pw):
+        if not verify_password(current_user.password_hash, current_pw):
             flash('❌ Current password is incorrect.', 'error')
-        elif len(new_pw) < 8:
-            flash('❌ New password must be at least 8 characters.', 'error')
-        elif new_pw != confirm_pw:
-            flash('❌ New passwords do not match.', 'error')
-        elif check_password_hash(current_user.password_hash, new_pw):
-            flash('❌ New password must be different from the current one.', 'error')
         else:
-            current_user.password_hash = generate_password_hash(new_pw)
-            current_user.password_changed = True
-            db.session.commit()
-            flash('✅ Password updated successfully.', 'success')
-            return redirect(url_for('dashboard'))
+            policy_err = password_policy_error(new_pw)
+            if policy_err:
+                flash(f'❌ {policy_err}', 'error')
+            elif new_pw != confirm_pw:
+                flash('❌ New passwords do not match.', 'error')
+            elif verify_password(current_user.password_hash, new_pw):
+                flash('❌ New password must be different from the current one.', 'error')
+            else:
+                current_user.password_hash = hash_password(new_pw)
+                current_user.password_changed = True
+                # ASVS 3.3: kill every other session/token on password change
+                current_user.session_valid_after = datetime.now(timezone.utc)
+                db.session.commit()
+                flash('✅ Password updated successfully. Other sessions were signed out.', 'success')
+                return redirect(url_for('dashboard'))
     return render_template('change_password.html')
 
 @app.route('/dashboard')
@@ -845,17 +1182,19 @@ def rooms():
 # ===================== ADMIN: ROOM MANAGEMENT =====================
 
 def _save_room_photo(file):
-    """Store an uploaded room photo under static/uploads/rooms, return web path."""
-    from werkzeug.utils import secure_filename
+    """Validate + store an uploaded room photo. Returns (web_path, error)."""
     import uuid as _uuid
-    ext = os.path.splitext(file.filename)[1].lower()
+    ext = os.path.splitext(file.filename or '')[1].lower()
     if ext not in ('.png', '.jpg', '.jpeg', '.webp'):
-        return None
+        return None, 'Unsupported photo type — use PNG, JPG or WebP.'
+    err = _validate_image_upload(file)
+    if err:
+        return None, err
     fname = f"room_{_uuid.uuid4().hex[:10]}{ext}"
     upload_dir = os.path.join(basedir, 'static', 'uploads', 'rooms')
     os.makedirs(upload_dir, exist_ok=True)
     file.save(os.path.join(upload_dir, fname))
-    return f"/static/uploads/rooms/{fname}"
+    return f"/static/uploads/rooms/{fname}", None
 
 
 @app.route('/rooms/manage', methods=['GET', 'POST'])
@@ -891,7 +1230,10 @@ def rooms_admin():
             room.status = request.form.get('status') or room.status
             file = request.files.get('image_file')
             if file and file.filename:
-                saved = _save_room_photo(file)
+                saved, img_err = _save_room_photo(file)
+                if img_err:
+                    flash(f'❌ {img_err}', 'error')
+                    return redirect(url_for('rooms_admin'))
                 if saved:
                     room.image_url = saved
             image_url = (request.form.get('image_url') or '').strip()
@@ -920,7 +1262,10 @@ def rooms_admin():
         image_url = (request.form.get('image_url') or '').strip() or None
         file = request.files.get('image_file')
         if file and file.filename:
-            saved = _save_room_photo(file)
+            saved, img_err = _save_room_photo(file)
+            if img_err:
+                flash(f'❌ {img_err}', 'error')
+                return redirect(url_for('rooms_admin'))
             if saved:
                 image_url = saved
         room = Room(room_number=number, room_type=room_type, price=price,
@@ -1169,7 +1514,11 @@ def users():
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash(f'❌ User {username} or email already exists!', 'error')
             else:
-                new_user = User(username=username, email=email, password_hash=generate_password_hash(password), role=role, registered_on=datetime.now(timezone.utc), first_login_done=True) # Staff/Admin accounts are not new users
+                policy_err = password_policy_error(password)
+                if policy_err:
+                    flash(f'❌ {policy_err}', 'error')
+                    return redirect(url_for('users'))
+                new_user = User(username=username, email=email, password_hash=hash_password(password), role=role, registered_on=datetime.now(timezone.utc), first_login_done=True) # Staff/Admin accounts are not new users
                 new_user.email_verified = True  # created internally by admin -> pre-verified
                 db.session.add(new_user)
                 db.session.commit()
@@ -1394,7 +1743,11 @@ def snackbar_admin():
             import uuid as _uuid
             ext = os.path.splitext(file.filename)[1].lower()
             if ext in ('.png', '.jpg', '.jpeg', '.webp', '.gif'):
-                fname = f"snack_{_uuid.uuid4().hex[:10]}{secure_filename(ext)}"
+                err = _validate_image_upload(file)
+                if err:
+                    flash(f'❌ {err}', 'error')
+                    return redirect(url_for('snackbar_admin'))
+                fname = f"snack_{_uuid.uuid4().hex[:10]}{'.png' if ext == '.gif' else secure_filename(ext)}"
                 upload_dir = os.path.join(basedir, 'static', 'uploads')
                 os.makedirs(upload_dir, exist_ok=True)
                 file.save(os.path.join(upload_dir, fname))
@@ -1599,12 +1952,51 @@ def api_register_device():
 
 # ===================== APP API: AUTH (token-based, same database) =====================
 
+# ASVS 3.3: uniform lockout constants for web + API
+_LOCK_THRESHOLD = 5
+_LOCK_WINDOW = timedelta(minutes=15)
+
+
+def _register_failed_login(user):
+    """Count a failure; lock the account at the threshold for the window."""
+    user.failed_logins = (user.failed_logins or 0) + 1
+    if user.failed_logins >= _LOCK_THRESHOLD:
+        user.locked_until = datetime.now(timezone.utc) + _LOCK_WINDOW
+        user.failed_logins = 0
+        _perform_log_later(f"ACCOUNT LOCKED: {user.username} after {_LOCK_THRESHOLD} failed logins")
+    db.session.commit()
+
+
+def _reset_failed_logins(user):
+    if user.failed_logins or user.locked_until:
+        user.failed_logins = 0
+        user.locked_until = None
+        db.session.commit()
+
+
+def _lock_message(user) -> str | None:
+    if user and user.locked_until:
+        locked_at = user.locked_until
+        if locked_at.tzinfo is None:
+            locked_at = locked_at.replace(tzinfo=timezone.utc)  # SQLite strips tz
+        remaining = locked_at - datetime.now(timezone.utc)
+        if remaining > timedelta(0):
+            mins = int(remaining.total_seconds() // 60) + 1
+            return f'Account temporarily locked after repeated failed logins. Try again in ~{mins} min.'
+        # lock expired
+        user.locked_until = None
+        user.failed_logins = 0
+        db.session.commit()
+    return None
+
+
 def _issue_api_token(user):
-    """Generate and persist a bearer token for the native app / PWA."""
-    user.api_token = secrets.token_hex(32)
+    """Generate and persist a bearer token — DB stores only its SHA-256 hash."""
+    raw = new_api_token()
+    user.api_token = _token_hash(raw)
     user.api_token_issued = datetime.now(timezone.utc)
     db.session.commit()
-    return user.api_token
+    return raw
 
 
 def _current_api_user():
@@ -1613,10 +2005,50 @@ def _current_api_user():
     if auth.startswith('Bearer '):
         token = auth[7:].strip()
         if token:
-            return User.query.filter_by(api_token=token).first()
+            user = User.query.filter_by(api_token=_token_hash(token)).first()
+            if user and user.session_valid_after:
+                issued = user.api_token_issued
+                if issued and issued.tzinfo is None:
+                    issued = issued.replace(tzinfo=timezone.utc)
+                if issued and issued.timestamp() < user.session_valid_after.timestamp() - 1.0:
+                    return None  # token pre-dates a security event — reject
+            return user
     if current_user.is_authenticated:
         return current_user
     return None
+
+
+def _api_login_common(identifier, password, otp=None):
+    """Shared verification pipeline: lockout → verify → rehash → MFA."""
+    if not identifier or not password:
+        return ({'ok': False, 'error': 'Username and password are required.'}, 400)
+
+    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+
+    # Enforce lockout even when the account doesn't exist's timing differs minimally
+    lock_msg = _lock_message(user) if user else None
+    if lock_msg:
+        return ({'ok': False, 'error': lock_msg}, 423)
+
+    if not user or not verify_password(user.password_hash, password):
+        if user:
+            _register_failed_login(user)
+        return ({'ok': False, 'error': 'Invalid username/email or password.'}, 401)
+
+    # ASVS 2.4: transparently upgrade legacy hashes to Argon2id
+    if needs_rehash(user.password_hash):
+        user.password_hash = hash_password(password)
+
+    if not user.email_verified:
+        return ({'ok': False, 'error': 'Email not verified. Check your inbox for the verification link.', 'needs_verification': True}, 403)
+
+    # ---- Admin MFA gate ----
+    if user.role == 'admin' and user.totp_secret:
+        if not otp or not totp_verify(user.totp_secret, str(otp)):
+            return ({'ok': False, 'error': 'MFA code required for admin login.', 'needs_mfa': True}, 401)
+
+    _reset_failed_logins(user)
+    return (user, None)
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -1625,26 +2057,25 @@ def api_auth_login():
     data = request.get_json(silent=True) or {}
     identifier = (data.get('username') or data.get('email') or '').strip()
     password = data.get('password') or ''
-    if not identifier or not password:
-        return jsonify({'ok': False, 'error': 'Username and password are required.'}), 400
+    otp = data.get('otp') or data.get('mfa_code')
 
-    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
-    if not user or not check_password_hash(user.password_hash, password):
-        return jsonify({'ok': False, 'error': 'Invalid username/email or password.'}), 401
-
-    if not user.email_verified:
-        return jsonify({'ok': False, 'error': 'Email not verified. Check your inbox for the verification link.', 'needs_verification': True}), 403
+    result, err = _api_login_common(identifier, password, otp)
+    if err:
+        return jsonify(result), err
+    user = result
 
     is_default_admin = (
         user.role == 'admin'
         and not user.password_changed
+        and not _HAS_ARGON  # only known when hash isn't upgraded; harmless default check below
         and check_password_hash(user.password_hash, 'lamaliva@2026')
     )
+    must_change = user.role == 'admin' and not user.password_changed
     token = _issue_api_token(user)
     return jsonify({
         'ok': True,
         'token': token,
-        'must_change_password': is_default_admin,
+        'must_change_password': must_change,
         'user': {
             'id': user.id, 'username': user.username, 'email': user.email,
             'role': user.role,
@@ -1660,6 +2091,7 @@ def api_auth_me():
     return jsonify({'ok': True, 'user': {
         'id': user.id, 'username': user.username, 'email': user.email, 'role': user.role,
         'must_change_password': user.role == 'admin' and not user.password_changed,
+        'must_enroll_mfa': user.role == 'admin' and not user.totp_secret,
     }})
 
 
@@ -1680,14 +2112,19 @@ def api_auth_change_password():
     data = request.get_json(silent=True) or {}
     current_pw = data.get('current_password', '')
     new_pw = data.get('new_password', '')
-    if not check_password_hash(user.password_hash, current_pw):
+    if not verify_password(user.password_hash, current_pw):
+        _register_failed_login(user)
         return jsonify({'ok': False, 'error': 'Current password is incorrect.'}), 400
-    if len(new_pw) < 8:
-        return jsonify({'ok': False, 'error': 'New password must be at least 8 characters.'}), 400
-    user.password_hash = generate_password_hash(new_pw)
+    policy_err = password_policy_error(new_pw)
+    if policy_err:
+        return jsonify({'ok': False, 'error': policy_err}), 400
+    user.password_hash = hash_password(new_pw)
     user.password_changed = True
+    # ASVS 3.3: invalidate every existing session/token when the password changes
+    user.session_valid_after = datetime.now(timezone.utc)
     db.session.commit()
-    return jsonify({'ok': True, 'message': 'Password updated.'})
+    _perform_log_later(f"Password changed via app by {user.username}")
+    return jsonify({'ok': True, 'message': 'Password updated. Please sign in again.'})
 
 
 # ===================== APP API: GUEST DATA =====================
@@ -1851,7 +2288,9 @@ def api_admin_rooms():
         room.status = request.form.get('status') or room.status
         file = request.files.get('image')
         if file and file.filename:
-            saved = _save_room_photo(file)
+            saved, img_err = _save_room_photo(file)
+            if img_err:
+                return jsonify({'ok': False, 'error': img_err}), 400
             if saved:
                 room.image_url = saved
         db.session.commit()
@@ -1871,7 +2310,9 @@ def api_admin_rooms():
     image_url = (request.form.get('image_url') or '').strip() or None
     file = request.files.get('image')
     if file and file.filename:
-        saved = _save_room_photo(file)
+        saved, img_err = _save_room_photo(file)
+        if img_err:
+            return jsonify({'ok': False, 'error': img_err}), 400
         if saved:
             image_url = saved
     room = Room(room_number=number, room_type=room_type, price=price,
@@ -1914,11 +2355,14 @@ def api_admin_users():
         role = data.get('role') or 'staff'
         if role not in ('staff', 'admin'):
             return jsonify({'ok': False, 'error': 'Role must be staff or admin.'}), 400
-        if not username or not email or len(password) < 8:
-            return jsonify({'ok': False, 'error': 'Username, email and 8+ char password required.'}), 400
+        if not username or not email:
+            return jsonify({'ok': False, 'error': 'Username and email are required.'}), 400
+        policy_err = password_policy_error(password)
+        if policy_err:
+            return jsonify({'ok': False, 'error': policy_err}), 400
         if User.query.filter((User.username == username) | (User.email == email)).first():
             return jsonify({'ok': False, 'error': 'Username or email already exists.'}), 409
-        nu = User(username=username, email=email, password_hash=generate_password_hash(password),
+        nu = User(username=username, email=email, password_hash=hash_password(password),
                   role=role, first_login_done=True)
         nu.email_verified = True
         nu.password_changed = True  # admin sets the password, so no default prompt
@@ -1955,7 +2399,10 @@ def api_snackbar_items():
         import uuid as _uuid
         ext = os.path.splitext(file.filename)[1].lower()
         if ext in ('.png', '.jpg', '.jpeg', '.webp', '.gif'):
-            fname = f"snack_{_uuid.uuid4().hex[:10]}{secure_filename(ext)}"
+            err = _validate_image_upload(file)
+            if err:
+                return jsonify({'ok': False, 'error': err}), 400
+            fname = f"snack_{_uuid.uuid4().hex[:10]}{'.png' if ext == '.gif' else secure_filename(ext)}"
             upload_dir = os.path.join(basedir, 'static', 'uploads')
             os.makedirs(upload_dir, exist_ok=True)
             file.save(os.path.join(upload_dir, fname))
