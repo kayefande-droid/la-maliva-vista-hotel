@@ -10,6 +10,7 @@
     <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#0a1628">
+    <script>/* synced design: reuse the PWA shell's saved style pack */(function(){try{var s=localStorage.getItem('lmv_style');if(s&&s!=='royal')document.documentElement.setAttribute('data-style',s);var m=document.querySelector('meta[name=theme-color]');if(m){var c={sunset:'#1c1210',emerald:'#06231c',plum:'#1e0a1e',ocean:'#061e2a',noir:'#0d0f12'}[s];if(c)m.setAttribute('content',c);}}catch(e){}})();</script>
     {% include "_seo.html" %}
     <title>Sign In — La-Maliva Vista Hotel</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
@@ -213,7 +214,10 @@
                             <span class="tick"><i class="bi bi-check2"></i></span>
                             Remember me
                         </label>
-                        <a href="{{ url_for('downloads') }}">Get the app</a>
+                        <span style="display:flex; gap:14px; align-items:center;">
+                            <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+                            <a href="{{ url_for('downloads') }}">Get the app</a>
+                        </span>
                     </div>
 
                     <button type="submit" class="btn-lux">Sign In <i class="bi bi-arrow-right"></i></button>

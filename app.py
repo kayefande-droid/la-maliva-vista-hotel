@@ -15,7 +15,7 @@ import secrets
 import struct as _struct
 from functools import wraps # Import wraps for decorator
 from email_utils import validate_email_real  # Real email verification (syntax + DNS + disposable)
-from mailer import send_verification_email, smtp_configured
+from mailer import send_verification_email, send_password_reset_email, smtp_configured
 import logging
 import time as _time
 import hashlib as _hashlib
@@ -143,7 +143,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.2"
+APP_VERSION = "2.3.3"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -179,6 +179,7 @@ login_manager.login_view = 'login'
 # ===================== SECURITY RULES =====================
 import sqlite3
 from sqlalchemy import event as sa_event
+from sqlalchemy import func as sa_func
 from sqlalchemy.engine import Engine
 
 # ---- 1. Session & request hardening ----
@@ -386,6 +387,10 @@ class User(UserMixin, db.Model):
     verification_token = db.Column(db.String(128), nullable=True)
     verification_sent_at = db.Column(db.DateTime, nullable=True)
 
+    # ---- Password reset (self-service 'forgot password') ----
+    reset_token = db.Column(db.String(128), nullable=True)
+    reset_sent_at = db.Column(db.DateTime, nullable=True)
+
     # ---- Elevated access secret pass (admin/staff second factor) ----
     access_secret_hash = db.Column(db.String(128), nullable=True)
 
@@ -470,7 +475,7 @@ class SnackbarItem(db.Model):
     )
 
 class Announcement(db.Model):
-    """Admin-posted notice shown to staff on the site (and to the app via API)."""
+    """Admin/staff-posted notice shown to staff on the site (and to the app via API)."""
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
     body = db.Column(db.Text, nullable=False)
@@ -480,6 +485,33 @@ class Announcement(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
 
     author = db.relationship('User', backref='announcements', foreign_keys=[created_by])
+
+
+class UserNotification(db.Model):
+    """A per-user copy of a notification sent by admin/staff (or system).
+    Keeps read/unread state per recipient so the app can badge correctly."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    title = db.Column(db.String(150), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    source = db.Column(db.String(20), default='admin')  # admin | staff | system
+    read_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
+
+    recipient = db.relationship('User', backref=db.backref('notifications', lazy='dynamic',
+                                cascade='all, delete-orphan', passive_deletes=True),
+                                foreign_keys=[user_id])
+
+
+class Feedback(db.Model):
+    """Guest feedback / issue report captured by the AI assistant or the app."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    name = db.Column(db.String(120))
+    contact = db.Column(db.String(160))          # email or phone
+    kind = db.Column(db.String(20), default='feedback')  # feedback | issue
+    message = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
 
 
 class DirectMessage(db.Model):
@@ -693,6 +725,122 @@ def messages_attachment(msg_id):
 
 # ===================== APP API: ANNOUNCEMENTS + MESSAGES =====================
 
+# ===================== APP API: USER NOTIFICATIONS =====================
+
+NOTIFY_TEMPLATES = {
+    'welcome': {'title': 'Welcome to La-Maliva Vista 🎉',
+                'body': 'Thank you for joining La-Maliva Vista Hotel. Book rooms, view your receipts and reach reception — right from this app. Karibu!'},
+    'promo': {'title': 'Special offer for you 🌟',
+              'body': 'Enjoy our current room rates — Standard from 10,000 FCFA and Deluxe from 15,000 FCFA per night. Book now from the Rooms tab.'},
+    'maintenance': {'title': 'Scheduled maintenance notice 🔧',
+                    'body': 'We are improving parts of the hotel. Some facilities may be briefly unavailable. We apologise for any inconvenience.'},
+    'event': {'title': 'You are invited ✨',
+              'body': 'Join us for a special evening at La-Maliva Vista. Contact reception on (+237) 679-915-967 for details and reservations.'},
+    'update': {'title': 'App update available 📲',
+               'body': 'A new version of the La-Maliva app is available. Open Account → Check for updates to install the latest features.'},
+}
+
+
+@app.route('/api/admin/notify', methods=['POST'])
+def api_admin_notify():
+    """Admin/staff send a notification to app users.
+    Body: {template: 'welcome'|...} OR {title, body}, plus audience: all|guests|staff.
+    Custom messages are also mirrored to the announcements board."""
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+    data = request.get_json(silent=True) or {}
+
+    tpl = (data.get('template') or '').strip()
+    if tpl:
+        t = NOTIFY_TEMPLATES.get(tpl)
+        if not t:
+            return jsonify({'ok': False, 'error': f'Unknown template {tpl!r}.'}), 400
+        title, body = t['title'], t['body']
+    else:
+        title = (data.get('title') or '').strip()
+        body = (data.get('body') or '').strip()
+        if not title or not body:
+            return jsonify({'ok': False, 'error': 'Title and message are required.'}), 400
+
+    audience = (data.get('audience') or 'all').strip()
+    q = User.query
+    if audience == 'guests':
+        q = q.filter(User.role == 'guest')
+    elif audience == 'staff':
+        q = q.filter(User.role.in_(('staff', 'admin')))
+    recipients = q.all()
+
+    for r in recipients:
+        db.session.add(UserNotification(
+            user_id=r.id, title=title, body=body,
+            source='admin' if user.role == 'admin' else 'staff'))
+    # Mirror custom messages to the announcements board (audience 'everyone'
+    # so they also appear on the website + for not-yet-registered app users).
+    if not tpl:
+        db.session.add(Announcement(title=title, body=body, audience='everyone',
+                                    pinned=False, created_by=user.id))
+    db.session.commit()
+    _perform_log(f"{user.role} {user.username} sent notification '{title}' to {len(recipients)} user(s)")
+    return jsonify({'ok': True, 'sent': len(recipients)})
+
+
+@app.route('/api/notifications', methods=['GET', 'POST'])
+def api_notifications():
+    """The signed-in user's notification inbox with per-item read state.
+    POST {id} marks one read; {all: true} marks everything read."""
+    user = _current_api_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
+
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or {}
+        if data.get('all'):
+            UserNotification.query.filter_by(user_id=user.id, read_at=None).update(
+                {'read_at': datetime.now(timezone.utc)})
+            changed = UserNotification.query.filter_by(user_id=user.id).count()
+        else:
+            nid = data.get('id')
+            row = UserNotification.query.filter_by(id=nid, user_id=user.id).first()
+            if not row:
+                return jsonify({'ok': False, 'error': 'Not found.'}), 404
+            if row.read_at is None:
+                row.read_at = datetime.now(timezone.utc)
+                db.session.commit()
+            changed = 1
+        db.session.commit()
+        return jsonify({'ok': True, 'marked': changed})
+
+    rows = (UserNotification.query.filter_by(user_id=user.id)
+            .order_by(UserNotification.created_at.desc()).limit(100).all())
+    unread = sum(1 for r in rows if r.read_at is None)
+    return jsonify({'ok': True, 'unread': unread, 'notifications': [{
+        'id': r.id, 'title': r.title, 'body': r.body, 'source': r.source,
+        'read': r.read_at is not None, 'created_at': r.created_at.isoformat(),
+    } for r in rows]})
+
+
+@app.route('/api/feedback', methods=['POST'])
+def api_feedback():
+    """Guest feedback or issue report (from the AI assistant or the app)."""
+    data = request.get_json(silent=True) or {}
+    msg = (data.get('message') or '').strip()
+    if not msg:
+        return jsonify({'ok': False, 'error': 'Message is required.'}), 400
+    user = _current_api_user()
+    fb = Feedback(
+        user_id=user.id if user else None,
+        name=(data.get('name') or (user.username if user else '')).strip() or None,
+        contact=(data.get('contact') or (user.email if user else '')).strip() or None,
+        kind='issue' if data.get('kind') == 'issue' else 'feedback',
+        message=msg[:4000],
+    )
+    db.session.add(fb)
+    db.session.commit()
+    _perform_log(f"Feedback ({fb.kind}) received from {fb.name or 'anonymous'}")
+    return jsonify({'ok': True})
+
+
 @app.route('/api/announcements')
 def api_announcements():
     """Notice board for the native app (role-aware).
@@ -901,81 +1049,150 @@ def coming_soon():
     return render_template('coming_soon.html', lock_message=lock_message)
 
 # ===================== CHATBOT LOGIC (AI for Users) =====================
-# This is a simple rule-based chatbot. A true AI for user problem-solving
-# would require integration with a more advanced NLP/ML service.
+# ------------------------------------------------------------------
+# AI concierge — rule-based but genuinely helpful: answers hotel
+# questions, walks users through bookings and app features, captures
+# feedback/issue reports, and always offers a human escape hatch.
+# ------------------------------------------------------------------
 INTENTS = {
     "greeting": {
         "patterns": ["hello", "hi", "hey", "good morning", "good evening", "greetings", "bonjour", "salut", "hola"],
         "responses": [
-            "Hello! Welcome to La-Maliva Vista Hotel. How can I assist you today?",
-            "Hi there! I'm the digital concierge for La-Maliva Vista. Ask me about rooms, prices, or amenities!"
+            "Hello! 👋 Welcome to La-Maliva Vista Hotel. I can help you book a room, find your way around the app, or answer any question about your stay. What would you like to do?",
+            "Hi there! I'm the La-Maliva digital concierge. Try: 'how do I book?', 'room prices', or 'how does the app work?'"
         ]
     },
     "check_in_out": {
-        "patterns": ["check in", "check out", "time", "arrival", "departure", "when can i arrive", "what time is checkout"],
+        "patterns": ["check in", "check-in", "check out", "check-out", "time", "arrival", "departure", "when can i arrive", "what time is checkout"],
         "responses": [
-            "Check-in is from 2:00 PM, and check-out is until 12:00 PM. Early check-in may be available upon request."
+            "Check-in is from 1:00 PM and check-out is until 12:00 PM (noon). Need an early check-in or late checkout? Just ask at reception or call (+237) 679-915-967 — we're flexible when we can be."
         ]
     },
     "amenities": {
-        "patterns": ["amenities", "pool", "wifi", "internet", "food", "restaurant", "piscine", "comida"],
+        "patterns": ["amenities", "pool", "wifi", "internet", "food", "restaurant", "snackbar", "bar", "drink", "breakfast", "piscine", "parking"],
         "responses": [
-            "We offer free high-speed Wi-Fi, 24/7 room service, a beautiful view of Buea, and an on-site restaurant serving local and international dishes."
+            "We offer free high-speed Wi-Fi, 24/7 room service, an on-site restaurant & snackbar (local + international dishes), free parking, and a beautiful view over Buea. The snackbar menu with drinks and meals is right in the app's Snackbar tab."
         ]
     },
     "rooms": {
-        "patterns": ["room", "price", "cost", "standard", "deluxe", "suite", "family", "chambre", "prix", "cuanto cuesta"],
+        "patterns": ["room", "price", "cost", "standard", "deluxe", "suite", "family", "how much", "chambre", "prix", "rate"],
         "responses": [
-            "Our rooms: Standard (10,000 FCFA), Deluxe (15,000 FCFA), Suite (20,000 FCFA), and Family (25,000 FCFA). All include breakfast."
+            "Our rooms: Standard from 10,000 FCFA, Deluxe from 15,000 FCFA, and premium rooms with working space, smart TV or fridge from 20,000 FCFA per night. Open the Rooms tab to see live photos and availability — prices always show in FCFA."
+        ]
+    },
+    "payment": {
+        "patterns": ["payment", "pay", "momo", "mobile money", "bank", "transfer", "card", "om"],
+        "responses": [
+            "Payments: we support Mobile Money (MTN MoMo) and bank transfer — the Payments tab shows both. Payment is confirmed at reception on arrival. Need help with a specific payment? Call (+237) 679-915-967."
         ]
     },
     "booking": {
-        "patterns": ["book", "booking", "reservation", "how to book", "reserve", "reserver"],
+        "patterns": ["book", "booking", "reservation", "how to book", "reserve", "reserver", "available", "vacant"],
         "responses": [
-            "You can book directly by clicking 'New Booking' in the menu or calling us at (+237) 679-915-967."
+            "Booking takes under a minute: 1️⃣ Open the Rooms tab 2️⃣ Pick a room and tap it 3️⃣ Choose your check-in/check-out dates 4️⃣ Enter your name & phone 5️⃣ Tap CONFIRM BOOKING. You'll get an instant confirmation with a reference number, and it appears under Bookings with a downloadable invoice. Note: booking needs internet so we can guarantee live availability."
+        ]
+    },
+    "app_help": {
+        "patterns": ["how does the app work", "how to use the app", "tutorial", "app help", "help me use the app", "app features", "where is the"],
+        "responses": [
+            "Quick tour of the app 🗺️:\n• Home — shortcuts to receipts, payments, snackbar & location\n• Rooms — photos, FCFA prices, live availability, booking\n• Bookings — your reservations + Receipt / Download / Print invoice buttons\n• Snackbar — food & drinks menu (when enabled)\n• Account — theme & design styles, notifications, Check for updates, sign in\nThe ☰ menu (top-left) has everything, including the full user manual under Help."
+        ]
+    },
+    "notifications": {
+        "patterns": ["notification", "bell", "inbox", "alert", "message from hotel"],
+        "responses": [
+            "The bell 🔔 at the top of the app is your inbox — messages from the La-Maliva team and the hotel appear there. A number badge means unread news. Tap any message to read the full text; it's automatically marked as read."
+        ]
+    },
+    "update_app": {
+        "patterns": ["update", "new version", "upgrade app", "out of date", "install update"],
+        "responses": [
+            "Updating is easy: Account tab → 'Check for updates'. If a newer version exists, tap Download — the app fetches the new APK and can install it for you right away. The link la-maliva-vista-hotel.onrender.com/apk also always gives the latest version."
+        ]
+    },
+    "offline": {
+        "patterns": ["offline", "no internet", "without internet", "network", "data"],
+        "responses": [
+            "The app is built for weak networks: room photos, prices and menus are cached on your device and open with zero internet. An amber banner appears when offline and disappears by itself when the connection returns. Booking and receipts need internet — everything else works anytime."
         ]
     },
     "location": {
-        "patterns": ["location", "where", "address", "find you", "ubicacion"],
+        "patterns": ["location", "where", "address", "find you", "directions", "map", "ubicacion"],
         "responses": [
-            "We are located opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon."
+            "We're opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon 📍. The Location shortcut on the app home page opens Google Maps straight to our door."
         ]
     },
     "support": {
-        "patterns": ["help", "support", "contact", "issue", "problem"],
+        "patterns": ["help", "support", "contact", "issue", "problem", "complaint", "refund", "cancel"],
         "responses": [
-            "For immediate support, please call us at (+237) 679-915-967. Our staff is ready to assist you."
+            "I'm sorry you're having trouble 😔. You can: 1️⃣ tell me the issue here — just start with 'I have a problem:' and I'll forward it to our team immediately, or 2️⃣ call reception on (+237) 679-915-967 (24/7). How can I help?"
+        ]
+    },
+    "thanks": {
+        "patterns": ["thank", "thanks", "merci", "great", "awesome", "nice"],
+        "responses": [
+            "You're most welcome! 🧡 If you have a moment, tell me what you love or what we could improve — just say 'feedback: ...' and it goes straight to our team."
         ]
     },
     "fallback": {
         "patterns": [],
         "responses": [
-            "I'm not sure I understand. Could you rephrase? You can ask me about room prices, amenities, or check-in times. For direct assistance, please call (+237) 679-915-967.",
-            "I'm your digital assistant. For complex questions or issues, please call reception at (+237) 679-915-967."
+            "I didn't quite catch that. I can help with: room prices & availability, how to book, check-in/out times, payments (MoMo/bank), app tutorials, notifications, updates, and your feedback. For anything else, reception is (+237) 679-915-967 — or ask me 'how does the app work?'."
         ]
-    }
+    },
 }
+
 
 def get_intent(message):
     message_lower = message.lower()
+    # Match the MOST SPECIFIC pattern (longest), so "how do i book a room"
+    # resolves to the booking walkthrough, not the generic rooms answer.
+    best_intent, best_len = None, 0
     for intent, data in INTENTS.items():
         for pattern in data["patterns"]:
-            if re.search(rf"\b{pattern}\b", message_lower):
-                return intent
-    return "fallback"
+            if re.search(rf"\b{re.escape(pattern)}\b", message_lower) and len(pattern) > best_len:
+                best_intent, best_len = intent, len(pattern)
+    return best_intent or "fallback"
+
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    data = request.get_json()
-    user_message = data.get('message', '')
+    data = request.get_json(silent=True) or {}
+    user_message = (data.get('message') or '').strip()
     if not user_message:
         return jsonify({"response": "Please say something."})
+
+    low = user_message.lower()
+
+    # Feedback / issue capture — stored for the team, acknowledged warmly.
+    feedback = None
+    for marker in ('feedback:', 'i have a problem', 'issue:', 'complaint', 'suggestion'):
+        if low.startswith(marker) or marker in low:
+            feedback = user_message
+            break
+    if feedback:
+        user = _current_api_user()
+        try:
+            db.session.add(Feedback(
+                user_id=user.id if user else None,
+                name=user.username if user else (data.get('name') or None),
+                contact=user.email if user else (data.get('contact') or None),
+                kind='issue' if ('problem' in low or 'issue' in low or 'complaint' in low) else 'feedback',
+                message=user_message[:4000]))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+        return jsonify({"response":
+            "Thank you — I've forwarded this to the La-Maliva team right now 📨. "
+            "A real person will follow up. Anything urgent, call (+237) 679-915-967. "
+            "Is there anything else I can help you with?"})
+
     intent = get_intent(user_message)
     reply = random.choice(INTENTS[intent]["responses"])
     if intent == "rooms":
         available_count = Room.query.filter_by(status='Available').count()
         if available_count > 0:
-            reply += f" I've checked our live status: we have {available_count} rooms available right now!"
+            reply += f" I've checked our live status: we have {available_count} room(s) available right now!"
         else:
             reply += " I'm sorry, we appear to be fully booked at the moment."
     return jsonify({"response": reply})
@@ -1071,6 +1288,10 @@ def _migrate_schema():
                 ("session_valid_after", "DATETIME"),
                 ("totp_secret", "VARCHAR(64)"),
                 ("totp_pending_secret", "VARCHAR(64)"),
+                # Remember-me + password reset
+                ("remember_me", "BOOLEAN DEFAULT 0"),
+                ("reset_token", "VARCHAR(128)"),
+                ("reset_sent_at", "DATETIME"),
             ]
             for column, ddl in migrations:
                 if column not in existing:
@@ -1275,8 +1496,66 @@ def _post_login_redirect(user):
     return redirect(url_for('dashboard'))
 
 
+# ===================== Forgot / reset password (web) =====================
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Request a password-reset email. Always answers identically so the
+    endpoint can't be used to discover which accounts exist."""
+    if request.method == 'POST':
+        identifier = (request.form.get('username') or '').strip().lower()
+        user = User.query.filter((sa_func.lower(User.username) == identifier) |
+                                 (sa_func.lower(User.email) == identifier)).first()
+        if user and user.email:
+            raw = secrets.token_urlsafe(32)
+            user.reset_token = _token_hash(raw)
+            user.reset_sent_at = datetime.now(timezone.utc)
+            db.session.commit()
+            url = url_for('reset_password', token=raw, _external=True)
+            sent = send_password_reset_email(user.email, url)
+            if sent:
+                app.logger.info("Password reset email sent to %s", user.email)
+            else:
+                app.logger.warning("Reset link for %s generated but SMTP unavailable", user.username)
+        # Identical response either way — no account enumeration.
+        flash('📩 If that account has an email on file, a reset link is on its way. Check your inbox (and spam).', 'info')
+        return redirect(url_for('forgot_password'))
+    return render_template('forgot_password.html')
+
+
+@app.route('/reset-password/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    """Consume a one-time, 1-hour reset token and set the new password."""
+    user = User.query.filter_by(reset_token=_token_hash(token)).first() if token else None
+    valid = False
+    if user and user.reset_sent_at:
+        sent = user.reset_sent_at
+        if sent.tzinfo is None:
+            sent = sent.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - sent
+        valid = age < timedelta(hours=1)
+    if not valid:
+        flash('⏳ That reset link is invalid or has expired. Please request a new one.', 'error')
+        return redirect(url_for('forgot_password'))
+
+    if request.method == 'POST':
+        pw = request.form.get('password', '')
+        confirm = request.form.get('confirm', '')
+        if len(pw) < 8:
+            flash('Password must be at least 8 characters.', 'error')
+        elif pw != confirm:
+            flash('Passwords do not match.', 'error')
+        else:
+            user.password_hash = hash_password(pw)
+            user.reset_token = None
+            user.reset_sent_at = None
+            user.session_valid_after = datetime.now(timezone.utc)  # sign out other devices
+            db.session.commit()
+            flash('✅ Password updated! Sign in with your new password.', 'success')
+            return redirect(url_for('login'))
+    return render_template('reset_password.html')
+
+
 # ===================== MFA (admin, TOTP) =====================
-@app.route('/mfa/setup', methods=['GET', 'POST'])
 @login_required
 def mfa_setup():
     """Enroll the signed-in admin into TOTP MFA (Google Authenticator compatible)."""

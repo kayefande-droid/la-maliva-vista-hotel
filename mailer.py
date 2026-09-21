@@ -124,3 +124,53 @@ def send_email(to, subject, html):
 def send_verification_email(to, verify_url):
     """Send the branded address-verification email."""
     return send_email(to, "Verify your email — La-Maliva Vista Hotel", EMAIL_BODY.format(verify_url=verify_url))
+
+
+RESET_BODY = """\
+<!DOCTYPE html>
+<html>
+<body style="margin:0;padding:0;background:#f4f6fb;font-family:'Segoe UI',Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
+    <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(10,30,60,0.12);">
+      <div style="background:linear-gradient(135deg,#0a2a66,#123a8f);padding:28px 32px;text-align:center;">
+        <h1 style="color:#ffc94d;font-size:20px;letter-spacing:2px;margin:0;">LA-MALIVA VISTA</h1>
+        <p style="color:rgba(255,255,255,0.75);font-size:12px;letter-spacing:3px;margin:6px 0 0;">A TASTE OF PARADISE</p>
+      </div>
+      <div style="padding:32px;">
+        <h2 style="color:#0a2a66;font-size:18px;margin:0 0 12px;">Reset your password</h2>
+        <p style="color:#4a5568;font-size:14px;line-height:1.7;margin:0 0 24px;">
+          We received a request to reset the password for your La-Maliva Vista account.
+          The link below is valid for <strong>1 hour</strong> and can be used once.
+        </p>
+        <div style="text-align:center;margin:0 0 24px;">
+          <a href="{reset_url}"
+             style="display:inline-block;background:linear-gradient(115deg,#ffc94d,#ff9d2e);color:#06122b;
+                    font-weight:700;font-size:14px;letter-spacing:1px;text-decoration:none;
+                    padding:14px 34px;border-radius:12px;">
+             Choose a New Password
+          </a>
+        </div>
+        <p style="color:#8892a6;font-size:12px;line-height:1.6;margin:0 0 8px;">
+          Or paste this link into your browser:<br>
+          <span style="color:#123a8f;word-break:break-all;">{reset_url}</span>
+        </p>
+        <p style="color:#8892a6;font-size:12px;line-height:1.6;margin:0;">
+          Didn't request this? Your password is untouched — you can safely ignore this email.
+        </p>
+      </div>
+      <div style="background:#f4f6fb;padding:18px 32px;text-align:center;">
+        <p style="color:#8892a6;font-size:11px;margin:0;">
+          Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon<br>
+          (+237) 679-915-967 &middot; La-Maliva Vista Hotel
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+def send_password_reset_email(to, reset_url):
+    """Send the branded password-reset email."""
+    return send_email(to, "Reset your password — La-Maliva Vista Hotel", RESET_BODY.format(reset_url=reset_url))

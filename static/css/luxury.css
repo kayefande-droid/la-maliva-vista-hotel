@@ -571,3 +571,35 @@ h1, h2, h3, .display {
     .lux-pre-badge img { width: 96px; height: 96px; }
     .lux-pre-word .w1 { font-size: 1.2rem; }
 }
+
+/* ============================================================
+   Design style packs — synced 1:1 with the PWA shell & the
+   native app. The shell stores the pick in localStorage under
+   'lmv_style'; public pages read the same key so the whole
+   product (public site + PWA + app) re-skins together.
+   ============================================================ */
+html[data-style="sunset"] {
+    --navy-950: #1c1210; --navy-900: #241713; --navy-800: #362017; --navy-700: #4a2c1d; --navy-600: #5e3823;
+    --orange-600: #e8853b; --orange-500: #ffa94d; --orange-400: #ffbd6b;
+    --gold-400: #ffd08a; --cream-50: #fff8ef; --cream-100: #f9efe2; --cream-200: #f0e2cd; --cream-300: #e3d0b4;
+}
+html[data-style="emerald"] {
+    --navy-950: #06231c; --navy-900: #083126; --navy-800: #0a4436; --navy-700: #0e5a47; --navy-600: #127058;
+    --orange-600: #d9842b; --orange-500: #f0a22e; --orange-400: #f5b854;
+    --gold-400: #e8c97a; --cream-50: #f6fbf7; --cream-100: #eaf4ec; --cream-200: #d9e9dc; --cream-300: #c2d9c7;
+}
+html[data-style="plum"] {
+    --navy-950: #1e0a1e; --navy-900: #29102b; --navy-800: #3d1440; --navy-700: #571c55; --navy-600: #702469;
+    --orange-600: #d65f2b; --orange-500: #f0752e; --orange-400: #f48c4f;
+    --gold-400: #e9bfb3; --cream-50: #fdf6f7; --cream-100: #f7ebef; --cream-200: #ecdbe2; --cream-300: #dcc4cf;
+}
+html[data-style="ocean"] {
+    --navy-950: #061e2a; --navy-900: #082a3a; --navy-800: #0a4155; --navy-700: #0e566e; --navy-600: #126b87;
+    --orange-600: #d97f2b; --orange-500: #f09a2e; --orange-400: #f5ae54;
+    --gold-400: #7fd4d8; --cream-50: #f4fbfd; --cream-100: #e8f4f8; --cream-200: #d4e9f0; --cream-300: #bad7e2;
+}
+html[data-style="noir"] {
+    --navy-950: #0d0f12; --navy-900: #14171c; --navy-800: #1e2228; --navy-700: #2b313a; --navy-600: #384049;
+    --orange-600: #d97a2b; --orange-500: #f08c2e; --orange-400: #f5a54e;
+    --gold-400: #e0b36a; --cream-50: #f7f7f5; --cream-100: #efefec; --cream-200: #e2e2de; --cream-300: #d0d0ca;
+}

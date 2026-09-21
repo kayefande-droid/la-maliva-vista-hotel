@@ -955,12 +955,16 @@
         if (!text) return;
         addMessage(text, 'user');
         input.value = '';
+        const csrfEl = document.querySelector('input[name="_csrf_token"]');
         fetch('/chat', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfEl ? csrfEl.value : ''
+            },
             body: JSON.stringify({ message: text })
         })
-        .then(r => r.json()).then(data => addMessage(data.response, 'bot'))
+        .then(r => r.json()).then(data => addMessage(data.response || data.error || '…', 'bot'))
         .catch(() => addMessage("I'm sorry, I'm having trouble connecting right now.", 'bot'));
     }
 
