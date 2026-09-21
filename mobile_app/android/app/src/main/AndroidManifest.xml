@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required in RELEASE builds: debug/profile manifests have it, but the
+         main manifest is what ships — without this the app cannot use any
+         network (Wi-Fi or data), so login/API never connect. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <application
         android:label="lamaliva_app"
         android:name="${applicationName}"
