@@ -1,9 +1,8 @@
 {% extends 'base.html' %}
 {% block content %}
 <style>
-    /* Specific styles for calendar.html, overriding/extending base.html where needed */
     .calendar-header {
-        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
+        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6));
         color: white;
         padding: 25px;
         border-radius: 0.75rem;
@@ -13,26 +12,24 @@
         align-items: center;
         justify-content: space-between;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
+        border: 1px solid var(--shell-line);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
     }
     .calendar-header h5 {
-        color: #eec37a; /* Brighter gold text */
+        color: #eec37a;
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
         margin-bottom: 0;
     }
-    .calendar-header small {
-        color: #f5f1e8; /* Brighter text */
-    }
+    .calendar-header small { color: #f5f1e8; }
     @keyframes slideInDown {
         from { opacity: 0; transform: translateY(-20px); }
         to { opacity: 1; transform: translateY(0); }
     }
     .calendar-container {
-        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-        border: 1px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
+        background: rgba(253, 250, 244, 0.05);
+        border: 1px solid var(--shell-line);
         border-radius: 0.75rem;
         padding: 20px;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
@@ -40,109 +37,85 @@
         -webkit-backdrop-filter: blur(10px);
         animation: fadeIn 0.6s ease-out;
     }
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ---- FullCalendar (standard bundle) brand theme ---- */
     .fc {
-        border: 2px solid #eec37a !important; /* Brighter gold border for calendar */
         border-radius: 0.75rem;
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.08); /* Transparent calendar background */
-        color: #f5f1e8; /* Default text color for calendar */
+        color: var(--shell-text);
+        --fc-border-color: var(--shell-line);
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: rgba(253,250,244,0.05);
+        --fc-today-bg-color: rgba(240, 140, 46, 0.12);
     }
-    .fc .fc-button-primary {
-        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient buttons */
-        border-color: rgba(255, 255, 255, 0.4) !important;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border-radius: 0.5rem !important;
-        font-weight: bold !important;
-        color: white !important;
+    .fc .fc-toolbar-title {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #fff;
+    }
+    .fc .fc-button {
+        background: linear-gradient(135deg, #0f2240, #16305c);
+        border: 1px solid var(--shell-line);
+        color: var(--shell-text);
+        font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        border-radius: 0.5rem;
+        transition: all 0.25s ease;
     }
-    .fc .fc-button-primary:hover {
-        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient on hover */
-        border-color: #eec37a !important;
-        color: #0f2240 !important; /* Dark text for contrast */
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(238, 195, 122, 0.4);
+    .fc .fc-button:hover, .fc .fc-button-active {
+        background: linear-gradient(135deg, #d97a2b, #f08c2e);
+        border-color: rgba(240,140,46,.5);
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(240, 140, 46, 0.35);
     }
-    .fc .fc-button-primary.fc-button-active {
-        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient when active */
-        border-color: #eec37a !important;
-        color: #0f2240 !important;
+    .fc .fc-button:disabled {
+        background: rgba(253,250,244,0.06);
+        color: rgba(245,241,232,0.4);
+        transform: none;
     }
     .fc .fc-col-header-cell {
-        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient header */
-        color: #eec37a !important; /* Brighter gold text */
-        font-weight: bold !important;
-        border-color: rgba(238, 195, 122, 0.5) !important; /* Brighter gold border */
-        padding: 12px !important;
+        background: rgba(15, 34, 64, 0.6);
+        color: #eec37a;
+        font-weight: 700;
+        padding: 10px 0;
     }
-    .fc .fc-timegrid-slot {
-        height: 2.5em;
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }
-    .fc .fc-resource-area {
-        background: rgba(0, 0, 0, 0.15) !important; /* Slightly darker transparent */
-        border-right: 2px solid #eec37a !important; /* Brighter gold border */
-    }
-    .fc .fc-resource-area header {
-        background: linear-gradient(135deg, #d97a2b, #f08c2e) !important; /* Brighter gold gradient header */
-        color: #0f2240 !important; /* Dark text for contrast */
-        font-weight: bold !important;
-        padding: 10px !important;
-    }
-    .fc .fc-daygrid-day:hover {
-        background: rgba(238, 195, 122, 0.15) !important; /* Subtle brighter gold hover */
-    }
+    .fc .fc-daygrid-day-number, .fc .fc-list-day-text, .fc .fc-list-day-side-text { color: var(--shell-text); }
     .fc .fc-event {
-        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient event */
-        border: 2px solid #eec37a !important; /* Brighter gold border */
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-        border-radius: 4px !important;
-        font-weight: bold !important;
-        color: white !important;
+        border: 1px solid rgba(240,140,46,.55);
+        border-radius: 4px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .fc .fc-event:hover {
-        box-shadow: 0 8px 16px rgba(238, 195, 122, 0.5) !important; /* Brighter gold shadow on hover */
         transform: scale(1.02);
+        box-shadow: 0 8px 16px rgba(240, 140, 46, 0.4);
     }
-    .fc .fc-event-title {
-        font-weight: bold !important;
-        color: #eec37a !important; /* Brighter gold text */
-    }
-    .fc .fc-resource-title {
-        font-weight: bold !important;
-        color: #eec37a !important; /* Brighter gold text */
-    }
+    .fc .fc-event-title { font-weight: 700; color: #fff; }
+    .fc .fc-daygrid-dot-event .fc-event-title { color: var(--shell-text); }
+
     .calendar-loading {
         text-align: center;
         padding: 50px;
-        color: #f5f1e8; /* Brighter text */
+        color: #f5f1e8;
         font-size: 18px;
     }
     .calendar-loading i {
         font-size: 48px;
-        color: #eec37a; /* Brighter gold icon */
+        color: #eec37a;
         animation: spin 2s linear infinite;
         margin-bottom: 20px;
     }
-    @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
-    }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
     @media (max-width: 768px) {
-        .calendar-container {
-            padding: 10px;
-        }
-        .fc {
-            font-size: 12px;
-        }
-        .fc .fc-col-header-cell {
-            padding: 8px !important;
-        }
+        .calendar-container { padding: 10px; }
+        .fc { font-size: 12px; }
+        .fc .fc-toolbar { flex-direction: column; gap: 8px; }
     }
 </style>
 
@@ -151,9 +124,9 @@
         <div class="calendar-header">
             <div>
                 <h5><i class="bi bi-calendar-range"></i> Reservation Calendar</h5>
-                <small>LA-MALIVA VISTA HOTEL • Real-time Room Occupancy</small>
+                <small>LA-MALIVA VISTA HOTEL &bull; Real-time Room Occupancy &mdash; click a booking to open its invoice</small>
             </div>
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" style="height: 40px; opacity: 0.8; animation: spin 20s linear infinite;">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista" style="height: 40px; opacity: 0.8;">
         </div>
 
         <div class="calendar-container">
@@ -161,7 +134,7 @@
                 <i class="bi bi-calendar-week"></i>
                 <div>Loading Reservation Calendar...</div>
             </div>
-            <div id="calendar" style="height: 700px; display: none;"></div>
+            <div id="calendar" style="display: none;"></div>
         </div>
     </div>
 </div>
@@ -171,56 +144,61 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadingDiv = document.getElementById('calendar-loading');
     const calendarDiv = document.getElementById('calendar');
 
-    // Show loading initially
-    loadingDiv.style.display = 'block';
-    calendarDiv.style.display = 'none';
+    async function loadJSON(url, fallback) {
+        try {
+            const r = await fetch(url);
+            if (!r.ok) throw new Error(url + ' -> ' + r.status);
+            return await r.json();
+        } catch (err) {
+            console.error('Error fetching ' + url, err);
+            return fallback;
+        }
+    }
 
-    // Fetch data and initialize calendar
     Promise.all([
-        fetch('/api/rooms').then(r => r.json()).catch(err => {
-            console.error('Error fetching rooms:', err);
-            return [];
-        }),
-        fetch('/api/reservations').then(r => r.json()).catch(err => {
-            console.error('Error fetching reservations:', err);
-            return [];
-        })
-    ]).then(([resources, events]) => {
-        // Hide loading, show calendar
+        loadJSON('/api/rooms', []),
+        loadJSON('/api/reservations', [])
+    ]).then(([rooms, events]) => {
         loadingDiv.style.display = 'none';
         calendarDiv.style.display = 'block';
 
-        // Initialize FullCalendar
-        var calendar = new FullCalendar.Calendar(document.getElementById('calendar'), {
-            initialView: 'resourceTimelineDay',
-            editable: true,
-            resources: resources,
-            events: events,
-            resourceLabelText: 'Rooms',
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'resourceTimelineDay,resourceTimelineWeek,resourceTimelineMonth'
-            },
-            eventClick: function(info) {
-                if (confirm('Open reservation details?')) {
-                    window.location = '/invoice/' + info.event.id;
-                }
-            },
-            resourceAreaWidth: '200px',
-            slotMinTime: '06:00:00',
-            slotMaxTime: '24:00:00',
-            height: 'auto',
-            contentHeight: 600,
-            aspectRatio: 1.8,
-            eventDisplay: 'block',
-            eventTimeFormat: {
-                hour: '2-digit',
-                minute: '2-digit',
-                meridiem: false
+        // Room list doubles as the resource legend; statuses tint event dots
+        const statusColor = {
+            'Checked-In':  '#2ea043',
+            'Checked-Out': '#6c757d',
+            'Confirmed':   '#f08c2e',
+            'Pending':     '#f0b429',
+            'Cancelled':   '#dc3545'
+        };
+        events.forEach(ev => {
+            if (!ev.backgroundColor) {
+                const res = rooms.find(r => r.id === String(ev.resourceId));
+                const st = res && res.extendedProps ? res.extendedProps.status : (ev.status || 'Confirmed');
+                ev.backgroundColor = statusColor[st] || '#f08c2e';
+                ev.borderColor = 'rgba(240,140,46,.55)';
             }
         });
 
+        // Standard FullCalendar bundle: month / list views (timeline is premium-only)
+        const calendar = new FullCalendar.Calendar(calendarDiv, {
+            initialView: window.innerWidth < 768 ? 'listWeek' : 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listWeek'
+            },
+            events: events,
+            height: 'auto',
+            initialDate: new Date(),
+            nowIndicator: true,
+            dayMaxEventRows: 4,
+            eventClick: function(info) {
+                if (confirm('Open reservation invoice #' + info.event.id + '?')) {
+                    window.location = '/invoice/' + info.event.id;
+                }
+            },
+            eventTimeFormat: { hour: '2-digit', minute: '2-digit', meridiem: false }
+        });
         calendar.render();
     }).catch(error => {
         console.error('Calendar initialization error:', error);

@@ -19,6 +19,7 @@
     <link href="{{ url_for('static', filename='css/luxury.css') }}" rel="stylesheet">
     <link href="{{ url_for('static', filename='vendor/css/fullcalendar-index.min.css') }}" rel="stylesheet">
     <script src="{{ url_for('static', filename='vendor/js/chart.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/js/fullcalendar-index.min.js') }}"></script>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         /* ==========================================================
@@ -481,6 +482,13 @@
 </div>
 
 <div class="shell">
+    <!-- LIVE CONNECTIVITY BANNER (mirrors the native app) -->
+    <div id="netBanner" style="display:none; position:sticky; top:0; z-index:1035; width:100%;
+         padding:8px 16px; font-size:12.5px; font-weight:600; color:#1d2b3f;
+         background:linear-gradient(90deg, #f0b429, #f08c2e); text-align:center;
+         box-shadow:0 2px 10px rgba(0,0,0,.25); cursor:pointer;">
+        <i class="bi bi-wifi-off" style="margin-right:6px;"></i>No internet — offline mode active. Cached pages available. Tap to retry.
+    </div>
     <!-- ================= DESKTOP SIDEBAR ================= -->
     <aside class="sidebar" id="sideNav">
         <a class="sidebar-brand" href="{{ url_for('dashboard') }}">
@@ -509,6 +517,14 @@
             <a class="side-link {{ 'active' if request.endpoint == 'todays_departures' }}" href="{{ url_for('todays_departures') }}"><i class="bi bi-box-arrow-up"></i> Departures</a>
             {% endif %}
         </div>
+
+        {% if current_user.is_authenticated and current_user.role in ('admin', 'staff') %}
+        <div class="side-section">
+            <div class="side-label">Team</div>
+            <a class="side-link {{ 'active' if request.endpoint == 'announcements' }}" href="{{ url_for('announcements') }}"><i class="bi bi-megaphone"></i> Announcements</a>
+            <a class="side-link {{ 'active' if request.endpoint == 'messages' }}" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> Messages</a>
+        </div>
+        {% endif %}
 
         {% if current_user.is_authenticated and current_user.role == 'admin' %}
         <div class="side-section">
@@ -638,6 +654,13 @@
         <a class="side-link" href="{{ url_for('todays_arrivals') }}"><i class="bi bi-box-arrow-in-down"></i> Today's Arrivals</a>
         <a class="side-link" href="{{ url_for('todays_departures') }}"><i class="bi bi-box-arrow-up"></i> Departures</a>
         {% endif %}
+        {% if current_user.is_authenticated and current_user.role in ('admin', 'staff') %}
+        <div class="side-section">
+            <div class="side-label">Team</div>
+            <a class="side-link" href="{{ url_for('announcements') }}"><i class="bi bi-megaphone"></i> Announcements</a>
+            <a class="side-link" href="{{ url_for('messages') }}"><i class="bi bi-chat-dots"></i> Messages</a>
+        </div>
+        {% endif %}
     </div>
     {% if current_user.is_authenticated and current_user.role == 'admin' %}
     <div class="side-section">
@@ -709,6 +732,47 @@
 </div>
 
 <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.min.js') }}"></script>
+<script>
+    /* ---------- Connectivity banner (real internet detection) ---------- */
+    (function () {
+        const banner = document.getElementById('netBanner');
+        if (!banner) return;
+        let probing = false;
+
+        async function realProbe() {
+            // navigator.onLine only says the NIC has a link — verify the
+            // server is actually reachable (same as the native app).
+            if (probing) return;
+            probing = true;
+            try {
+                const r = await fetch('{{ url_for("static", filename="ping.txt") }}?_=' + Date.now(),
+                    { cache: 'no-store' });
+                setOnline(r.ok);
+            } catch (e) {
+                setOnline(false);
+            } finally {
+                probing = false;
+            }
+        }
+
+        function setOnline(ok) {
+            banner.style.display = ok ? 'none' : 'block';
+            if (!ok && !banner._retryTimer) {
+                banner._retryTimer = setInterval(realProbe, 12000);
+            }
+            if (ok && banner._retryTimer) {
+                clearInterval(banner._retryTimer);
+                banner._retryTimer = null;
+            }
+        }
+
+        window.addEventListener('online', realProbe);
+        window.addEventListener('offline', () => setOnline(false));
+        banner.addEventListener('click', realProbe);
+        realProbe();
+        setInterval(realProbe, 45000); // periodic background verification
+    })();
+</script>
 <script>
     /* ---------- Splash ---------- */
     window.addEventListener('load', function () {

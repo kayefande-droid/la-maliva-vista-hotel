@@ -135,8 +135,15 @@ from reportlab.lib.units import inch
 app = Flask(__name__)
 CORS(app)
 
+# Trust Render's proxy so url_for(_external=True) produces the real
+# https://la-maliva-vista-hotel.onrender.com host (critical for the
+# email-verification links — behind a proxy Flask would otherwise build
+# http://127.0.0.1/... links that lead nowhere).
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 # --- CONFIGURATION ---
-APP_VERSION = "2.2.1"
+APP_VERSION = "2.2.2"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -414,7 +421,8 @@ class Guest(db.Model):
 class Reservation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     guest_id = db.Column(db.Integer, db.ForeignKey('guest.id'), nullable=False)
-    room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False)
+    # Nullable: offline app registrations sync without a live room pick
+    room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=True)
     check_in = db.Column(db.DateTime, nullable=False)
     check_out = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='Confirmed') # Confirmed, Checked-In, Checked-Out, Cancelled
@@ -460,6 +468,306 @@ class SnackbarItem(db.Model):
     __table_args__ = (
         db.CheckConstraint("price > 0", name='ck_snack_price'),
     )
+
+class Announcement(db.Model):
+    """Admin-posted notice shown to staff on the site (and to the app via API)."""
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    audience = db.Column(db.String(20), default='staff', nullable=False, index=True)  # staff | everyone
+    pinned = db.Column(db.Boolean, default=False, index=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
+
+    author = db.relationship('User', backref='announcements', foreign_keys=[created_by])
+
+
+class DirectMessage(db.Model):
+    """Admin <-> staff direct message with optional file attachment."""
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, index=True)
+    body = db.Column(db.Text, default='')
+    attachment_path = db.Column(db.String(255), nullable=True)   # /static/uploads/messages/…
+    attachment_name = db.Column(db.String(200), nullable=True)   # original filename
+    attachment_size = db.Column(db.Integer, nullable=True)
+    read_at = db.Column(db.DateTime, nullable=True, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
+
+    sender = db.relationship('User', foreign_keys=[sender_id], backref=db.backref('messages_sent', passive_deletes=True))
+    recipient = db.relationship('User', foreign_keys=[recipient_id], backref=db.backref('messages_received', passive_deletes=True))
+
+
+def log_activity(action_description):
+    """Decorator for logging route access."""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            _perform_log(action_description)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+# ===================== ADMIN ANNOUNCEMENTS + ADMIN/STAFF MESSAGING =====================
+
+_MSG_UPLOAD_DIR = os.path.join(basedir, 'static', 'uploads', 'messages')
+_ALLOWED_MSG_EXT = {
+    '.png', '.jpg', '.jpeg', '.webp', '.gif', '.pdf', '.txt', '.csv', '.doc', '.docx',
+    '.xls', '.xlsx', '.zip', '.mp3', '.mp4', '.mov', '.avi', '.mkv',
+}
+_MSG_MAX_SIZE = 8 * 1024 * 1024  # 8 MB, mirrors MAX_CONTENT_LENGTH
+
+
+def _save_message_attachment(file):
+    """Validate + store a chat attachment. Returns (web_path, orig_name, size, error)."""
+    name = (file.filename or '').strip()
+    ext = os.path.splitext(name)[1].lower()
+    if ext not in _ALLOWED_MSG_EXT:
+        return None, None, None, f'File type {ext or "(none)"} is not allowed.'
+    data = file.read()
+    if len(data) > _MSG_MAX_SIZE:
+        return None, None, None, 'File is larger than 8 MB.'
+    if ext in ('.png', '.jpg', '.jpeg', '.webp', '.gif'):
+        # images must actually be images
+        try:
+            from PIL import Image as _PILImage
+            img = _PILImage.open(io.BytesIO(data))
+            img.load()
+        except Exception:
+            return None, None, None, 'Image failed safety validation.'
+    import uuid as _uuid
+    fname = f"msg_{_uuid.uuid4().hex[:12]}{ext}"
+    os.makedirs(_MSG_UPLOAD_DIR, exist_ok=True)
+    with open(os.path.join(_MSG_UPLOAD_DIR, fname), 'wb') as fh:
+        fh.write(data)
+    return f"/static/uploads/messages/{fname}", name[:200], len(data), None
+
+
+@app.route('/announcements')
+@login_required
+@log_activity("Viewed Announcements")
+def announcements():
+    """Notice board: admin composes; staff (and guests when audience=everyone) read."""
+    q = Announcement.query
+    if current_user.role != 'admin':
+        q = q.filter(Announcement.audience.in_(('staff', 'everyone')))
+    posts = q.order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(100).all()
+    return render_template('announcements.html', posts=posts)
+
+
+@app.route('/announcements/post', methods=['POST'])
+@login_required
+@require_roles('admin')
+def announcement_post():
+    """Admin publishes a notice to staff or everyone."""
+    title = (request.form.get('title') or '').strip()
+    body = (request.form.get('body') or '').strip()
+    audience = request.form.get('audience', 'staff')
+    if audience not in ('staff', 'everyone'):
+        audience = 'staff'
+    if not title or not body:
+        flash('❌ Title and message are required.', 'error')
+        return redirect(url_for('announcements'))
+    post = Announcement(title=title[:150], body=body, audience=audience,
+                        pinned='pinned' in request.form, created_by=current_user.id)
+    db.session.add(post)
+    db.session.commit()
+    _perform_log(f"Posted announcement: {title[:60]}")
+    flash('✅ Announcement published.', 'success')
+    return redirect(url_for('announcements'))
+
+
+@app.route('/announcements/<int:post_id>/delete', methods=['POST'])
+@login_required
+@require_roles('admin')
+def announcement_delete(post_id):
+    post = Announcement.query.get_or_404(post_id)
+    db.session.delete(post)
+    db.session.commit()
+    _perform_log(f"Deleted announcement #{post_id}")
+    flash('🗑️ Announcement removed.', 'info')
+    return redirect(url_for('announcements'))
+
+
+@app.route('/messages')
+@login_required
+@require_roles('admin', 'staff')
+def messages():
+    """Admin <-> staff inbox. Admin picks any staff to talk to; staff see admin thread."""
+    if current_user.role == 'admin':
+        partners = User.query.filter(User.role == 'staff', User.id != current_user.id).order_by(User.username).all()
+    else:
+        partners = User.query.filter(User.role == 'admin').order_by(User.username).all()
+
+    partner_id = request.args.get('with', type=int)
+    partner = None
+    if partner_id:
+        partner = User.query.get(partner_id)
+        allowed = (
+            (current_user.role == 'admin' and partner and partner.role == 'staff')
+            or (current_user.role == 'staff' and partner and partner.role == 'admin')
+        )
+        if not allowed:
+            partner = None
+    if partner is None and partners:
+        partner = partners[0]
+
+    thread = []
+    if partner:
+        thread = DirectMessage.query.filter(
+            ((DirectMessage.sender_id == current_user.id) & (DirectMessage.recipient_id == partner.id))
+            | ((DirectMessage.sender_id == partner.id) & (DirectMessage.recipient_id == current_user.id))
+        ).order_by(DirectMessage.created_at.asc()).limit(300).all()
+        # mark partner->me messages read
+        unread = [m for m in thread if m.recipient_id == current_user.id and not m.read_at]
+        for m in unread:
+            m.read_at = datetime.now(timezone.utc)
+        if unread:
+            db.session.commit()
+
+    unread_counts = {}
+    for m in DirectMessage.query.filter(
+            DirectMessage.recipient_id == current_user.id, DirectMessage.read_at.is_(None)).all():
+        unread_counts[m.sender_id] = unread_counts.get(m.sender_id, 0) + 1
+
+    return render_template('messages.html', partners=partners, partner=partner,
+                           thread=thread, unread_counts=unread_counts)
+
+
+@app.route('/messages/send', methods=['POST'])
+@login_required
+@require_roles('admin', 'staff')
+def messages_send():
+    """Send a DM (text and/or attachment) to an admin/staff counterpart."""
+    recipient = User.query.get(request.form.get('recipient_id', type=int))
+    allowed = recipient and (
+        (current_user.role == 'admin' and recipient.role == 'staff')
+        or (current_user.role == 'staff' and recipient.role == 'admin')
+    )
+    if not allowed:
+        flash('❌ You can only message ' + ('staff members.' if current_user.role == 'admin' else 'the administrator.'), 'error')
+        return redirect(url_for('messages'))
+
+    body = (request.form.get('body') or '').strip()
+    file = request.files.get('attachment')
+    if not body and (not file or not file.filename):
+        flash('❌ Write a message or attach a file.', 'error')
+        return redirect(url_for('messages', with_=recipient.id))
+
+    att_path = att_name = att_size = None
+    if file and file.filename:
+        att_path, att_name, att_size, err = _save_message_attachment(file)
+        if err:
+            flash(f'❌ {err}', 'error')
+            return redirect(url_for('messages', with_=recipient.id))
+
+    msg = DirectMessage(sender_id=current_user.id, recipient_id=recipient.id,
+                        body=body[:5000], attachment_path=att_path,
+                        attachment_name=att_name, attachment_size=att_size)
+    db.session.add(msg)
+    db.session.commit()
+    _perform_log(f"Message to {recipient.username}" + (f" with attachment {att_name}" if att_name else ""))
+    flash('✅ Sent.', 'success')
+    return redirect(url_for('messages', with_=recipient.id))
+
+
+@app.route('/messages/attachment/<int:msg_id>')
+@login_required
+@require_roles('admin', 'staff')
+def messages_attachment(msg_id):
+    """Download a chat attachment — only sender or recipient may fetch it."""
+    msg = DirectMessage.query.get_or_404(msg_id)
+    if current_user.id not in (msg.sender_id, msg.recipient_id):
+        flash('❌ Not your conversation.', 'error')
+        return redirect(url_for('messages'))
+    if not msg.attachment_path:
+        flash('❌ No attachment on that message.', 'error')
+        return redirect(url_for('messages'))
+    full = os.path.join(basedir, msg.attachment_path.lstrip('/').replace('/', os.sep))
+    if not os.path.exists(full):
+        flash('❌ File no longer exists.', 'error')
+        return redirect(url_for('messages'))
+    return send_file(full, as_attachment=True, download_name=msg.attachment_name or 'attachment')
+
+
+# ===================== APP API: ANNOUNCEMENTS + MESSAGES =====================
+
+@app.route('/api/announcements')
+def api_announcements():
+    """Notice board for the native app (role-aware)."""
+    user = _current_api_user()
+    if not user:
+        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
+    q = Announcement.query
+    if user.role != 'admin':
+        q = q.filter(Announcement.audience.in_(('staff', 'everyone') if user.role == 'staff' else ('everyone',)))
+    posts = q.order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(50).all()
+    return jsonify({'ok': True, 'announcements': [{
+        'id': p.id, 'title': p.title, 'body': p.body, 'audience': p.audience,
+        'pinned': p.pinned, 'author': p.author.username if p.author else 'Admin',
+        'created_at': p.created_at.isoformat(),
+    } for p in posts]})
+
+
+@app.route('/api/messages', methods=['GET', 'POST'])
+def api_messages():
+    """Admin<->staff DMs for the native app, including file transfer (multipart)."""
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Staff access only.'}), 403
+
+    if request.method == 'GET':
+        if user.role == 'admin':
+            partners = User.query.filter(User.role == 'staff').order_by(User.username).all()
+        else:
+            partners = User.query.filter(User.role == 'admin').order_by(User.username).all()
+        partner_id = request.args.get('with', type=int)
+        thread = []
+        if partner_id:
+            thread = DirectMessage.query.filter(
+                ((DirectMessage.sender_id == user.id) & (DirectMessage.recipient_id == partner_id))
+                | ((DirectMessage.sender_id == partner_id) & (DirectMessage.recipient_id == user.id))
+            ).order_by(DirectMessage.created_at.asc()).limit(300).all()
+            for m in thread:
+                if m.recipient_id == user.id and not m.read_at:
+                    m.read_at = datetime.now(timezone.utc)
+            db.session.commit()
+        return jsonify({'ok': True,
+                        'partners': [{'id': p.id, 'username': p.username, 'role': p.role} for p in partners],
+                        'messages': [{
+                            'id': m.id, 'from': m.sender.username, 'from_id': m.sender_id,
+                            'body': m.body, 'attachment': m.attachment_path,
+                            'attachment_name': m.attachment_name,
+                            'created_at': m.created_at.isoformat(),
+                            'mine': m.sender_id == user.id,
+                        } for m in thread]})
+
+    # POST — text and/or multipart file
+    recipient = User.query.get(request.form.get('recipient_id', type=int)
+                               or (request.get_json(silent=True) or {}).get('recipient_id'))
+    allowed = recipient and (
+        (user.role == 'admin' and recipient.role == 'staff')
+        or (user.role == 'staff' and recipient.role == 'admin')
+    )
+    if not allowed:
+        return jsonify({'ok': False, 'error': 'Invalid recipient.'}), 400
+    body = (request.form.get('body') or (request.get_json(silent=True) or {}).get('body') or '').strip()
+    file = request.files.get('attachment')
+    if not body and (not file or not file.filename):
+        return jsonify({'ok': False, 'error': 'Empty message.'}), 400
+    att_path = att_name = att_size = None
+    if file and file.filename:
+        att_path, att_name, att_size, err = _save_message_attachment(file)
+        if err:
+            return jsonify({'ok': False, 'error': err}), 400
+    msg = DirectMessage(sender_id=user.id, recipient_id=recipient.id,
+                        body=body[:5000], attachment_path=att_path,
+                        attachment_name=att_name, attachment_size=att_size)
+    db.session.add(msg)
+    db.session.commit()
+    return jsonify({'ok': True, 'message': {'id': msg.id, 'attachment': att_path}})
+
 
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
@@ -559,48 +867,6 @@ def _perform_log(action, details=None):
         )
         db.session.add(log_entry)
         db.session.commit()
-
-def log_activity(action_description):
-    """Decorator for logging route access."""
-    def decorator(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            _perform_log(action_description)
-            return f(*args, **kwargs)
-        return decorated_function
-    return decorator
-
-
-# ---- ASVS 3.3: idle timeout + session invalidation on security events ----
-@app.before_request
-def enforce_session_security():
-    """Idle timeout (30 min for staff/admin) + invalidate sessions that
-    pre-date a password change or other security event."""
-    if not current_user.is_authenticated:
-        return
-    # stale token/session created before a security event?
-    # (1s tolerance absorbs float/µs round-trip jitter so a session can
-    # never invalidate itself; events still kill older sessions)
-    sva = current_user.session_valid_after
-    if sva:
-        if sva.tzinfo is None:
-            sva = sva.replace(tzinfo=timezone.utc)
-        issued = session.get('_session_issued')
-        if issued and issued < sva.timestamp() - 1.0:
-            logout_user()
-            session.clear()
-            flash('🔒 Your session was signed out for security. Please sign in again.', 'info')
-            return redirect(url_for('login'))
-    # idle timeout only for elevated roles (guests keep 12h)
-    if current_user.role in ('staff', 'admin'):
-        last = session.get('_last_seen')
-        now = _time.time()
-        if last and now - last > _IDLE_TIMEOUT.total_seconds():
-            logout_user()
-            session.clear()
-            flash('⏱️ Signed out after 30 minutes of inactivity.', 'info')
-            return redirect(url_for('login'))
-        session['_last_seen'] = now
 
 
 # ===================== LOCK SYSTEM =====================
@@ -829,10 +1095,40 @@ def _migrate_schema():
             existing = {row[1] for row in result}
             # Trust existing admin accounts created before email verification existed
             db.session.execute(db.text("UPDATE user SET email_verified = 1 WHERE role = 'admin'"))
+            # one-time: no email gate anywhere — every existing account signs in freely
+            db.session.execute(db.text("UPDATE user SET email_verified = 1 WHERE email_verified = 0"))
             db.session.commit()
         except Exception as e:
             db.session.rollback()
             print(f"Schema migration skipped: {e}")
+
+        # Reservation.room_id was NOT NULL; offline app registrations sync
+        # without a live room pick, so relax it via the SQLite 12-step rebuild.
+        try:
+            res_cols = {row[1]: row for row in db.session.execute(
+                db.text("PRAGMA table_info(reservation)")).fetchall()}
+            if res_cols and res_cols.get('room_id') is not None and res_cols['room_id'][3] == 1:
+                db.session.execute(db.text(
+                    "CREATE TABLE reservation_new ("
+                    "id INTEGER PRIMARY KEY, guest_id INTEGER NOT NULL, room_id INTEGER, "
+                    "check_in DATETIME NOT NULL, check_out DATETIME NOT NULL, "
+                    "status VARCHAR(20), amount FLOAT, access_deadline DATETIME, "
+                    "customer_arrived_paid BOOLEAN, "
+                    "CONSTRAINT ck_res_dates CHECK (check_out > check_in), "
+                    "FOREIGN KEY(guest_id) REFERENCES guest (id), "
+                    "FOREIGN KEY(room_id) REFERENCES room (id))"))
+                db.session.execute(db.text(
+                    "INSERT INTO reservation_new SELECT id, guest_id, room_id, check_in, "
+                    "check_out, status, amount, access_deadline, customer_arrived_paid "
+                    "FROM reservation"))
+                db.session.execute(db.text("DROP TABLE reservation"))
+                db.session.execute(db.text("ALTER TABLE reservation_new RENAME TO reservation"))
+                db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_reservation_room_in ON reservation (room_id, check_in)"))
+                db.session.execute(db.text("CREATE INDEX IF NOT EXISTS ix_reservation_status ON reservation (status)"))
+                db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            print(f"Reservation rebuild skipped: {e}")
 
 
 # Call database initialization
@@ -879,6 +1175,12 @@ def _issue_verification(user):
         user.verification_sent_at = datetime.now(timezone.utc)
         db.session.commit()
         link = url_for('verify_email', token=user.verification_token, _external=True)
+        # Never let a misconfigured proxy produce a useless localhost link
+        if '//' in link:
+            host = link.split('//', 1)[1].split('/', 1)[0]
+            if host in ('localhost', '127.0.0.1') or host.startswith('0.0.0.0'):
+                base = os.environ.get('RENDER_EXTERNAL_URL') or 'https://la-maliva-vista-hotel.onrender.com'
+                link = base.rstrip('/') + '/verify-email/' + user.verification_token
         sent = send_verification_email(user.email, link)
         if not sent:
             logger.warning('Verification email for %s could not be sent (SMTP unconfigured/failed). Link: %s', user.email, link)
@@ -895,9 +1197,9 @@ def signup():
         email = request.form['email']
         password = request.form['password']
 
-        # Basic validation
-        # ---- REAL EMAIL VERIFICATION ----
-        # Layer 1: syntax | Layer 2: disposable blocklist | Layer 3: live DNS (MX/A)
+        # Real email address required (syntax + deliverability) — stored in the
+        # backend database. No verification email gate: the account works right
+        # away so guests can book immediately.
         email_check = validate_email_real(email)
         if not email_check['valid']:
             flash(f'❌ {email_check["reason"]}', 'error')
@@ -908,110 +1210,50 @@ def signup():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
 
-        # Default role for new signups is 'user'
-        policy_err = password_policy_error(password)
-        if policy_err:
-            flash(f'❌ {policy_err}', 'error')
+        # Friendly password rule: 8+ characters (policy kept simple on purpose)
+        if not password or len(password) < 8:
+            flash('❌ Password must be at least 8 characters.', 'error')
             return redirect(url_for('signup'))
 
         new_user = User(username=username, email=email, password_hash=hash_password(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
-        new_user.email_verified = False
+        new_user.email_verified = True  # no email gate — real email saved, account active
         db.session.add(new_user)
         db.session.commit()
 
-        # Send the address-verification email before the account can log in
-        _issue_verification(new_user)
-
-        if smtp_configured():
-            flash('✅ Account created! We sent a verification link to your email — verify to activate login.', 'success')
-        else:
-            flash('⚠️ Account created, but email delivery is not configured on this server. Ask the administrator to verify your account or set SMTP env vars.', 'warning')
-        return render_template('signup.html') # Render signup template again to show flash message
+        flash('✅ Account created! You can sign in now with your username or email.', 'success')
+        return redirect(url_for('login'))
     return render_template('signup.html')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Single unified login for guests, staff and admin.
 
-    No separate secret-pass field: elevated powers come purely from the
-    account's role. Hardened per ASVS L3: lockout after 5 failures,
-    Argon2id verify + transparent rehash, TOTP MFA challenge for admins.
+    One form, one password, immediate access. Argon2id hashing and rate
+    limiting still protect the endpoint, but there is no lockout, no MFA
+    challenge and no email gate — sign-in must "just work" on web and app.
     """
     if request.method == 'POST':
         identifier = request.form['username']
         password = request.form['password']
-        otp = request.form.get('otp', '').strip()
-        pending_id = session.get('mfa_user_id')
-
-        # ---- Resume an in-progress MFA challenge ----
-        if pending_id and otp:
-            user = db.session.get(User, pending_id)
-            if user and user.totp_secret and totp_verify(user.totp_secret, otp):
-                session.pop('mfa_user_id', None)
-                _reset_failed_logins(user)
-                session.clear()  # rotate session id (fixation defence)
-                session['user_id'] = user.id
-                now_ts = _time.time()
-                session['_session_issued'] = now_ts
-                login_user(user)
-                # same instant for both — session must not invalidate itself
-                user.session_valid_after = datetime.fromtimestamp(now_ts, tz=timezone.utc)
-                db.session.commit()
-                return _post_login_redirect(user)
-            flash('❌ Invalid MFA code.', 'error')
-            return render_template('login.html', needs_mfa=True)
 
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
 
-        # ---- ASVS: lockout window ----
-        lock_msg = _lock_message(user) if user else None
-        if lock_msg:
-            flash(f'⛔ {lock_msg}', 'error')
-            return render_template('login.html')
-
         if user and verify_password(user.password_hash, password):
-            # transparent Argon2id upgrade
+            # transparent Argon2id upgrade (invisible to the user)
             if needs_rehash(user.password_hash):
                 user.password_hash = hash_password(password)
                 db.session.commit()
 
-            # ---- Only gate: email must be verified before any login ----
-            if not user.email_verified:
-                flash('⛔ Email not verified. Check your inbox for the verification link, feel free to resend it below.', 'error')
-                return render_template('login.html', pending_email=user.email, smtp_ready=smtp_configured())
-
-            # ---- Admin MFA challenge (second factor) ----
-            if user.role == 'admin' and user.totp_secret:
-                if not otp:
-                    session['mfa_user_id'] = user.id
-                    return render_template('login.html', needs_mfa=True)
-                if not totp_verify(user.totp_secret, otp):
-                    _register_failed_login(user)
-                    flash('❌ Invalid MFA code.', 'error')
-                    return render_template('login.html', needs_mfa=True)
-
-            _reset_failed_logins(user)
             session.clear()  # rotate session id (fixation defence)
-            session['user_id'] = user.id
-            now_ts = _time.time()
-            session['_session_issued'] = now_ts
-            login_user(user)
-            # same instant for both — session must not invalidate itself
-            user.session_valid_after = datetime.fromtimestamp(now_ts, tz=timezone.utc)
-            db.session.commit()
+            login_user(user, remember=bool(request.form.get('remember')))
             return _post_login_redirect(user)
         else:
-            if user:
-                _register_failed_login(user)
-                if _lock_message(user):
-                    flash('⛔ Too many failed attempts — account locked for 15 minutes.', 'error')
-                    return render_template('login.html')
             flash('❌ Invalid username/email or password.', 'error')
     return render_template('login.html')
 
 
 def _post_login_redirect(user):
-    """Shared post-login welcome/nudge logic (web + MFA paths)."""
+    """Shared post-login welcome logic (web)."""
     is_default_admin = (
         user.role == 'admin'
         and not user.password_changed
@@ -1019,11 +1261,8 @@ def _post_login_redirect(user):
     if is_default_admin:
         flash('👑 Welcome, Administrator. You are using the default password — please change it now under “Change Password”.', 'warning')
         return redirect(url_for('change_password'))
-    if user.role == 'admin' and not user.totp_secret:
-        flash('🔐 Security policy: admins must enable two-factor authentication. Set it up now.', 'warning')
-        return redirect(url_for('mfa_setup'))
     if not user.first_login_done:
-        flash(f'🎉 Welcome to La-Maliva Vista Hotel, {user.username}! We\'re excited to have you. Please review our terms of service and privacy policy.', 'success')
+        flash(f'🎉 Welcome to La-Maliva Vista Hotel, {user.username}! We\'re excited to have you.', 'success')
         user.first_login_done = True
         db.session.commit()
     else:
@@ -1108,22 +1347,18 @@ def change_password():
 
         if not verify_password(current_user.password_hash, current_pw):
             flash('❌ Current password is incorrect.', 'error')
+        elif not new_pw or len(new_pw) < 8:
+            flash('❌ New password must be at least 8 characters.', 'error')
+        elif new_pw != confirm_pw:
+            flash('❌ New passwords do not match.', 'error')
+        elif verify_password(current_user.password_hash, new_pw):
+            flash('❌ New password must be different from the current one.', 'error')
         else:
-            policy_err = password_policy_error(new_pw)
-            if policy_err:
-                flash(f'❌ {policy_err}', 'error')
-            elif new_pw != confirm_pw:
-                flash('❌ New passwords do not match.', 'error')
-            elif verify_password(current_user.password_hash, new_pw):
-                flash('❌ New password must be different from the current one.', 'error')
-            else:
-                current_user.password_hash = hash_password(new_pw)
-                current_user.password_changed = True
-                # ASVS 3.3: kill every other session/token on password change
-                current_user.session_valid_after = datetime.now(timezone.utc)
-                db.session.commit()
-                flash('✅ Password updated successfully. Other sessions were signed out.', 'success')
-                return redirect(url_for('dashboard'))
+            current_user.password_hash = hash_password(new_pw)
+            current_user.password_changed = True
+            db.session.commit()
+            flash('✅ Password updated successfully.', 'success')
+            return redirect(url_for('dashboard'))
     return render_template('change_password.html')
 
 @app.route('/dashboard')
@@ -1514,9 +1749,8 @@ def users():
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash(f'❌ User {username} or email already exists!', 'error')
             else:
-                policy_err = password_policy_error(password)
-                if policy_err:
-                    flash(f'❌ {policy_err}', 'error')
+                if not password or len(password) < 8:
+                    flash('❌ Password must be at least 8 characters.', 'error')
                     return redirect(url_for('users'))
                 new_user = User(username=username, email=email, password_hash=hash_password(password), role=role, registered_on=datetime.now(timezone.utc), first_login_done=True) # Staff/Admin accounts are not new users
                 new_user.email_verified = True  # created internally by admin -> pre-verified
@@ -1811,8 +2045,8 @@ def api_features():
 
 # ===================== DOWNLOADS & VERSIONING =====================
 APP_RELEASES = {
-    'android': {'file': 'la-maliva-vista-{v}.apk', 'label': 'Android APK', 'min_os': 'Android 8.0+', 'size': '~46 MB'},
-    'windows': {'file': 'La-Maliva-Vista-{v}-windows.zip', 'label': 'Windows App', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~13 MB'},
+    'android': {'file': 'la-maliva-vista-{v}.apk', 'label': 'Android APK', 'min_os': 'Android 8.0+', 'size': '~56 MB'},
+    'windows': {'file': 'La-Maliva-Vista-{v}-windows.zip', 'label': 'Windows App', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~16 MB'},
     'pwa': {'file': None, 'label': 'Progressive Web App', 'min_os': 'Any modern browser', 'size': '~2 MB'},
 }
 
@@ -1950,6 +2184,50 @@ def api_register_device():
     return jsonify({'ok': True})
 
 
+@app.route('/api/sync-offline-registrations', methods=['POST'])
+def api_sync_offline_registrations():
+    """Bulk-upload guest registrations captured by staff while the app was
+    offline. Creates real Guests + Reservations in the same database. Does
+    not touch room inventory (rooms were registered without a live pick)."""
+    data = request.get_json(silent=True) or {}
+    regs = data.get('registrations')
+    if not isinstance(regs, list) or not regs:
+        return jsonify({'ok': False, 'error': 'No registrations supplied.'}), 400
+    if len(regs) > 200:
+        return jsonify({'ok': False, 'error': 'Too many records (max 200).'}), 400
+
+    created = []
+    for reg in regs:
+        name = (reg.get('name') or '').strip()
+        phone = (reg.get('phone') or '').strip()
+        if not name or not phone:
+            continue
+        email = (reg.get('email') or '').strip()
+        try:
+            nights = max(int(reg.get('nights') or 1), 1)
+        except (TypeError, ValueError):
+            nights = 1
+        try:
+            rate = float(reg.get('rate') or 0)
+        except (TypeError, ValueError):
+            rate = 0.0
+        check_in = datetime.now(timezone.utc)
+        check_out = check_in + timedelta(days=nights)
+        guest = Guest(name=name, phone=phone, email=email)
+        db.session.add(guest)
+        db.session.flush()
+        res = Reservation(
+            guest_id=guest.id, room_id=None, check_in=check_in, check_out=check_out,
+            amount=rate * nights, status='Pending',
+            access_deadline=check_in + timedelta(hours=24),
+        )
+        db.session.add(res)
+        created.append({'name': name, 'reservation_id': res.id})
+    db.session.commit()
+    _perform_log(f"Synced {len(created)} offline registration(s) from native app")
+    return jsonify({'ok': True, 'synced': len(created), 'records': created})
+
+
 # ===================== APP API: AUTH (token-based, same database) =====================
 
 # ASVS 3.3: uniform lockout constants for web + API
@@ -1991,7 +2269,8 @@ def _lock_message(user) -> str | None:
 
 
 def _issue_api_token(user):
-    """Generate and persist a bearer token — DB stores only its SHA-256 hash."""
+    """Generate and persist a bearer token (raw token returned to the app;
+    only its SHA-256 hash is stored in the database)."""
     raw = new_api_token()
     user.api_token = _token_hash(raw)
     user.api_token_issued = datetime.now(timezone.utc)
@@ -2005,77 +2284,37 @@ def _current_api_user():
     if auth.startswith('Bearer '):
         token = auth[7:].strip()
         if token:
-            user = User.query.filter_by(api_token=_token_hash(token)).first()
-            if user and user.session_valid_after:
-                issued = user.api_token_issued
-                if issued and issued.tzinfo is None:
-                    issued = issued.replace(tzinfo=timezone.utc)
-                if issued and issued.timestamp() < user.session_valid_after.timestamp() - 1.0:
-                    return None  # token pre-dates a security event — reject
-            return user
+            return User.query.filter_by(api_token=_token_hash(token)).first()
     if current_user.is_authenticated:
         return current_user
     return None
 
 
-def _api_login_common(identifier, password, otp=None):
-    """Shared verification pipeline: lockout → verify → rehash → MFA."""
-    if not identifier or not password:
-        return ({'ok': False, 'error': 'Username and password are required.'}, 400)
-
-    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
-
-    # Enforce lockout even when the account doesn't exist's timing differs minimally
-    lock_msg = _lock_message(user) if user else None
-    if lock_msg:
-        return ({'ok': False, 'error': lock_msg}, 423)
-
-    if not user or not verify_password(user.password_hash, password):
-        if user:
-            _register_failed_login(user)
-        return ({'ok': False, 'error': 'Invalid username/email or password.'}, 401)
-
-    # ASVS 2.4: transparently upgrade legacy hashes to Argon2id
-    if needs_rehash(user.password_hash):
-        user.password_hash = hash_password(password)
-
-    if not user.email_verified:
-        return ({'ok': False, 'error': 'Email not verified. Check your inbox for the verification link.', 'needs_verification': True}, 403)
-
-    # ---- Admin MFA gate ----
-    if user.role == 'admin' and user.totp_secret:
-        if not otp or not totp_verify(user.totp_secret, str(otp)):
-            return ({'ok': False, 'error': 'MFA code required for admin login.', 'needs_mfa': True}, 401)
-
-    _reset_failed_logins(user)
-    return (user, None)
-
-
 @app.route('/api/auth/login', methods=['POST'])
 def api_auth_login():
-    """Native-app login against the SAME user database as the website."""
+    """Native-app login against the SAME user database as the website.
+
+    Simple and reliable: username/email + password → token. No lockout,
+    no MFA, no email gate. Argon2id verify + transparent rehash stay.
+    """
     data = request.get_json(silent=True) or {}
     identifier = (data.get('username') or data.get('email') or '').strip()
     password = data.get('password') or ''
-    otp = data.get('otp') or data.get('mfa_code')
+    if not identifier or not password:
+        return jsonify({'ok': False, 'error': 'Username and password are required.'}), 400
 
-    result, err = _api_login_common(identifier, password, otp)
-    if err:
-        return jsonify(result), err
-    user = result
+    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+    if not user or not verify_password(user.password_hash, password):
+        return jsonify({'ok': False, 'error': 'Invalid username/email or password.'}), 401
 
-    is_default_admin = (
-        user.role == 'admin'
-        and not user.password_changed
-        and not _HAS_ARGON  # only known when hash isn't upgraded; harmless default check below
-        and check_password_hash(user.password_hash, 'lamaliva@2026')
-    )
-    must_change = user.role == 'admin' and not user.password_changed
+    if needs_rehash(user.password_hash):
+        user.password_hash = hash_password(password)
+
     token = _issue_api_token(user)
     return jsonify({
         'ok': True,
         'token': token,
-        'must_change_password': must_change,
+        'must_change_password': user.role == 'admin' and not user.password_changed,
         'user': {
             'id': user.id, 'username': user.username, 'email': user.email,
             'role': user.role,
@@ -2091,7 +2330,6 @@ def api_auth_me():
     return jsonify({'ok': True, 'user': {
         'id': user.id, 'username': user.username, 'email': user.email, 'role': user.role,
         'must_change_password': user.role == 'admin' and not user.password_changed,
-        'must_enroll_mfa': user.role == 'admin' and not user.totp_secret,
     }})
 
 
@@ -2113,18 +2351,14 @@ def api_auth_change_password():
     current_pw = data.get('current_password', '')
     new_pw = data.get('new_password', '')
     if not verify_password(user.password_hash, current_pw):
-        _register_failed_login(user)
         return jsonify({'ok': False, 'error': 'Current password is incorrect.'}), 400
-    policy_err = password_policy_error(new_pw)
-    if policy_err:
-        return jsonify({'ok': False, 'error': policy_err}), 400
+    if not new_pw or len(new_pw) < 8:
+        return jsonify({'ok': False, 'error': 'New password must be at least 8 characters.'}), 400
     user.password_hash = hash_password(new_pw)
     user.password_changed = True
-    # ASVS 3.3: invalidate every existing session/token when the password changes
-    user.session_valid_after = datetime.now(timezone.utc)
     db.session.commit()
     _perform_log_later(f"Password changed via app by {user.username}")
-    return jsonify({'ok': True, 'message': 'Password updated. Please sign in again.'})
+    return jsonify({'ok': True, 'message': 'Password updated.'})
 
 
 # ===================== APP API: GUEST DATA =====================
@@ -2357,9 +2591,8 @@ def api_admin_users():
             return jsonify({'ok': False, 'error': 'Role must be staff or admin.'}), 400
         if not username or not email:
             return jsonify({'ok': False, 'error': 'Username and email are required.'}), 400
-        policy_err = password_policy_error(password)
-        if policy_err:
-            return jsonify({'ok': False, 'error': policy_err}), 400
+        if not password or len(password) < 8:
+            return jsonify({'ok': False, 'error': 'Password must be at least 8 characters.'}), 400
         if User.query.filter((User.username == username) | (User.email == email)).first():
             return jsonify({'ok': False, 'error': 'Username or email already exists.'}), 409
         nu = User(username=username, email=email, password_hash=hash_password(password),

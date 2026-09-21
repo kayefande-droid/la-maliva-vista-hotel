@@ -17,10 +17,12 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    // Let the splash timer run out and the home shell appear
+    // Let the splash timer run out and the home shell appear.
+    // Fixed pumps (not pumpAndSettle): the wavy home background repeats
+    // forever by design, so settling would never finish.
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 1));
 
     // Home shell is up with bottom navigation
     expect(find.byType(NavigationBar), findsOneWidget);
@@ -31,7 +33,7 @@ void main() {
       (tester) async {
     SessionService.instance.features = Features(snackbarActive: false);
     await tester.pumpWidget(const MaterialApp(home: SnackbarPage()));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('COMING SOON'), findsOneWidget);
     expect(find.text('Snackbar menu is brewing'), findsOneWidget);
@@ -41,7 +43,7 @@ void main() {
       (tester) async {
     SessionService.instance.features = Features(paymentsActive: false);
     await tester.pumpWidget(const MaterialApp(home: PaymentsPage()));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('COMING SOON'), findsOneWidget);
     expect(find.text('Mobile Money & Bank payments'), findsOneWidget);
@@ -51,7 +53,7 @@ void main() {
       (tester) async {
     SessionService.instance.features = Features(paymentsActive: true);
     await tester.pumpWidget(const MaterialApp(home: PaymentsPage()));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.text('MTN Mobile Money'), findsOneWidget);
     expect(find.text('Bank Transfer'), findsOneWidget);
@@ -64,11 +66,11 @@ void main() {
     await tester.pumpWidget(const LamalivaApp());
     await tester.pump(const Duration(seconds: 3));
     await tester.pump(const Duration(seconds: 1));
-    await tester.pumpAndSettle(const Duration(seconds: 2));
+    await tester.pump(const Duration(seconds: 1));
 
     // Jump to the Account tab
     await tester.tap(find.text('Account'));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 400));
 
     expect(find.text('Guest'), findsOneWidget);
     expect(find.text('Not signed in'), findsOneWidget);
