@@ -226,7 +226,7 @@
                 {% if pending_email %}
                 <div class="pending-panel">
                     <div class="p-title"><i class="bi bi-envelope-paper"></i> Verification pending</div>
-                    <p>We need to confirm <b>{{ pending_email }}</b> before you can sign in. Didn't receive the link?</p>
+                    <p>We just sent a fresh confirmation link to <b>{{ pending_email }}</b>. Open it in your inbox to activate your account, then sign in. Didn't get it?</p>
                     <form method="POST" action="{{ url_for('resend_verification') }}">
                         <input type="hidden" name="email" value="{{ pending_email }}">
                         <button type="submit" class="btn-outline-lux" style="width:100%; padding: 12px;">

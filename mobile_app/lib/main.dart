@@ -30,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.4';
+const String kAppVersion = '2.3.5';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -828,7 +828,8 @@ class ApiException implements Exception {
   final String message;
   final int? statusCode;
   final bool needsMfa; // server demands a TOTP code — prompt and retry
-  ApiException(this.message, {this.statusCode, this.needsMfa = false});
+  final bool needsVerification; // email confirmation pending — show check-inbox flow
+  ApiException(this.message, {this.statusCode, this.needsMfa = false, this.needsVerification = false});
   @override
   String toString() => message;
 }
@@ -1436,6 +1437,10 @@ class SessionService {
       if (data['needs_mfa'] == true) {
         throw ApiException((data['error'] ?? 'MFA code required').toString(), needsMfa: true);
       }
+      if (data['needs_verification'] == true) {
+        throw ApiException((data['error'] ?? 'Confirm your email to sign in').toString(),
+            needsVerification: true);
+      }
       throw ApiException((data['error'] ?? 'Login failed').toString());
     }
     token = data['token'] as String?;
@@ -1444,6 +1449,21 @@ class SessionService {
     await prefs.setString('api_token', token!);
     await refreshFeatures();
     return user!;
+  }
+
+  /// Create an account from the app — the website emails the confirmation link.
+  Future<String> register(String username, String email, String password) async {
+    final data = await Api.post('/api/auth/register', {
+      'username': username,
+      'email': email,
+      'password': password,
+    });
+    return (data['message'] ?? (data['ok'] == true ? 'Account created' : 'Sign up failed')).toString();
+  }
+
+  /// Ask the server to re-send the confirmation email.
+  Future<void> resendVerification(String email) async {
+    await Api.post('/api/auth/resend-verification', {'email': email});
   }
 
   Future<void> changePassword(String currentPw, String newPw) async {
@@ -4195,6 +4215,11 @@ class _LoginPageState extends State<LoginPage> {
     } on ApiException catch (e) {
       if (e.needsMfa) {
         setState(() { _needsMfa = true; _error = 'Enter the 8-digit code from your authenticator app.'; });
+      } else if (e.needsVerification) {
+        if (mounted) {
+          await Navigator.push(context,
+              MaterialPageRoute(builder: (_) => VerifyEmailPage(identifier: _id.text.trim())));
+        }
       } else {
         setState(() => _error = e.message);
       }
@@ -4280,13 +4305,17 @@ class _LoginPageState extends State<LoginPage> {
                 : const Text('SIGN IN', style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(height: 26),
-          Center(child: Text('No account? Sign up on the website.',
+          Center(child: Text('No account? Create one right here.',
               style: TextStyle(color: AppColors.ink500, fontSize: 12))),
           TextButton(
-            onPressed: () => launchUrl(Uri.parse('$kBaseUrl/signup'),
-                mode: LaunchMode.externalApplication),
-            child: Text('Create one at la-maliva-vista-hotel.onrender.com',
-                style: TextStyle(color: AppColors.gold, fontSize: 12)),
+            onPressed: () async {
+              await Navigator.push(context,
+                  MaterialPageRoute(builder: (_) => const SignUpPage()));
+              if (mounted) setState(() {});
+            },
+            child: Text('Sign up with your email',
+                style: TextStyle(color: AppColors.gold, fontSize: 13,
+                    fontWeight: FontWeight.w700)),
           ),
           const SizedBox(height: 20),
         ]),
@@ -4306,6 +4335,250 @@ class _LoginPageState extends State<LoginPage> {
             borderRadius: BorderRadius.circular(14),
             borderSide: BorderSide(color: AppColors.orange500)),
       );
+}
+
+// ------------------------------------------------------------
+// Sign up — in-app registration (website emails the confirmation link)
+// ------------------------------------------------------------
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key});
+  @override
+  State<SignUpPage> createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final _username = TextEditingController();
+  final _email = TextEditingController();
+  final _pw = TextEditingController();
+  final _confirm = TextEditingController();
+  bool _busy = false;
+  bool _obscure = true;
+  String? _error;
+
+  Future<void> _submit() async {
+    if (_username.text.trim().length < 3) {
+      setState(() => _error = 'Username must be at least 3 characters.');
+      return;
+    }
+    if (!_email.text.contains('@') || !_email.text.contains('.')) {
+      setState(() => _error = 'Enter a real email address — we send a confirmation link to it.');
+      return;
+    }
+    if (_pw.text.length < 8) {
+      setState(() => _error = 'Password must be at least 8 characters.');
+      return;
+    }
+    if (_pw.text != _confirm.text) {
+      setState(() => _error = 'Passwords do not match.');
+      return;
+    }
+    setState(() { _busy = true; _error = null; });
+    try {
+      final msg = await SessionService.instance.register(
+          _username.text.trim(), _email.text.trim(), _pw.text);
+      if (!mounted) return;
+      final alreadyActive = msg.contains('already active');
+      if (alreadyActive) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        Navigator.pop(context);
+      } else {
+        Navigator.pop(context); // close signup…
+        Navigator.push(context,
+            MaterialPageRoute(builder: (_) => VerifyEmailPage(identifier: _email.text.trim()))); // …open verify flow
+      }
+    } on ApiException catch (e) {
+      setState(() => _error = e.message);
+    } catch (_) {
+      setState(() => _error = 'No connection — sign up needs internet.');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.brandNavy,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0, title: const Text('Create account')),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 28),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SizedBox(height: 10),
+          Center(child: Text('JOIN LA-MALIVA VISTA',
+              style: TextStyle(color: AppColors.cream50, letterSpacing: 4, fontSize: 15,
+                  fontWeight: FontWeight.w600))),
+          const SizedBox(height: 6),
+          Center(child: Text('One account for app & website',
+              style: TextStyle(color: AppColors.gold, fontSize: 11))),
+          const SizedBox(height: 26),
+          TextField(controller: _username,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Username', Icons.person_outline)),
+          const SizedBox(height: 14),
+          TextField(controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Email address', Icons.mail_outline)),
+          const SizedBox(height: 14),
+          TextField(controller: _pw, obscureText: _obscure,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Password (8+ characters)', Icons.lock_outline).copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: AppColors.ink500),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              )),
+          const SizedBox(height: 14),
+          TextField(controller: _confirm, obscureText: _obscure,
+              style: const TextStyle(color: Colors.white),
+              decoration: _dec('Confirm password', Icons.lock_outline)),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(_error!, style: const TextStyle(color: Colors.redAccent, fontSize: 12.5),
+                textAlign: TextAlign.center),
+          ],
+          const SizedBox(height: 22),
+          ElevatedButton(
+            onPressed: _busy ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.orange500, foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+            ),
+            child: _busy
+                ? const SizedBox(width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                : const Text('CREATE ACCOUNT', style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.w700)),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: Text('We\'ll email you a confirmation link — tap it to activate your account.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.ink500, fontSize: 11.5, height: 1.5)),
+          ),
+          const SizedBox(height: 20),
+        ]),
+      ),
+    );
+  }
+
+  InputDecoration _dec(String label, IconData icon) => InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: AppColors.ink500),
+        prefixIcon: Icon(icon, color: AppColors.orange500),
+        filled: true,
+        fillColor: AppColors.navy900,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide(color: AppColors.orange500)),
+      );
+}
+
+// ------------------------------------------------------------
+// Verify email — check-your-inbox flow with resend
+// ------------------------------------------------------------
+class VerifyEmailPage extends StatefulWidget {
+  final String identifier; // email (or username) entered at login/signup
+  const VerifyEmailPage({super.key, required this.identifier});
+  @override
+  State<VerifyEmailPage> createState() => _VerifyEmailPageState();
+}
+
+class _VerifyEmailPageState extends State<VerifyEmailPage> {
+  bool _resent = false;
+  bool _busy = false;
+
+  Future<void> _openMailApp() async {
+    final uri = Uri.parse('mailto:');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Open your email app and tap the Verify button.')));
+      }
+    }
+  }
+
+  Future<void> _resend() async {
+    setState(() { _busy = true; });
+    try {
+      // If the user typed a username, resolve the email via a login probe;
+      // the server re-sends to the stored address either way.
+      await SessionService.instance.resendVerification(widget.identifier);
+      if (mounted) setState(() => _resent = true);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not reach the hotel server — check internet.')));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.brandNavy,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Container(
+              width: 96, height: 96,
+              decoration: BoxDecoration(
+                  color: AppColors.orange500.withOpacity(0.12), shape: BoxShape.circle),
+              child: Icon(Icons.mark_email_unread_outlined, size: 44, color: AppColors.gold),
+            ),
+            const SizedBox(height: 24),
+            const Text('CHECK YOUR EMAIL',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, letterSpacing: 4, fontSize: 17,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 12),
+            Text(
+              'We sent a confirmation link for your La-Maliva account.\nOpen it in your email app to activate sign-in.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.ink500, fontSize: 13, height: 1.6),
+            ),
+            const SizedBox(height: 30),
+            ElevatedButton.icon(
+              onPressed: _openMailApp,
+              icon: const Icon(Icons.open_in_new, size: 17),
+              label: const Text('OPEN EMAIL APP'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.orange500, foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _busy ? null : _resend,
+              child: Text(_resent
+                  ? 'Sent again — check your inbox'
+                  : 'Didn\'t get it? Resend the link',
+                  style: TextStyle(color: _resent ? AppColors.gold : AppColors.ink500, fontSize: 12.5)),
+            ),
+            const SizedBox(height: 22),
+            OutlinedButton(
+              onPressed: () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.orange500),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                  padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 12)),
+              child: const Text('I\'VE VERIFIED — BACK TO SIGN IN',
+                  style: TextStyle(letterSpacing: 1.2, fontSize: 12.5)),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
 }
 
 // ------------------------------------------------------------

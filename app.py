@@ -143,7 +143,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.4"
+APP_VERSION = "2.3.5"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -1400,7 +1400,14 @@ def _issue_verification(user):
         user.verification_token = secrets.token_urlsafe(32)
         user.verification_sent_at = datetime.now(timezone.utc)
         db.session.commit()
-        link = url_for('verify_email', token=user.verification_token, _external=True)
+        try:
+            link = url_for('verify_email', token=user.verification_token, _external=True)
+        except RuntimeError:
+            # Outside a request context (CLI/background) — build from the site base.
+            base = (os.environ.get('RENDER_EXTERNAL_URL')
+                    or os.environ.get('SITE_URL')
+                    or 'https://la-maliva-vista-hotel.onrender.com')
+            link = base.rstrip('/') + '/verify-email/' + user.verification_token
         # Never let a misconfigured proxy produce a useless localhost link
         if '//' in link:
             host = link.split('//', 1)[1].split('/', 1)[0]
@@ -1409,10 +1416,10 @@ def _issue_verification(user):
                 link = base.rstrip('/') + '/verify-email/' + user.verification_token
         sent = send_verification_email(user.email, link)
         if not sent:
-            logger.warning('Verification email for %s could not be sent (SMTP unconfigured/failed). Link: %s', user.email, link)
+            app.logger.warning('Verification email for %s could not be sent (SMTP unconfigured/failed). Link: %s', user.email, link)
         return sent
     except Exception:
-        logger.exception('Failed to issue verification for %s', user.email)
+        app.logger.exception('Failed to issue verification for %s', user.email)
         return False
 
 
@@ -1442,11 +1449,18 @@ def signup():
             return redirect(url_for('signup'))
 
         new_user = User(username=username, email=email, password_hash=hash_password(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
-        new_user.email_verified = True  # no email gate — real email saved, account active
+        new_user.email_verified = False  # verified via the branded email we send right now
         db.session.add(new_user)
         db.session.commit()
 
-        flash('✅ Account created! You can sign in now with your username or email.', 'success')
+        sent = _issue_verification(new_user)
+        if sent:
+            flash('📩 Account created! We sent a confirmation link to your email — open it to activate your account.', 'success')
+        else:
+            # SMTP hiccup: activate anyway so a guest is never locked out, and tell them why.
+            new_user.email_verified = True
+            db.session.commit()
+            flash('✅ Account created! Email confirmation could not be sent right now, so your account is already active — you can sign in.', 'info')
         return redirect(url_for('login'))
     return render_template('signup.html')
 
@@ -1465,6 +1479,12 @@ def login():
         user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
 
         if user and verify_password(user.password_hash, password):
+            # Email confirmation gate — guests must confirm their address first.
+            # Admin/staff are trusted accounts and skip the gate.
+            if not user.email_verified and user.role == 'user':
+                _issue_verification(user)  # fresh link (1-hour token, same design)
+                return render_template('login.html', pending_email=user.email,
+                                       smtp_ready=smtp_configured())
             # transparent Argon2id upgrade (invisible to the user)
             if needs_rehash(user.password_hash):
                 user.password_hash = hash_password(password)
@@ -2421,6 +2441,17 @@ def api_version():
 # ---------------------------------------------------------------------------
 CHANGELOG = [
     {
+        'version': '2.3.5',
+        'date': '2026-09-21',
+        'highlights': ['Email verification', 'In-app sign up', 'Branded emails'],
+        'notes': [
+            'New accounts now receive a real confirmation email — tap the link once to activate sign-in.',
+            'Sign up directly inside the app — no need to visit the website to create an account.',
+            'All La-Maliva emails (confirmation & password reset) wear the full navy-and-gold brand, with the hotel logo.',
+            'If a confirmation email is lost, the app can resend it in one tap.',
+        ],
+    },
+    {
         'version': '2.3.4',
         'date': '2026-09-21',
         'highlights': ["What's new screen"],
@@ -2723,6 +2754,17 @@ def api_auth_login():
     if not user or not verify_password(user.password_hash, password):
         return jsonify({'ok': False, 'error': 'Invalid username/email or password.'}), 401
 
+    # Email confirmation gate for guests (same as the website): a fresh branded
+    # link goes out on each attempt, and the app shows the check-your-inbox flow.
+    if not user.email_verified and user.role == 'user':
+        _issue_verification(user)
+        return jsonify({
+            'ok': False,
+            'error': 'Confirm your email to sign in — we just sent a fresh link to ' + (user.email or ''),
+            'needs_verification': True,
+            'email': user.email,
+        }), 403
+
     if needs_rehash(user.password_hash):
         user.password_hash = hash_password(password)
 
@@ -2736,6 +2778,57 @@ def api_auth_login():
             'role': user.role,
         },
     })
+
+
+@app.route('/api/auth/resend-verification', methods=['POST'])
+def api_auth_resend_verification():
+    """Native-app resend: body {email}. Always ok:true (no enumeration)."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get('email') or '').strip().lower()
+    if email:
+        user = User.query.filter_by(email=email).first()
+        if user and not user.email_verified:
+            _issue_verification(user)
+    return jsonify({'ok': True, 'message': 'If that address has a pending account, a new link is on its way.'})
+
+
+@app.route('/api/auth/register', methods=['POST'])
+def api_auth_register():
+    """Native-app signup: creates the account and emails the confirmation link.
+    Same rules as the website (real email, 8+ char password)."""
+    data = request.get_json(silent=True) or {}
+    username = (data.get('username') or '').strip()
+    email = (data.get('email') or '').strip()
+    password = data.get('password') or ''
+    if not username or not email or not password:
+        return jsonify({'ok': False, 'error': 'Username, email and password are required.'}), 400
+    if len(password) < 8:
+        return jsonify({'ok': False, 'error': 'Password must be at least 8 characters.'}), 400
+
+    check = validate_email_real(email)
+    if not check['valid']:
+        return jsonify({'ok': False, 'error': check['reason']}), 400
+    email = check['email']
+
+    if User.query.filter((User.username == username) | (User.email == email)).first():
+        return jsonify({'ok': False, 'error': 'Username or email already exists.'}), 409
+
+    new_user = User(username=username, email=email, password_hash=hash_password(password),
+                    role='user', registered_on=datetime.now(timezone.utc), first_login_done=False)
+    new_user.email_verified = False
+    db.session.add(new_user)
+    db.session.commit()
+
+    sent = _issue_verification(new_user)
+    if not sent:
+        new_user.email_verified = True  # never lock a guest out for our SMTP hiccup
+        db.session.commit()
+        return jsonify({'ok': True,
+                        'message': 'Account created and already active (confirmation email could not be sent).',
+                        'already_verified': True})
+    return jsonify({'ok': True,
+                    'message': 'Account created! Check your email for the confirmation link.',
+                    'already_verified': False})
 
 
 @app.route('/api/auth/me')

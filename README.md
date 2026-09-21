@@ -25,6 +25,7 @@ three experiences: the **public website + PWA**, the **native Android app**, and
 | **Animated backgrounds** | Each style has its own ambient motion (waves, embers, petals, orbs, bubbles, streaks) |
 | **Invoices & receipts** | Branded PDF invoices — view, **download**, and **print** from the website and from both apps |
 | **Notifications center** | In-app inbox with messages from the La-Maliva team and hotel administration |
+| **Real email delivery** | Branded navy/gold emails sent from `lamalivav@gmail.com` via SMTP: **email verification after signup** (guests confirm before sign-in) and **password reset** links — see `docs/EMAIL_SETUP.md` |
 | **In-app updates** | Account → *Check for updates* notifies users when a newer build ships and takes them straight to the download |
 | **Offline-first** | Rooms, prices and menu cached on device; staff can keep registering guests offline and everything syncs when the internet returns |
 | **Role-aware access** | Guest, staff and administrator experiences — staff/admin tools are simply invisible to guests |
@@ -43,6 +44,8 @@ three experiences: the **public website + PWA**, the **native Android app**, and
 
 - **Backend** — `app.py` (Flask), SQLite via SQLAlchemy, JWT-style bearer tokens for the app,
   session auth for the web, CSRF protection, rate limiting, hardened headers.
+- **Email** — `mailer.py` builds the branded navy/gold messages (verification + password reset)
+  and delivers via SMTP using environment variables configured on Render.
 - **Native apps** — `mobile_app/` (Flutter/Dart), one codebase producing the APK and the
   Windows EXE; talks to the website API only.
 - **Service worker** — `static/sw.js` caches the shell for offline PWA use.
