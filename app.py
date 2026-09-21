@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, session, Response
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -2047,6 +2047,47 @@ def api_features():
         'site_locked': bool(hotel.is_locked),
         'version': APP_VERSION,
     })
+
+# ===================== SEO: ROBOTS + SITEMAP =====================
+
+SITE_URL = 'https://la-maliva-vista-hotel.onrender.com'
+
+
+@app.route('/robots.txt')
+def robots_txt():
+    """Tell crawlers everything is indexable + where the sitemap lives."""
+    return Response(
+        'User-agent: *\nAllow: /\n\n'
+        f'Sitemap: {SITE_URL}/sitemap.xml\n',
+        mimetype='text/plain')
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Static sitemap of every public page — helps Google index the site
+    under its name (LA-MALIVA VISTA HOTEL), not the hosting platform."""
+    urls = [
+        ('/', '1.0', 'weekly'),
+        ('/stay', '0.9', 'daily'),
+        ('/rooms', '0.8', 'daily'),
+        ('/downloads', '0.7', 'weekly'),
+        ('/contact', '0.7', 'monthly'),
+        ('/about', '0.6', 'monthly'),
+        ('/user_manual', '0.5', 'monthly'),
+        ('/login', '0.3', 'monthly'),
+        ('/signup', '0.3', 'monthly'),
+    ]
+    today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    body = ['<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for path, prio, freq in urls:
+        body.append(
+            f'  <url><loc>{SITE_URL}{path}</loc>'
+            f'<lastmod>{today}</lastmod><changefreq>{freq}</changefreq>'
+            f'<priority>{prio}</priority></url>')
+    body.append('</urlset>')
+    return Response('\n'.join(body), mimetype='application/xml')
+
 
 # ===================== DOWNLOADS & VERSIONING =====================
 APP_RELEASES = {
