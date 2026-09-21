@@ -29,7 +29,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.2.2';
+const String kAppVersion = '2.2.3';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,84 +39,156 @@ Future<void> main() async {
 // ------------------------------------------------------------
 // Theme — luxury navy / burnt orange / cream, light + dark
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// Design styles — 6 switchable luxury packs. Every color in the app
+// reads from the active palette, so picking a style re-skins the whole
+// app (themes, waves, cards, nav bar) instantly.
+// ------------------------------------------------------------
 class AppColors {
-  static const navy950 = Color(0xFF0A1628);
-  static const brandNavy = Color(0xFF08123A); // exact badge navy from logo.png
-  static const navy900 = Color(0xFF0F2240);
-  static const navy800 = Color(0xFF16305C);
-  static const orange500 = Color(0xFFF08C2E);
-  static const orange600 = Color(0xFFD97A2B);
-  static const gold = Color(0xFFEEC37A);
-  static const cream50 = Color(0xFFFDF9F2);
-  static const cream100 = Color(0xFFF8F1E4);
-  static const ink900 = Color(0xFF14202E);
-  static const ink500 = Color(0xFF5B6B7D);
+  static Map<String, Color> _p = LuxTheme.palettes['royal']!;
+  static void apply(Map<String, Color> palette) => _p = palette;
+
+  static Color get navy950 => _p['navy950']!;
+  static Color get brandNavy => _p['brandNavy']!;
+  static Color get navy900 => _p['navy900']!;
+  static Color get navy800 => _p['navy800']!;
+  static Color get orange500 => _p['orange500']!;
+  static Color get orange600 => _p['orange600']!;
+  static Color get gold => _p['gold']!;
+  static Color get cream50 => _p['cream50']!;
+  static Color get cream100 => _p['cream100']!;
+  static Color get ink900 => _p['ink900']!;
+  static Color get ink500 => _p['ink500']!;
 }
 
-final ThemeData luxuryLight = ThemeData(
-  useMaterial3: true,
-  scaffoldBackgroundColor: AppColors.cream50,
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: AppColors.orange500,
-    primary: AppColors.orange600,
-    secondary: AppColors.navy900,
-    surface: Colors.white,
-    brightness: Brightness.light,
-  ),
-  appBarTheme: const AppBarTheme(
-    backgroundColor: AppColors.navy950,
-    foregroundColor: AppColors.cream50,
-    elevation: 0,
-    centerTitle: false,
-  ),
-  navigationBarTheme: NavigationBarThemeData(
-    backgroundColor: AppColors.navy950,
-    indicatorColor: AppColors.orange600.withOpacity(0.25),
-    iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-        color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withOpacity(0.8))),
-    labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-        fontSize: 11.5,
-        color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withOpacity(0.75))),
-  ),
-  snackBarTheme: SnackBarThemeData(
-    backgroundColor: AppColors.navy900,
-    contentTextStyle: const TextStyle(color: AppColors.cream50),
-    behavior: SnackBarBehavior.floating,
-  ),
-);
+class LuxTheme {
+  static const Map<String, Map<String, Color>> palettes = {
+    'royal': {
+      'navy950': Color(0xFF0A1628), 'brandNavy': Color(0xFF08123A),
+      'navy900': Color(0xFF0F2240), 'navy800': Color(0xFF16305C),
+      'orange500': Color(0xFFF08C2E), 'orange600': Color(0xFFD97A2B),
+      'gold': Color(0xFFEEC37A), 'cream50': Color(0xFFFDF9F2),
+      'cream100': Color(0xFFF8F1E4), 'ink900': Color(0xFF14202E), 'ink500': Color(0xFF5B6B7D),
+    },
+    'sunset': {
+      'navy950': Color(0xFF1C1210), 'brandNavy': Color(0xFF2A1812),
+      'navy900': Color(0xFF362017), 'navy800': Color(0xFF4A2C1D),
+      'orange500': Color(0xFFFFA94D), 'orange600': Color(0xFFE8853B),
+      'gold': Color(0xFFFFD08A), 'cream50': Color(0xFFFFF8EF),
+      'cream100': Color(0xFFF9EADB), 'ink900': Color(0xFF2B1B12), 'ink500': Color(0xFF8A7362),
+    },
+    'emerald': {
+      'navy950': Color(0xFF06231C), 'brandNavy': Color(0xFF07352A),
+      'navy900': Color(0xFF0A4436), 'navy800': Color(0xFF0E5A47),
+      'orange500': Color(0xFFF0A22E), 'orange600': Color(0xFFD9842B),
+      'gold': Color(0xFFE8C97A), 'cream50': Color(0xFFF6FBF7),
+      'cream100': Color(0xFFE9F4EC), 'ink900': Color(0xFF122720), 'ink500': Color(0xFF5F7A6F),
+    },
+    'plum': {
+      'navy950': Color(0xFF1E0A1E), 'brandNavy': Color(0xFF2E0F2C),
+      'navy900': Color(0xFF3D1440), 'navy800': Color(0xFF571C55),
+      'orange500': Color(0xFFF0752E), 'orange600': Color(0xFFD65F2B),
+      'gold': Color(0xFFE9BFB3), 'cream50': Color(0xFFFDF6F7),
+      'cream100': Color(0xFFF7E8ED), 'ink900': Color(0xFF2A1220), 'ink500': Color(0xFF7D6472),
+    },
+    'ocean': {
+      'navy950': Color(0xFF061E2A), 'brandNavy': Color(0xFF073041),
+      'navy900': Color(0xFF0A4155), 'navy800': Color(0xFF0E566E),
+      'orange500': Color(0xFFF09A2E), 'orange600': Color(0xFFD97F2B),
+      'gold': Color(0xFF7FD4D8), 'cream50': Color(0xFFF4FBFD),
+      'cream100': Color(0xFFE5F2F6), 'ink900': Color(0xFF102630), 'ink500': Color(0xFF5E7A85),
+    },
+    'noir': {
+      'navy950': Color(0xFF0D0F12), 'brandNavy': Color(0xFF16191E),
+      'navy900': Color(0xFF1E2228), 'navy800': Color(0xFF2B313A),
+      'orange500': Color(0xFFF08C2E), 'orange600': Color(0xFFD97A2B),
+      'gold': Color(0xFFE0B36A), 'cream50': Color(0xFFF7F7F5),
+      'cream100': Color(0xFFEBEBE8), 'ink900': Color(0xFF17191C), 'ink500': Color(0xFF6E747D),
+    },
+  };
 
-final ThemeData luxuryDark = ThemeData(
-  useMaterial3: true,
-  scaffoldBackgroundColor: AppColors.brandNavy,
-  colorScheme: ColorScheme.fromSeed(
-    seedColor: AppColors.orange500,
-    primary: AppColors.orange500,
-    secondary: AppColors.gold,
-    surface: AppColors.navy900,
-    brightness: Brightness.dark,
-  ),
-  appBarTheme: const AppBarTheme(
-    backgroundColor: AppColors.navy950,
-    foregroundColor: AppColors.cream50,
-    elevation: 0,
-    centerTitle: false,
-  ),
-  navigationBarTheme: NavigationBarThemeData(
-    backgroundColor: AppColors.navy950,
-    indicatorColor: AppColors.orange600.withOpacity(0.25),
-    iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-        color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withOpacity(0.8))),
-    labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-        fontSize: 11.5,
-        color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withOpacity(0.75))),
-  ),
-  cardTheme: const CardThemeData(color: AppColors.navy900),
-  snackBarTheme: SnackBarThemeData(
-    backgroundColor: AppColors.orange600,
-    contentTextStyle: const TextStyle(color: Colors.white),
-    behavior: SnackBarBehavior.floating,
-  ),
-);
+  static const List<Map<String, String>> meta = [
+    {'id': 'royal', 'name': 'Royal Navy', 'tag': 'The classic brand'},
+    {'id': 'sunset', 'name': 'Sunset Amber', 'tag': 'Warm & golden'},
+    {'id': 'emerald', 'name': 'Emerald Royale', 'tag': 'Deep green luxury'},
+    {'id': 'plum', 'name': 'Plum Noir', 'tag': 'Velvet evening'},
+    {'id': 'ocean', 'name': 'Ocean Teal', 'tag': 'Cool & calm'},
+    {'id': 'noir', 'name': 'Graphite Noir', 'tag': 'Slate minimal'},
+  ];
+
+  static void apply(String id) {
+    AppColors.apply(palettes[id] ?? palettes['royal']!);
+  }
+}
+
+ThemeData buildLight() {
+  return ThemeData(
+    useMaterial3: true,
+    scaffoldBackgroundColor: AppColors.cream50,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.orange500,
+      primary: AppColors.orange600,
+      secondary: AppColors.navy900,
+      surface: Colors.white,
+      brightness: Brightness.light,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColors.navy950,
+      foregroundColor: AppColors.cream50,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.navy950,
+      indicatorColor: AppColors.orange600.withOpacity(0.25),
+      iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+          color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withOpacity(0.8))),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+          fontSize: 11.5,
+          color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withOpacity(0.75))),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.navy900,
+      contentTextStyle: TextStyle(color: AppColors.cream50),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
+
+ThemeData buildDark() {
+  return ThemeData(
+    useMaterial3: true,
+    scaffoldBackgroundColor: AppColors.brandNavy,
+    colorScheme: ColorScheme.fromSeed(
+      seedColor: AppColors.orange500,
+      primary: AppColors.orange500,
+      secondary: AppColors.gold,
+      surface: AppColors.navy900,
+      brightness: Brightness.dark,
+    ),
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColors.navy950,
+      foregroundColor: AppColors.cream50,
+      elevation: 0,
+      centerTitle: false,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: AppColors.navy950,
+      indicatorColor: AppColors.orange600.withOpacity(0.25),
+      iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+          color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withOpacity(0.8))),
+      labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+          fontSize: 11.5,
+          color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withOpacity(0.75))),
+    ),
+    cardTheme: CardThemeData(color: AppColors.navy900),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.orange600,
+      contentTextStyle: const TextStyle(color: Colors.white),
+      behavior: SnackBarBehavior.floating,
+    ),
+  );
+}
 
 // ------------------------------------------------------------
 // Root
@@ -132,6 +204,7 @@ class LamalivaApp extends StatefulWidget {
 
 class _LamalivaAppState extends State<LamalivaApp> {
   ThemeMode _themeMode = ThemeMode.light;
+  String _styleId = 'royal';
 
   @override
   void initState() {
@@ -142,9 +215,14 @@ class _LamalivaAppState extends State<LamalivaApp> {
   Future<void> _loadTheme() async {
     final prefs = await SharedPreferences.getInstance();
     final mode = prefs.getString('theme_mode') ?? 'light';
+    final style = prefs.getString('style_id') ?? 'royal';
+    LuxTheme.apply(style); // palette must be live before first build
     if (!mounted) return;
-    setState(() => _themeMode =
-        mode == 'dark' ? ThemeMode.dark : mode == 'system' ? ThemeMode.system : ThemeMode.light);
+    setState(() {
+      _styleId = style;
+      _themeMode =
+          mode == 'dark' ? ThemeMode.dark : mode == 'system' ? ThemeMode.system : ThemeMode.light;
+    });
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -155,13 +233,21 @@ class _LamalivaAppState extends State<LamalivaApp> {
     setState(() => _themeMode = mode);
   }
 
+  Future<void> setStyle(String id) async {
+    LuxTheme.apply(id);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('style_id', id);
+    if (!mounted) return;
+    setState(() => _styleId = id);
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'La-Maliva Vista',
       debugShowCheckedModeBanner: false,
-      theme: luxuryLight,
-      darkTheme: luxuryDark,
+      theme: buildLight(),
+      darkTheme: buildDark(),
       themeMode: _themeMode,
       home: const SplashGate(),
     );
@@ -217,7 +303,7 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
                       height: 132,
                       child: RotationTransition(
                         turns: _fade,
-                        child: const CircularProgressIndicator(
+                        child: CircularProgressIndicator(
                           color: AppColors.gold,
                           strokeWidth: 1.6,
                           value: 0.78,
@@ -240,16 +326,16 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
                         child: Image.asset('assets/logo.png',
                             fit: BoxFit.cover,
                             errorBuilder: (_, __, ___) =>
-                                const Icon(Icons.hotel, size: 48, color: AppColors.gold)),
+                                Icon(Icons.hotel, size: 48, color: AppColors.gold)),
                       ),
                     ),
                   ]),
                 ),
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: 26),
               FadeTransition(
                 opacity: _fade,
-                child: Column(children: const [
+                child: Column(children: [
                   Text('LA-MALIVA VISTA',
                       style: TextStyle(
                           color: AppColors.cream50,
@@ -350,7 +436,7 @@ class NotificationService {
 
   Future<void> notify(String title, String body) async {
     if (!_ready) return;
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         'general',
         'General',
@@ -574,7 +660,7 @@ class _WavesPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final List<Color> tones = dark
-        ? [const Color(0xFF16305C), AppColors.orange600, AppColors.navy800]
+        ? [Color(0xFF16305C), AppColors.orange600, AppColors.navy800]
         : [const Color(0xFFE8DFC9), AppColors.orange500, const Color(0xFFDCE6F5)];
     for (var i = 0; i < 3; i++) {
       final paint = Paint()
@@ -1270,8 +1356,8 @@ class _HomeShellState extends State<HomeShell> {
                 onTap: () => NetService.instance.probe(),
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
-                  child: Row(children: const [
+                  padding: EdgeInsets.symmetric(vertical: 7, horizontal: 16),
+                  child: Row(children: [
                     Icon(Icons.wifi_off, size: 15, color: AppColors.navy900),
                     SizedBox(width: 8),
                     Expanded(
@@ -1334,32 +1420,32 @@ class AppDrawer extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 18),
             child: Column(children: [
               CircleAvatar(
-                backgroundImage: const AssetImage('assets/logo.png'),
+                backgroundImage: AssetImage('assets/logo.png'),
                 radius: 34,
                 backgroundColor: AppColors.navy900,
               ),
-              const SizedBox(height: 10),
-              const Text('LA-MALIVA VISTA',
+              SizedBox(height: 10),
+              Text('LA-MALIVA VISTA',
                   style: TextStyle(color: AppColors.cream50, letterSpacing: 4, fontSize: 15,
                       fontWeight: FontWeight.w600)),
-              const Text('A TASTE OF PARADISE',
+              Text('A TASTE OF PARADISE',
                   style: TextStyle(color: AppColors.gold, fontSize: 8.5, letterSpacing: 2.4)),
               const SizedBox(height: 8),
               if (user != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
                     color: AppColors.orange600.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: AppColors.orange600.withOpacity(0.5)),
                   ),
                   child: Text('${user.username} · ${user.role.toUpperCase()}',
-                      style: const TextStyle(color: AppColors.gold, fontSize: 11,
+                      style: TextStyle(color: AppColors.gold, fontSize: 11,
                           letterSpacing: 1)),
                 ),
             ]),
           ),
-          const Divider(color: AppColors.navy800),
+          Divider(color: AppColors.navy800),
 
           _drawerTile(context, Icons.home_outlined, 'Home', () =>
               _nav(context, 0)),
@@ -1380,8 +1466,8 @@ class AppDrawer extends StatelessWidget {
           _drawerTile(context, Icons.person_outline, 'Account', () => _nav(context, 4)),
 
           if (user != null && user.isStaff) ...[
-            const Divider(color: AppColors.navy800),
-            const Padding(padding: EdgeInsets.only(left: 20, top: 6, bottom: 6),
+            Divider(color: AppColors.navy800),
+            Padding(padding: EdgeInsets.only(left: 20, top: 6, bottom: 6),
                 child: Text('STAFF & ADMIN', style: TextStyle(color: AppColors.gold,
                     fontSize: 10.5, letterSpacing: 2))),
             _drawerTile(context, Icons.insert_chart_outlined, 'Live overview', () {
@@ -1408,7 +1494,7 @@ class AppDrawer extends StatelessWidget {
             }),
           ],
 
-          const Divider(color: AppColors.navy800),
+          Divider(color: AppColors.navy800),
           if (user == null)
             _drawerTile(context, Icons.login, 'Sign in', () {
               Navigator.pop(context);
@@ -1423,8 +1509,8 @@ class AppDrawer extends StatelessWidget {
                     const SnackBar(content: Text('Signed out')));
               }
             }, danger: true),
-          const Padding(
-            padding: EdgeInsets.all(20),
+          Padding(
+            padding: const EdgeInsets.all(20),
             child: Text('la-maliva-vista-hotel.onrender.com\nBuea · Cameroon · v$kAppVersion',
                 style: TextStyle(color: AppColors.navy800, fontSize: 10.5, height: 1.6)),
           ),
@@ -1442,21 +1528,73 @@ class AppDrawer extends StatelessWidget {
     final appState = LamalivaApp.of(context);
     showModalBottomSheet(
       context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (ctx) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Padding(padding: EdgeInsets.all(16),
-              child: Text('App theme', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
-          RadioListTile<ThemeMode>(
-            value: ThemeMode.light, groupValue: appState._themeMode,
-            title: const Text('Paradise Light (cream)'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
-          RadioListTile<ThemeMode>(
-            value: ThemeMode.dark, groupValue: appState._themeMode,
-            title: const Text('Ocean Dark (navy)'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
-          RadioListTile<ThemeMode>(
-            value: ThemeMode.system, groupValue: appState._themeMode,
-            title: const Text('Follow system'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
-          const SizedBox(height: 8),
-        ]),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Design style', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text('Re-skins the whole app — waves, cards, nav bar.',
+                style: TextStyle(color: AppColors.ink500, fontSize: 12.5)),
+            const SizedBox(height: 10),
+            ...LuxTheme.meta.map((m) {
+              final p = LuxTheme.palettes[m['id']!]!;
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () { appState.setStyle(m['id']!); Navigator.pop(ctx); },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.navy900.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                          color: appState._styleId == m['id'] ? AppColors.orange500 : Colors.transparent,
+                          width: 1.6),
+                    ),
+                    child: Row(children: [
+                      // palette swatch
+                      Container(width: 42, height: 42, decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(11),
+                        color: p['navy950'],
+                      ),
+                        padding: const EdgeInsets.all(3),
+                        child: Column(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                            CircleAvatar(radius: 5.5, backgroundColor: p['navy800']),
+                            CircleAvatar(radius: 5.5, backgroundColor: p['orange500']),
+                          ]),
+                          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                            CircleAvatar(radius: 5.5, backgroundColor: p['gold']),
+                            CircleAvatar(radius: 5.5, backgroundColor: p['cream50']),
+                          ]),
+                        ])),
+                      const SizedBox(width: 13),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(m['name']!, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+                        Text(m['tag']!, style: TextStyle(color: AppColors.ink500, fontSize: 12)),
+                      ])),
+                      if (appState._styleId == m['id']!) Icon(Icons.check_circle, color: AppColors.orange500),
+                    ]),
+                  ),
+                ),
+              );
+            }),
+            const Divider(height: 26),
+            const Text('Appearance', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+            RadioListTile<ThemeMode>(
+              value: ThemeMode.light, groupValue: appState._themeMode,
+              title: const Text('Light'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
+            RadioListTile<ThemeMode>(
+              value: ThemeMode.dark, groupValue: appState._themeMode,
+              title: const Text('Dark'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
+            RadioListTile<ThemeMode>(
+              value: ThemeMode.system, groupValue: appState._themeMode,
+              title: const Text('Follow system'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
+          ]),
+        ),
       ),
     );
   }
@@ -1464,7 +1602,7 @@ class AppDrawer extends StatelessWidget {
   Widget _drawerTile(BuildContext context, IconData icon, String label, VoidCallback onTap,
       {bool accent = false, bool danger = false}) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: EdgeInsets.symmetric(horizontal: 10),
       child: ListTile(
         leading: Icon(icon, color: danger ? Colors.redAccent : accent ? AppColors.orange500 : AppColors.cream50.withOpacity(0.85)),
         title: Text(label, style: TextStyle(
@@ -1541,26 +1679,26 @@ class HomePage extends StatelessWidget {
               const Text('Featured rooms', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
               TextButton(onPressed: () {
                 context.findAncestorStateOfType<_HomeShellState>()?._tab.value = 1;
-              }, child: const Text('See all')),
+              }, child: Text('See all')),
             ]),
             if (rooms.isEmpty)
               Container(
-                padding: const EdgeInsets.all(28),
+                padding: EdgeInsets.all(28),
                 decoration: _cardDeco(context),
-                child: const Center(child: Text('Rooms load as soon as you are online',
+                child: Center(child: Text('Rooms load as soon as you are online',
                     style: TextStyle(color: AppColors.ink500))),
               )
             else
               ...rooms.map((r) => _RoomCard(room: r, onBook: () => _openBooking(context, r))),
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: EdgeInsets.all(18),
               decoration: _cardDeco(context),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Find us', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                const SizedBox(height: 6),
+                Text('Find us', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                SizedBox(height: 6),
                 Text(feats.hotelAddress,
-                    style: const TextStyle(color: AppColors.ink500, fontSize: 12.5, height: 1.5)),
+                    style: TextStyle(color: AppColors.ink500, fontSize: 12.5, height: 1.5)),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
                   onPressed: () => launchUrl(Uri.parse(kBaseUrl), mode: LaunchMode.externalApplication),
@@ -1579,7 +1717,7 @@ class HomePage extends StatelessWidget {
   BoxDecoration _cardDeco(BuildContext context) => BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.07), blurRadius: 16, offset: const Offset(0, 7))],
+        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.07), blurRadius: 16, offset: Offset(0, 7))],
       );
 
   Widget _quick(BuildContext context, IconData icon, String label, Widget? page,
@@ -1635,20 +1773,20 @@ class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [AppColors.navy950, AppColors.navy800],
         ),
-        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.35), blurRadius: 30, offset: const Offset(0, 12))],
+        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.35), blurRadius: 30, offset: Offset(0, 12))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('A TASTE OF PARADISE', style: TextStyle(color: AppColors.gold, fontSize: 10, letterSpacing: 4)),
+          Text('A TASTE OF PARADISE', style: TextStyle(color: AppColors.gold, fontSize: 10, letterSpacing: 4)),
           const SizedBox(height: 10),
           const Text('Where paradise\nfeels like home.',
               style: TextStyle(color: Colors.white, fontSize: 26, height: 1.2, fontWeight: FontWeight.w600)),
@@ -1661,15 +1799,15 @@ class _Hero extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.orange500,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 22, vertical: 12),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
               ),
-              child: const Text('RESERVE NOW', style: TextStyle(letterSpacing: 1.5, fontSize: 12, fontWeight: FontWeight.w600)),
+              child: Text('RESERVE NOW', style: TextStyle(letterSpacing: 1.5, fontSize: 12, fontWeight: FontWeight.w600)),
             ),
-            const SizedBox(width: 10),
+            SizedBox(width: 10),
             IconButton.filledTonal(
               onPressed: onMenu,
-              icon: const Icon(Icons.menu, color: AppColors.cream50),
+              icon: Icon(Icons.menu, color: AppColors.cream50),
               style: IconButton.styleFrom(backgroundColor: AppColors.navy800),
             ),
           ]),
@@ -1726,12 +1864,12 @@ class _RoomsPageState extends State<RoomsPage> {
             if (_offline)
               SliverToBoxAdapter(child: _offlineBanner('Cached rooms & rates — booking syncs when online')),
             if (_loading)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(child: CircularProgressIndicator(color: AppColors.orange500)),
               )
             else if (rooms.isEmpty)
-              const SliverFillRemaining(
+              SliverFillRemaining(
                 hasScrollBody: false,
                 child: Center(child: Text('No rooms available right now', style: TextStyle(color: AppColors.ink500))),
               )
@@ -1754,11 +1892,11 @@ class _RoomsPageState extends State<RoomsPage> {
 
 Widget _offlineBanner(String text) => Container(
       color: AppColors.gold.withOpacity(0.22),
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(children: [
-        const Icon(Icons.wifi_off, size: 15, color: AppColors.navy900),
-        const SizedBox(width: 8),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 12, color: AppColors.navy900))),
+        Icon(Icons.wifi_off, size: 15, color: AppColors.navy900),
+        SizedBox(width: 8),
+        Expanded(child: Text(text, style: TextStyle(fontSize: 12, color: AppColors.navy900))),
       ]),
     );
 
@@ -1771,11 +1909,11 @@ class _RoomCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final available = room.status == 'Available';
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1798,7 +1936,7 @@ class _RoomCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.92), borderRadius: BorderRadius.circular(999)),
                   child: Text('ROOM ${room.number}',
-                      style: const TextStyle(fontSize: 9, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: AppColors.navy900)),
+                      style: TextStyle(fontSize: 9, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: AppColors.navy900)),
                 ),
               ),
               if (!available)
@@ -1819,13 +1957,13 @@ class _RoomCard extends StatelessWidget {
               const SizedBox(height: 4),
               Text(room.description ?? 'Thoughtfully appointed comfort.',
                   maxLines: 2, overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: AppColors.ink500, fontSize: 12.5, height: 1.5)),
-              const SizedBox(height: 14),
+                  style: TextStyle(color: AppColors.ink500, fontSize: 12.5, height: 1.5)),
+              SizedBox(height: 14),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                 RichText(text: TextSpan(children: [
-                  const TextSpan(text: 'FCFA ', style: TextStyle(color: AppColors.orange600, fontSize: 10, fontWeight: FontWeight.w700)),
+                  TextSpan(text: 'FCFA ', style: TextStyle(color: AppColors.orange600, fontSize: 10, fontWeight: FontWeight.w700)),
                   TextSpan(text: room.price.toStringAsFixed(0), style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.w700)),
-                  const TextSpan(text: ' / night', style: TextStyle(color: AppColors.ink500, fontSize: 11)),
+                  TextSpan(text: ' / night', style: TextStyle(color: AppColors.ink500, fontSize: 11)),
                 ])),
                 ElevatedButton(
                   onPressed: available ? onBook : null,
@@ -1855,7 +1993,7 @@ class _RoomCard extends StatelessWidget {
     return Image.asset(img, fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => Container(
               color: AppColors.cream100,
-              child: const Center(child: Icon(Icons.hotel, size: 44, color: AppColors.orange500)),
+              child: Center(child: Icon(Icons.hotel, size: 44, color: AppColors.orange500)),
             ));
   }
 }
@@ -1944,7 +2082,7 @@ class _BookingSheetState extends State<BookingSheet> {
             IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
           ]),
           Text('${widget.room.type} · FCFA ${widget.room.price.toStringAsFixed(0)} / night',
-              style: const TextStyle(color: AppColors.ink500)),
+              style: TextStyle(color: AppColors.ink500)),
           const SizedBox(height: 18),
           TextField(controller: _name, decoration: const InputDecoration(labelText: 'Full name', border: OutlineInputBorder())),
           const SizedBox(height: 12),
@@ -1957,14 +2095,14 @@ class _BookingSheetState extends State<BookingSheet> {
             const SizedBox(width: 10),
             Expanded(child: _dateTile('Check-out', _out, () => _pickDate(false))),
           ]),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             decoration: BoxDecoration(color: AppColors.cream100, borderRadius: BorderRadius.circular(12)),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('$_nights night${_nights > 1 ? 's' : ''}', style: const TextStyle(fontWeight: FontWeight.w600)),
               Text('FCFA ${_total.toStringAsFixed(0)}',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: AppColors.orange600)),
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 17, color: AppColors.orange600)),
             ]),
           ),
           if (_error != null) ...[
@@ -1996,12 +2134,12 @@ class _BookingSheetState extends State<BookingSheet> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
             border: Border.all(color: AppColors.navy900.withOpacity(0.25)),
             borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label, style: const TextStyle(fontSize: 10.5, color: AppColors.ink500)),
+          Text(label, style: TextStyle(fontSize: 10.5, color: AppColors.ink500)),
           const SizedBox(height: 3),
           Text('${date.day}/${date.month}/${date.year}',
               style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
@@ -2058,9 +2196,9 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Bookings')),
+      appBar: AppBar(title: Text('My Bookings')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.orange500))
+          ? Center(child: CircularProgressIndicator(color: AppColors.orange500))
           : _error == 'signin'
               ? _SignInPrompt(onSignedIn: _load)
               : RefreshIndicator(
@@ -2075,11 +2213,11 @@ class _MyBookingsPageState extends State<MyBookingsPage> {
                         ),
                       if (_bookings.isEmpty && !_offline)
                         Container(
-                          padding: const EdgeInsets.all(30),
+                          padding: EdgeInsets.all(30),
                           decoration: BoxDecoration(
                               color: Theme.of(context).cardColor,
                               borderRadius: BorderRadius.circular(18)),
-                          child: const Column(children: [
+                          child: Column(children: [
                             Icon(Icons.receipt_long, size: 42, color: AppColors.orange500),
                             SizedBox(height: 12),
                             Text('No bookings yet', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -2110,12 +2248,12 @@ class _SignInPromptState extends State<_SignInPrompt> {
   Widget build(BuildContext context) {
     return Center(
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Icon(Icons.lock_outline, size: 44, color: AppColors.orange500),
-        const SizedBox(height: 14),
-        const Text('Sign in to see your bookings',
+        Icon(Icons.lock_outline, size: 44, color: AppColors.orange500),
+        SizedBox(height: 14),
+        Text('Sign in to see your bookings',
             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-        const SizedBox(height: 6),
-        const Text('Same account as the website.',
+        SizedBox(height: 6),
+        Text('Same account as the website.',
             style: TextStyle(color: AppColors.ink500, fontSize: 12.5)),
         const SizedBox(height: 18),
         ElevatedButton(
@@ -2166,7 +2304,7 @@ class _BookingTile extends StatelessWidget {
         ]),
         const SizedBox(height: 6),
         Text('${b.roomType ?? ''} · FCFA ${b.amount.toStringAsFixed(0)}',
-            style: const TextStyle(color: AppColors.ink500, fontSize: 12.5)),
+            style: TextStyle(color: AppColors.ink500, fontSize: 12.5)),
         const SizedBox(height: 6),
         Text('Check-in ${_fmt(b.checkIn)}  →  Check-out ${_fmt(b.checkOut)}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
@@ -2260,18 +2398,18 @@ class _ReceiptSheet extends StatelessWidget {
           Text((hotel['name'] ?? '').toString(),
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
           Text((hotel['address'] ?? '').toString(),
-              style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+              style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
           Text((hotel['phone'] ?? '').toString(),
-              style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+              style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
         ]),
       ),
     );
   }
 
   Widget _row(String k, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4),
+        padding: EdgeInsets.symmetric(vertical: 4),
         child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(k, style: const TextStyle(color: AppColors.ink500, fontSize: 12.5)),
+          Text(k, style: TextStyle(color: AppColors.ink500, fontSize: 12.5)),
           Text(v, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5)),
         ]),
       );
@@ -2315,9 +2453,9 @@ class _SnackbarPageState extends State<SnackbarPage> {
   Widget build(BuildContext context) {
     final repo = SnackbarRepository.instance;
     return Scaffold(
-      appBar: AppBar(title: const Text('Snackbar & Restaurant')),
+      appBar: AppBar(title: Text('Snackbar & Restaurant')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: AppColors.orange500))
+          ? Center(child: CircularProgressIndicator(color: AppColors.orange500))
           : !repo.active
               ? const ComingSoonView(
                   icon: Icons.local_bar,
@@ -2346,9 +2484,9 @@ class _SnackbarPageState extends State<SnackbarPage> {
                           Padding(padding: const EdgeInsets.only(bottom: 12),
                               child: _offlineBanner('Cached menu — prices as of last sync')),
                         ...keys.expand((k) => [
-                              Padding(padding: const EdgeInsets.fromLTRB(4, 8, 4, 10),
+                              Padding(padding: EdgeInsets.fromLTRB(4, 8, 4, 10),
                                   child: Text(k.toUpperCase(),
-                                      style: const TextStyle(letterSpacing: 2.4, fontSize: 12,
+                                      style: TextStyle(letterSpacing: 2.4, fontSize: 12,
                                           fontWeight: FontWeight.w800, color: AppColors.orange600))),
                               ...cats[k]!.map((i) => _SnackTile(item: i)),
                               const SizedBox(height: 8),
@@ -2358,7 +2496,7 @@ class _SnackbarPageState extends State<SnackbarPage> {
                             padding: const EdgeInsets.all(30),
                             decoration: BoxDecoration(color: Theme.of(context).cardColor,
                                 borderRadius: BorderRadius.circular(18)),
-                            child: const Center(child: Text('Menu is being prepared…',
+                            child: Center(child: Text('Menu is being prepared…',
                                 style: TextStyle(color: AppColors.ink500))),
                           ),
                       ],
@@ -2391,21 +2529,21 @@ class _SnackTile extends StatelessWidget {
                 : _fallback(),
           ),
         ),
-        const SizedBox(width: 13),
+        SizedBox(width: 13),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(item.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
-          const SizedBox(height: 2),
-          Text(item.category, style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+          Text(item.name, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+          SizedBox(height: 2),
+          Text(item.category, style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
         ])),
         Text('FCFA ${item.price.toStringAsFixed(0)}',
-            style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.orange600, fontSize: 13.5)),
+            style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.orange600, fontSize: 13.5)),
       ]),
     );
   }
 
   Widget _fallback() => Container(
       color: AppColors.cream100,
-      child: const Icon(Icons.local_drink, color: AppColors.orange500));
+      child: Icon(Icons.local_drink, color: AppColors.orange500));
 }
 
 // ------------------------------------------------------------
@@ -2442,7 +2580,7 @@ class PaymentsPage extends StatelessWidget {
                     title: 'Pay at Reception',
                     subtitle: 'Cash or card at check-in. Your room is held for 24h after booking.'),
                 const SizedBox(height: 8),
-                const Center(child: Text('Payments are confirmed by the front desk; your receipt '
+                Center(child: Text('Payments are confirmed by the front desk; your receipt '
                     'updates automatically.', textAlign: TextAlign.center,
                     style: TextStyle(color: AppColors.ink500, fontSize: 11.5))),
               ],
@@ -2453,8 +2591,8 @@ class PaymentsPage extends StatelessWidget {
   Widget _payCard(BuildContext context,
       {required IconData icon, required String title, required String subtitle}) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(18),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
           color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(18)),
       child: Row(children: [
@@ -2464,11 +2602,11 @@ class PaymentsPage extends StatelessWidget {
               borderRadius: BorderRadius.circular(14)),
           child: Icon(icon, color: AppColors.orange600),
         ),
-        const SizedBox(width: 14),
+        SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-          const SizedBox(height: 3),
-          Text(subtitle, style: const TextStyle(color: AppColors.ink500, fontSize: 12, height: 1.45)),
+          Text(title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+          SizedBox(height: 3),
+          Text(subtitle, style: TextStyle(color: AppColors.ink500, fontSize: 12, height: 1.45)),
         ])),
       ]),
     );
@@ -2488,7 +2626,7 @@ class ComingSoonView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: EdgeInsets.all(32),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
             width: 86, height: 86,
@@ -2497,19 +2635,19 @@ class ComingSoonView extends StatelessWidget {
                 shape: BoxShape.circle),
             child: Icon(icon, size: 40, color: AppColors.orange500),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
           Text(title, textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          SizedBox(height: 8),
           Text(text, textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.ink500, fontSize: 13, height: 1.55)),
-          const SizedBox(height: 16),
+              style: TextStyle(color: AppColors.ink500, fontSize: 13, height: 1.55)),
+          SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
             decoration: BoxDecoration(
                 color: AppColors.gold.withOpacity(0.18),
                 borderRadius: BorderRadius.circular(999)),
-            child: const Text('COMING SOON',
+            child: Text('COMING SOON',
                 style: TextStyle(color: AppColors.orange600, fontSize: 10.5,
                     letterSpacing: 2.4, fontWeight: FontWeight.w800)),
           ),
@@ -2538,7 +2676,7 @@ class _AccountPageState extends State<AccountPage> {
         const SizedBox(height: 8),
         Center(
           child: CircleAvatar(
-            backgroundImage: const AssetImage('assets/logo.png'),
+            backgroundImage: AssetImage('assets/logo.png'),
             radius: 40,
             backgroundColor: AppColors.cream100,
           ),
@@ -2550,8 +2688,8 @@ class _AccountPageState extends State<AccountPage> {
         Center(
             child: Text(
                 user != null ? '${user.email} · ${user.role.toUpperCase()}' : 'Not signed in',
-                style: const TextStyle(color: AppColors.ink500, fontSize: 12))),
-        const Center(
+                style: TextStyle(color: AppColors.ink500, fontSize: 12))),
+        Center(
             child: Text('Native App v$kAppVersion',
                 style: TextStyle(color: AppColors.ink500, fontSize: 11))),
         const SizedBox(height: 20),
@@ -2638,7 +2776,7 @@ class _AccountPageState extends State<AccountPage> {
           onTap: () => launchUrl(Uri.parse('tel:+237679915967')),
         ),
         const SizedBox(height: 20),
-        const Center(
+        Center(
             child: Text('© La-Maliva Vista Hotel · Buea, Cameroon',
                 style: TextStyle(color: AppColors.ink500, fontSize: 11))),
       ]),
@@ -2663,7 +2801,7 @@ class _SettingsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       child: Material(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -2671,7 +2809,7 @@ class _SettingsTile extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Row(children: [
               Container(
                 width: 44,
@@ -2689,11 +2827,11 @@ class _SettingsTile extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                         fontSize: 14.5,
                         color: danger ? Colors.redAccent : null)),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(subtitle,
-                    style: const TextStyle(color: AppColors.ink500, fontSize: 12)),
+                    style: TextStyle(color: AppColors.ink500, fontSize: 12)),
               ])),
-              const Icon(Icons.chevron_right, color: AppColors.ink500),
+              Icon(Icons.chevron_right, color: AppColors.ink500),
             ]),
           ),
         ),
@@ -2749,23 +2887,23 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: AppColors.brandNavy,
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 28),
+        padding: EdgeInsets.symmetric(horizontal: 28),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Center(
             child: Container(
               width: 92, height: 92,
               decoration: BoxDecoration(shape: BoxShape.circle,
                   boxShadow: [BoxShadow(color: AppColors.orange500.withOpacity(0.35), blurRadius: 36, spreadRadius: 3)]),
               child: ClipOval(child: Image.asset('assets/logo.png', fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.hotel, color: AppColors.gold))),
+                  errorBuilder: (_, __, ___) => Icon(Icons.hotel, color: AppColors.gold))),
             ),
           ),
-          const SizedBox(height: 20),
-          const Center(child: Text('WELCOME BACK',
+          SizedBox(height: 20),
+          Center(child: Text('WELCOME BACK',
               style: TextStyle(color: AppColors.cream50, letterSpacing: 5, fontSize: 16,
                   fontWeight: FontWeight.w600))),
-          const Center(child: Text('One account for app & website',
+          Center(child: Text('One account for app & website',
               style: TextStyle(color: AppColors.gold, fontSize: 11))),
           const SizedBox(height: 30),
           TextField(
@@ -2818,12 +2956,12 @@ class _LoginPageState extends State<LoginPage> {
                 : const Text('SIGN IN', style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.w700)),
           ),
           const SizedBox(height: 26),
-          const Center(child: Text('No account? Sign up on the website.',
+          Center(child: Text('No account? Sign up on the website.',
               style: TextStyle(color: AppColors.ink500, fontSize: 12))),
           TextButton(
             onPressed: () => launchUrl(Uri.parse('$kBaseUrl/signup'),
                 mode: LaunchMode.externalApplication),
-            child: const Text('Create one at la-maliva-vista-hotel.onrender.com',
+            child: Text('Create one at la-maliva-vista-hotel.onrender.com',
                 style: TextStyle(color: AppColors.gold, fontSize: 12)),
           ),
           const SizedBox(height: 20),
@@ -2834,7 +2972,7 @@ class _LoginPageState extends State<LoginPage> {
 
   InputDecoration _dec(String label, IconData icon) => InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: AppColors.ink500),
+        labelStyle: TextStyle(color: AppColors.ink500),
         prefixIcon: Icon(icon, color: AppColors.orange500),
         filled: true,
         fillColor: AppColors.navy900,
@@ -2842,7 +2980,7 @@ class _LoginPageState extends State<LoginPage> {
             borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.orange500)),
+            borderSide: BorderSide(color: AppColors.orange500)),
       );
 }
 
@@ -2971,7 +3109,7 @@ class _StaffHomePageState extends State<StaffHomePage> {
           if (_offline) Padding(padding: const EdgeInsets.only(bottom: 12),
               child: _offlineBanner('Last synced snapshot — pull to refresh')),
           if (s == null)
-            const Padding(padding: EdgeInsets.all(40),
+            Padding(padding: EdgeInsets.all(40),
                 child: Center(child: Text('Sign in as staff to see live stats',
                     style: TextStyle(color: AppColors.ink500))))
           else ...[
@@ -3000,14 +3138,14 @@ class _StaffHomePageState extends State<StaffHomePage> {
 
   Widget _stat(BuildContext context, IconData icon, String value, String label) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
           color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(17)),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Icon(icon, color: AppColors.orange600, size: 24),
-        const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 23, fontWeight: FontWeight.w800)),
-        Text(label, style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+        Spacer(),
+        Text(value, style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800)),
+        Text(label, style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
       ]),
     );
   }
@@ -3074,11 +3212,11 @@ class _StaffReservationsPageState extends State<StaffReservationsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reservations')),
+      appBar: AppBar(title: Text('Reservations')),
       body: RefreshIndicator(
         onRefresh: _load,
         child: _loading
-            ? const Center(child: CircularProgressIndicator(color: AppColors.orange500))
+            ? Center(child: CircularProgressIndicator(color: AppColors.orange500))
             : ListView(padding: const EdgeInsets.all(16), children: [
                 if (_offline) Padding(padding: const EdgeInsets.only(bottom: 12),
                     child: _offlineBanner('Offline list — actions need connection')),
@@ -3093,7 +3231,7 @@ class _StaffReservationsPageState extends State<StaffReservationsPage> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                         Text('RES-${r['id']} · Room ${r['room']}',
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
+                            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5)),
                         Text(status,
                             style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
                                 color: status == 'Checked-In' ? Colors.green : AppColors.orange600)),
@@ -3103,7 +3241,7 @@ class _StaffReservationsPageState extends State<StaffReservationsPage> {
                           style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
                       Text('FCFA ${(r['amount'] as num?)?.toDouble().toStringAsFixed(0) ?? '0'}'
                           '  ·  ${_short((r['check_in'] ?? '').toString())} → ${_short((r['check_out'] ?? '').toString())}',
-                          style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+                          style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
                       const SizedBox(height: 10),
                       Row(children: [
                         if (status == 'Confirmed')
@@ -3115,7 +3253,7 @@ class _StaffReservationsPageState extends State<StaffReservationsPage> {
                   );
                 }),
                 if (_items.isEmpty)
-                  const Padding(padding: EdgeInsets.all(40),
+                  Padding(padding: EdgeInsets.all(40),
                       child: Center(child: Text('No reservations yet',
                           style: TextStyle(color: AppColors.ink500)))),
               ]),
@@ -3180,15 +3318,15 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Guest Register (Offline)')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
+      appBar: AppBar(title: Text('Guest Register (Offline)')),
+      body: ListView(padding: EdgeInsets.all(16), children: [
         Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
               color: AppColors.gold.withOpacity(0.14),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: AppColors.gold.withOpacity(0.4))),
-          child: const Row(children: [
+          child: Row(children: [
             Icon(Icons.cloud_off, color: AppColors.orange600),
             SizedBox(width: 12),
             Expanded(child: Text('Register guests with no internet. Invoices print '
@@ -3196,7 +3334,7 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
                 style: TextStyle(fontSize: 12, height: 1.5))),
           ]),
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         ElevatedButton.icon(
           onPressed: _openForm,
           style: ElevatedButton.styleFrom(
@@ -3209,20 +3347,20 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
         ),
         const SizedBox(height: 18),
         ..._regs.map((r) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
+              margin: EdgeInsets.only(bottom: 10),
+              padding: EdgeInsets.all(14),
               decoration: BoxDecoration(
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(15)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                  Text(r.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+                  Text(r.name, style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
                   Text('OFFLINE', style: TextStyle(fontSize: 9.5, letterSpacing: 1.4,
                       color: AppColors.orange600, fontWeight: FontWeight.w800)),
                 ]),
                 const SizedBox(height: 3),
                 Text('${r.phone} · ${r.email.isEmpty ? "—" : r.email}',
-                    style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+                    style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
                 Text('${r.roomLabel} · ${r.nights} night(s) · FCFA ${r.total.toStringAsFixed(0)}',
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
@@ -3246,13 +3384,13 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
                       await OfflineRegStore.instance.remove(r.id);
                       _reload();
                     },
-                    icon: const Icon(Icons.delete_outline, size: 19, color: Colors.redAccent),
+                    icon: Icon(Icons.delete_outline, size: 19, color: Colors.redAccent),
                   ),
                 ]),
               ]),
             )),
         if (_regs.isEmpty)
-          const Padding(padding: EdgeInsets.all(36),
+          Padding(padding: EdgeInsets.all(36),
               child: Center(child: Text('No offline registrations yet',
                   style: TextStyle(color: AppColors.ink500)))),
       ]),
@@ -3324,20 +3462,20 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
               keyboardType: TextInputType.number,
               onChanged: (v) => _rate = double.tryParse(v) ?? _rate,
               controller: TextEditingController(text: _rate.toStringAsFixed(0)),
-              decoration: const InputDecoration(labelText: 'Rate/night FCFA', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: 'Rate/night FCFA', border: OutlineInputBorder()),
             )),
           ]),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(13),
+            padding: EdgeInsets.all(13),
             decoration: BoxDecoration(color: AppColors.cream100, borderRadius: BorderRadius.circular(12)),
             child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               const Text('Invoice total', style: TextStyle(fontWeight: FontWeight.w700)),
               Text('FCFA ${(_rate * _nights).toStringAsFixed(0)}',
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5, color: AppColors.orange600)),
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5, color: AppColors.orange600)),
             ]),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           ElevatedButton(
             onPressed: _save,
             style: ElevatedButton.styleFrom(
@@ -3475,12 +3613,12 @@ class _SnackbarManagerPageState extends State<SnackbarManagerPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
           ),
           child: _busy
-              ? const SizedBox(width: 18, height: 18,
+              ? SizedBox(width: 18, height: 18,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-              : const Text('PUBLISH TO MENU'),
+              : Text('PUBLISH TO MENU'),
         ),
-        const SizedBox(height: 10),
-        const Center(child: Text('Photos come from this device and upload straight to the website database.',
+        SizedBox(height: 10),
+        Center(child: Text('Photos come from this device and upload straight to the website database.',
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.ink500, fontSize: 11))),
       ]),
@@ -3621,12 +3759,12 @@ class _AdminPageState extends State<AdminPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Administration Tools')),
-      body: ListView(padding: const EdgeInsets.all(16), children: [
-        const Text('FEATURE SWITCHES', style: TextStyle(letterSpacing: 2.2, fontSize: 11.5,
+      appBar: AppBar(title: Text('Administration Tools')),
+      body: ListView(padding: EdgeInsets.all(16), children: [
+        Text('FEATURE SWITCHES', style: TextStyle(letterSpacing: 2.2, fontSize: 11.5,
             fontWeight: FontWeight.w800, color: AppColors.orange600)),
-        const SizedBox(height: 4),
-        const Text('Applies to the website and this app instantly.',
+        SizedBox(height: 4),
+        Text('Applies to the website and this app instantly.',
             style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
         const SizedBox(height: 12),
         Container(
@@ -3652,9 +3790,9 @@ class _AdminPageState extends State<AdminPage> {
             onChanged: _busyToggles ? null : (v) => _toggle('snackbar_active', v),
           ),
         ),
-        const SizedBox(height: 22),
+        SizedBox(height: 22),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          const Text('USER MANAGEMENT', style: TextStyle(letterSpacing: 2.2, fontSize: 11.5,
+          Text('USER MANAGEMENT', style: TextStyle(letterSpacing: 2.2, fontSize: 11.5,
               fontWeight: FontWeight.w800, color: AppColors.orange600)),
           TextButton.icon(
             onPressed: _createStaff,
@@ -3663,8 +3801,8 @@ class _AdminPageState extends State<AdminPage> {
           ),
         ]),
         ..._users.map((u) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(13),
+              margin: EdgeInsets.only(bottom: 8),
+              padding: EdgeInsets.all(13),
               decoration: BoxDecoration(
                   color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(13)),
               child: Row(children: [
@@ -3679,7 +3817,7 @@ class _AdminPageState extends State<AdminPage> {
                   Text('${u['username']} · ${u['role']}',
                       style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
                   Text((u['email'] ?? '').toString(),
-                      style: const TextStyle(color: AppColors.ink500, fontSize: 11.5)),
+                      style: TextStyle(color: AppColors.ink500, fontSize: 11.5)),
                 ])),
                 Icon(u['verified'] == true ? Icons.verified_outlined : Icons.hourglass_top,
                     size: 18, color: u['verified'] == true ? Colors.green : AppColors.ink500),
