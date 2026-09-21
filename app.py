@@ -143,7 +143,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.2.3"
+APP_VERSION = "2.3.0"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -695,12 +695,17 @@ def messages_attachment(msg_id):
 
 @app.route('/api/announcements')
 def api_announcements():
-    """Notice board for the native app (role-aware)."""
+    """Notice board for the native app (role-aware).
+
+    Guests and anonymous app users receive `everyone` posts (developer-team
+    and hotel-wide notices); staff additionally receive `staff` posts; admin
+    sees everything.
+    """
     user = _current_api_user()
-    if not user:
-        return jsonify({'ok': False, 'error': 'Not authenticated.'}), 401
     q = Announcement.query
-    if user.role != 'admin':
+    if user is None:
+        q = q.filter(Announcement.audience == 'everyone')
+    elif user.role != 'admin':
         q = q.filter(Announcement.audience.in_(('staff', 'everyone') if user.role == 'staff' else ('everyone',)))
     posts = q.order_by(Announcement.pinned.desc(), Announcement.created_at.desc()).limit(50).all()
     return jsonify({'ok': True, 'announcements': [{

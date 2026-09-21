@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -29,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.2.3';
+const String kAppVersion = '2.3.0';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,6 +63,9 @@ class AppColors {
 }
 
 class LuxTheme {
+  /// Style currently applied (drives the ambient background variant too).
+  static String currentId = 'royal';
+
   static const Map<String, Map<String, Color>> palettes = {
     'royal': {
       'navy950': Color(0xFF0A1628), 'brandNavy': Color(0xFF08123A),
@@ -118,7 +122,19 @@ class LuxTheme {
 
   static void apply(String id) {
     AppColors.apply(palettes[id] ?? palettes['royal']!);
+    currentId = palettes.containsKey(id) ? id : 'royal';
   }
+
+  /// Ambient background motion per design style — each pack gets its own
+  /// animated backdrop (waves, embers, orbs, petals, streaks, rings).
+  static String get ambient => const {
+        'royal': 'waves',
+        'sunset': 'embers',
+        'emerald': 'petals',
+        'plum': 'orbs',
+        'ocean': 'bubbles',
+        'noir': 'streaks',
+      }[currentId] ?? 'waves';
 }
 
 ThemeData buildLight() {
@@ -151,6 +167,26 @@ ThemeData buildLight() {
       backgroundColor: AppColors.navy900,
       contentTextStyle: TextStyle(color: AppColors.cream50),
       behavior: SnackBarBehavior.floating,
+    ),
+    // Consistent, comfortable input boxes on every screen & platform
+    inputDecorationTheme: InputDecorationTheme(
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.navy800.withOpacity(0.25)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.navy800.withOpacity(0.25)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.orange500, width: 1.6),
+      ),
+      labelStyle: TextStyle(color: AppColors.ink500, fontSize: 13.5),
     ),
   );
 }
@@ -186,6 +222,25 @@ ThemeData buildDark() {
       backgroundColor: AppColors.orange600,
       contentTextStyle: const TextStyle(color: Colors.white),
       behavior: SnackBarBehavior.floating,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      filled: true,
+      fillColor: AppColors.navy800.withOpacity(0.35),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.cream50.withOpacity(0.2)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.cream50.withOpacity(0.2)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppColors.orange500, width: 1.6),
+      ),
+      labelStyle: TextStyle(color: AppColors.cream50.withOpacity(0.75), fontSize: 13.5),
     ),
   );
 }
@@ -372,7 +427,18 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
     await _askPermissionsOnce();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const HomeShell()),
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => const HomeShell(),
+        transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+          child: SlideTransition(
+            position: Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero)
+                .animate(anim),
+            child: child,
+          ),
+        ),
+        transitionDuration: const Duration(milliseconds: 420),
+      ),
     );
     // Warm caches in the background (rooms, menu, features, hotel info)
     RoomRepository.instance.refresh().catchError((_) => <Room>[]);
@@ -435,6 +501,7 @@ class NotificationService {
   }
 
   Future<void> notify(String title, String body) async {
+    NotificationFeed.instance.addLocal(title, body);
     if (!_ready) return;
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -454,6 +521,198 @@ class NotificationService {
 
   Future<void> welcome() => notify(
       'Welcome to La-Maliva Vista', 'Rooms are cached for offline use. Karibu!');
+}
+
+// ------------------------------------------------------------
+// Notification feed — everything shown to the user is kept here:
+// developer-team posts + hotel admin announcements (server) and
+// local alerts (bookings, syncs, updates). Powers the bell page.
+// ------------------------------------------------------------
+class FeedItem {
+  final String title;
+  final String body;
+  final DateTime at;
+  final String source; // 'team' | 'admin' | 'app'
+  FeedItem({required this.title, required this.body, required this.at, required this.source});
+
+  Map<String, dynamic> toMap() => {'title': title, 'body': body, 'at': at.toIso8601String(), 'source': source};
+  factory FeedItem.fromMap(Map<String, dynamic> m) => FeedItem(
+      title: (m['title'] ?? '').toString(),
+      body: (m['body'] ?? '').toString(),
+      at: DateTime.tryParse((m['at'] ?? '').toString()) ?? DateTime.now(),
+      source: (m['source'] ?? 'app').toString());
+}
+
+class NotificationFeed {
+  NotificationFeed._();
+  static final NotificationFeed instance = NotificationFeed._();
+
+  static const _key = 'notif_feed_v1';
+  final ValueNotifier<int> unread = ValueNotifier<int>(0);
+  final List<FeedItem> _items = [];
+  DateTime? _lastServerFetch;
+
+  List<FeedItem> get items => List.unmodifiable(_items);
+
+  Future<void> load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_key);
+    if (raw != null) {
+      try {
+        _items
+          ..clear()
+          ..addAll(((jsonDecode(raw) as List).cast<Map<String, dynamic>>())
+              .map(FeedItem.fromMap));
+      } catch (_) {}
+    }
+    _recount();
+  }
+
+  Future<void> _persist() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_key,
+        jsonEncode(_items.take(120).map((e) => e.toMap()).toList()));
+  }
+
+  void _recount() {
+    // "Unread" = items from the last 48h window the feed was opened since.
+    final since = _lastServerFetch ?? DateTime.now().subtract(const Duration(hours: 48));
+    unread.value = _items.where((i) => i.at.isAfter(since)).length;
+  }
+
+  Future<void> markAllRead() async {
+    _lastServerFetch = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('notif_last_read', _lastServerFetch!.toIso8601String());
+    _recount();
+  }
+
+  Future<void> _lastReadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('notif_last_read');
+    if (raw != null) _lastServerFetch = DateTime.tryParse(raw);
+  }
+
+  void addLocal(String title, String body) {
+    _items.insert(0, FeedItem(title: title, body: body, at: DateTime.now(), source: 'app'));
+    _persist();
+    _recount();
+  }
+
+  /// Pull developer-team + admin announcements from the website backend.
+  Future<void> refreshFromServer() async {
+    await _lastReadFromPrefs();
+    try {
+      final res = await Api.get('/api/announcements');
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final posts = (data['announcements'] as List? ?? []).cast<Map<String, dynamic>>();
+      var added = false;
+      for (final p in posts) {
+        final title = '[La-Maliva] ${p['title']}';
+        if (_items.any((i) => i.title == title && i.source != 'app')) continue;
+        _items.insert(0, FeedItem(
+            title: title,
+            body: (p['body'] ?? '').toString(),
+            at: DateTime.tryParse((p['created_at'] ?? '').toString()) ?? DateTime.now(),
+            source: 'admin'));
+        added = true;
+      }
+      // Developer-team standing welcome note (always at the top of the inbox)
+      const teamTitle = 'Welcome from the La-Maliva team';
+      const teamBody =
+          'Thanks for using the official La-Maliva Vista app. Book rooms, view your receipts and reach reception — even offline. Karibu!';
+      _items.removeWhere((i) => i.title == teamTitle);
+      _items.insert(0, FeedItem(
+          title: teamTitle,
+          body: teamBody,
+          at: DateTime.now().subtract(const Duration(hours: 30)),
+          source: 'team'));
+      await _persist();
+      _recount();
+      if (added) {
+        await NotificationService.instance.notify(
+            'New from La-Maliva', 'New announcements are waiting in your inbox.');
+      }
+    } catch (_) {/* offline — keep the cached feed */}
+  }
+}
+
+// ------------------------------------------------------------
+// App updates — Check for updates (Account page) + silent startup check.
+// Compares against /api/version; downloads the matching bundle for this
+// platform and pings the user when a newer build is available.
+// ------------------------------------------------------------
+class UpdateService {
+  UpdateService._();
+  static final UpdateService instance = UpdateService._();
+
+  final ValueNotifier<String> status = ValueNotifier<String>('');
+
+  /// Returns the newest version string if an update is available, else null.
+  Future<String?> check({bool notifyIfUpToDate = false}) async {
+    try {
+      status.value = 'Checking…';
+      final res = await Api.get('/api/version').timeout(const Duration(seconds: 12));
+      if (res.statusCode != 200) throw 'x';
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final latest = (data['version'] ?? '').toString();
+      final newer = _isNewer(latest, kAppVersion);
+      status.value = '';
+      if (newer) {
+        await NotificationFeed.instance.addLocalIfNew(
+            'Update available — v$latest',
+            'La-Maliva v$latest is ready. Open Account → Check for updates to install.');
+        await NotificationService.instance.notify('La-Maliva update v$latest',
+            'A newer app version is available. Tap Account → Check for updates.');
+        return latest;
+      }
+      if (notifyIfUpToDate) {
+        await NotificationFeed.instance.addLocalIfNew(
+            'You are up to date', 'La-Maliva v$kAppVersion is the latest version.');
+      }
+      return null;
+    } catch (_) {
+      status.value = '';
+      return null;
+    }
+  }
+
+  /// Semantic-ish comparison: 2.3.0 > 2.2.10.
+  bool _isNewer(String candidate, String current) {
+    List<int> parse(String v) => v
+        .replaceAll(RegExp(r'[^0-9.]'), '')
+        .split('.')
+        .map((s) => int.tryParse(s) ?? 0)
+        .toList();
+    final a = parse(candidate);
+    final b = parse(current);
+    for (var i = 0; i < 3; i++) {
+      final x = i < a.length ? a[i] : 0;
+      final y = i < b.length ? b[i] : 0;
+      if (x != y) return x > y;
+    }
+    return false;
+  }
+
+  /// Opens the exact download for this platform from the website.
+  Future<void> downloadLatest(BuildContext context) async {
+    final url = Platform.isWindows
+        ? '$kBaseUrl/downloads/windows'
+        : '$kBaseUrl/downloads/android';
+    final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    if (ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Download started — install it when it finishes')));
+    }
+  }
+}
+
+extension UpdateFeedExtras on NotificationFeed {
+  Future<void> addLocalIfNew(String title, String body) async {
+    if (items.any((i) => i.title == title)) return;
+    addLocal(title, body);
+  }
 }
 
 // ------------------------------------------------------------
@@ -606,8 +865,9 @@ mixin NetAware {
   }
 }
 
-/// Wavy animated brand background — layered sine curves in the site's
-/// navy/orange palette, drifting continuously (matches website hero waves).
+/// Ambient animated brand background — the motion style follows the active
+/// design pack: Royal=waves, Sunset=embers, Emerald=petals, Plum=orbs,
+/// Ocean=bubbles, Noir=streaks. Continuous, brand-tinted, GPU-cheap.
 class WavyBackground extends StatefulWidget {
   final Widget? child;
   final bool dark; // navy variant (headers/splash) vs cream variant
@@ -639,9 +899,10 @@ class _WavyBackgroundState extends State<WavyBackground>
           child: AnimatedBuilder(
             animation: _ctl,
             builder: (context, _) => CustomPaint(
-              painter: _WavesPainter(
+              painter: _AmbientPainter(
                 phase: _ctl.value * 2 * math.pi,
                 dark: widget.dark,
+                variant: LuxTheme.ambient,
               ),
             ),
           ),
@@ -652,16 +913,30 @@ class _WavyBackgroundState extends State<WavyBackground>
   }
 }
 
-class _WavesPainter extends CustomPainter {
+class _AmbientPainter extends CustomPainter {
   final double phase;
   final bool dark;
-  _WavesPainter({required this.phase, required this.dark});
+  final String variant;
+  _AmbientPainter({required this.phase, required this.dark, required this.variant});
+
+  List<Color> get _tones => dark
+      ? [AppColors.navy800, AppColors.orange600, AppColors.gold]
+      : [const Color(0xFFE8DFC9), AppColors.orange500, const Color(0xFFDCE6F5)];
 
   @override
   void paint(Canvas canvas, Size size) {
-    final List<Color> tones = dark
-        ? [Color(0xFF16305C), AppColors.orange600, AppColors.navy800]
-        : [const Color(0xFFE8DFC9), AppColors.orange500, const Color(0xFFDCE6F5)];
+    switch (variant) {
+      case 'embers': _paintParticles(canvas, size, rising: true, big: false); break;
+      case 'bubbles': _paintParticles(canvas, size, rising: true, big: true); break;
+      case 'petals': _paintPetals(canvas, size); break;
+      case 'orbs': _paintOrbs(canvas, size); break;
+      case 'streaks': _paintStreaks(canvas, size); break;
+      default: _paintWaves(canvas, size);
+    }
+  }
+
+  void _paintWaves(Canvas canvas, Size size) {
+    final tones = _tones;
     for (var i = 0; i < 3; i++) {
       final paint = Paint()
         ..color = tones[i].withOpacity(dark ? 0.16 : 0.22)
@@ -670,8 +945,8 @@ class _WavesPainter extends CustomPainter {
       for (double x = 0; x <= size.width; x += 14) {
         final y = size.height * (0.62 + 0.09 * i) +
             (18 + 7.0 * i) *
-                _sin(x / (110 + 34.0 * i) + phase + i * 2.1) +
-            10 * _sin(x / 47 + phase * 1.7);
+                math.sin(x / (110 + 34.0 * i) + phase + i * 2.1) +
+            10 * math.sin(x / 47 + phase * 1.7);
         path.lineTo(x, y);
       }
       path
@@ -681,10 +956,96 @@ class _WavesPainter extends CustomPainter {
     }
   }
 
-  double _sin(double x) => 0.5 * (1 + math.sin(x)); // 0..1
+  void _paintParticles(Canvas canvas, Size size,
+      {required bool rising, required bool big}) {
+    final tones = _tones;
+    final count = big ? 12 : 22;
+    final rnd = math.Random(7);
+    for (var i = 0; i < count; i++) {
+      final seedX = rnd.nextDouble();
+      final speed = 0.15 + rnd.nextDouble() * 0.5;
+      final radius = big ? 10 + rnd.nextDouble() * 22 : 1.6 + rnd.nextDouble() * 4.2;
+      final drift = math.sin(phase + i * 1.7) * (big ? 26 : 12);
+      final travel = (phase / (2 * math.pi)) * size.height * speed;
+      final y = rising
+          ? size.height + 40 - ((travel + seedX * size.height) % (size.height + 80))
+          : (seedX * size.height + travel) % (size.height + 40) - 20;
+      final x = seedX * size.width + drift;
+      final tone = tones[i % tones.length];
+      final paint = Paint()
+        ..style = big ? PaintingStyle.stroke : PaintingStyle.fill
+        ..strokeWidth = big ? 1.4 : 0;
+      if (big) {
+        paint.color = tone.withOpacity(dark ? 0.14 : 0.20);
+        canvas.drawCircle(Offset(x % (size.width + 40) - 20, y), radius, paint);
+      } else {
+        paint.color = tone.withOpacity(dark ? 0.20 : 0.30);
+        canvas.drawCircle(Offset(x % (size.width + 30) - 15, y), radius, paint);
+      }
+    }
+  }
+
+  void _paintPetals(Canvas canvas, Size size) {
+    final tones = _tones;
+    final rnd = math.Random(21);
+    for (var i = 0; i < 14; i++) {
+      final seedX = rnd.nextDouble();
+      final speed = 0.10 + rnd.nextDouble() * 0.35;
+      final r = 5 + rnd.nextDouble() * 9;
+      final travel = (phase / (2 * math.pi)) * size.height * speed;
+      final y = (seedX * size.height + travel) % (size.height + 60) - 30;
+      final x = seedX * size.width + math.sin(phase * 0.8 + i) * 34;
+      final paint = Paint()
+        ..color = tones[i % tones.length].withOpacity(dark ? 0.16 : 0.24)
+        ..style = PaintingStyle.fill;
+      canvas.save();
+      canvas.translate(x % (size.width + 50) - 25, y);
+      canvas.rotate(phase + i);
+      canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: r * 2, height: r), paint);
+      canvas.restore();
+    }
+  }
+
+  void _paintOrbs(Canvas canvas, Size size) {
+    final tones = _tones;
+    final rnd = math.Random(11);
+    for (var i = 0; i < 7; i++) {
+      final cx = rnd.nextDouble() * size.width;
+      final cy = rnd.nextDouble() * size.height;
+      final r = 60 + rnd.nextDouble() * 110;
+      final wobble = math.sin(phase + i * 1.3) * 18;
+      final tone = tones[i % tones.length];
+      final paint = Paint()
+        ..shader = ui.Gradient.radial(
+            Offset(cx + wobble, cy + wobble * 0.6), r,
+            [tone.withOpacity(dark ? 0.13 : 0.18), tone.withOpacity(0.0)])
+        ..style = PaintingStyle.fill;
+      canvas.drawCircle(Offset(cx + wobble, cy + wobble * 0.6), r, paint);
+    }
+  }
+
+  void _paintStreaks(Canvas canvas, Size size) {
+    final tones = _tones;
+    for (var i = 0; i < 9; i++) {
+      final y = size.height * (0.08 + 0.11 * i) + math.sin(phase + i * 1.9) * 14;
+      final paint = Paint()
+        ..shader = ui.Gradient.linear(
+            Offset(-40, y), Offset(size.width * 0.7, y + 26),
+            [tones[i % tones.length].withOpacity(dark ? 0.16 : 0.22), tones[i % tones.length].withOpacity(0.0)])
+        ..style = PaintingStyle.fill;
+      final path = Path()
+        ..moveTo(-40, y)
+        ..quadraticBezierTo(size.width * 0.35, y - 30, size.width * 0.75, y + 8)
+        ..lineTo(size.width * 0.75, y + 16)
+        ..quadraticBezierTo(size.width * 0.35, y - 18, -40, y + 12)
+        ..close();
+      canvas.drawPath(path, paint);
+    }
+  }
 
   @override
-  bool shouldRepaint(_WavesPainter oldDelegate) => oldDelegate.phase != phase;
+  bool shouldRepaint(_AmbientPainter oldDelegate) =>
+      oldDelegate.phase != phase || oldDelegate.variant != variant || oldDelegate.dark != dark;
 }
 
 // ------------------------------------------------------------
@@ -1162,98 +1523,159 @@ class Invoice {
   }) async {
     final hotel = SessionService.instance.features;
     final total = rate * nights;
+    final navy = PdfColor.fromHex('#08123A');
+    final orange = PdfColor.fromHex('#D97A2B');
+    final cream = PdfColor.fromHex('#F8F1E4');
     final doc = pw.Document();
     doc.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a4,
-        build: (ctx) => pw.Padding(
-          padding: const pw.EdgeInsets.all(36),
-          child: pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Row(
+        margin: const pw.EdgeInsets.fromLTRB(40, 34, 40, 30),
+        build: (ctx) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            // ------- Brand masthead band -------
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+              decoration: pw.BoxDecoration(
+                color: navy,
+                borderRadius: const pw.BorderRadius.only(
+                  bottomLeft: pw.Radius.circular(14),
+                  bottomRight: pw.Radius.circular(14),
+                ),
+              ),
+              child: pw.Row(
                 mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                 children: [
                   pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
                     pw.Text('LA-MALIVA VISTA HOTEL',
-                        style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold,
-                            color: PdfColor.fromHex('#08123A'))),
-                    pw.Text('A Taste of Paradise — Buea, Cameroon',
-                        style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+                        style: pw.TextStyle(fontSize: 18.5, fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white, letterSpacing: 1.1)),
+                    pw.SizedBox(height: 2),
+                    pw.Text('A TASTE OF PARADISE · BUEA, CAMEROON',
+                        style: pw.TextStyle(fontSize: 8.2, color: PdfColor.fromHex('#EEC37A'),
+                            letterSpacing: 2.2)),
                   ]),
                   pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                     decoration: pw.BoxDecoration(
-                      border: pw.Border.all(color: PdfColor.fromHex('#D97A2B'), width: 1.2),
-                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                      color: orange,
+                      borderRadius: const pw.BorderRadius.all(pw.Radius.circular(9)),
                     ),
                     child: pw.Text('INVOICE',
-                        style: pw.TextStyle(
-                            fontSize: 12, fontWeight: pw.FontWeight.bold,
-                            color: PdfColor.fromHex('#D97A2B'))),
+                        style: pw.TextStyle(fontSize: 11.5, fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.white, letterSpacing: 1.4)),
                   ),
                 ],
               ),
-              pw.SizedBox(height: 10),
-              pw.Divider(color: PdfColor.fromHex('#08123A'), thickness: 1.4),
-              pw.SizedBox(height: 18),
-              pw.Text('Billed to', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11,
-                  color: PdfColors.grey700)),
-              pw.SizedBox(height: 4),
-              pw.Text(guestName, style: pw.TextStyle(fontSize: 15, fontWeight: pw.FontWeight.bold)),
-              pw.Text('Phone: $phone    Email: ${email.isEmpty ? "—" : email}',
-                  style: const pw.TextStyle(fontSize: 10.5, color: PdfColors.grey700)),
-              pw.SizedBox(height: 22),
-              pw.Table.fromTextArray(
-                headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10.5,
-                    color: PdfColors.white),
-                headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#08123A')),
-                cellStyle: const pw.TextStyle(fontSize: 10.5),
-                headers: ['Description', 'Qty', 'Rate (FCFA)', 'Amount (FCFA)'],
-                data: [
-                  ['Room: $roomLabel', '$nights night${nights > 1 ? 's' : ''}',
-                      rate.toStringAsFixed(0), total.toStringAsFixed(0)],
-                ],
-              ),
-              pw.SizedBox(height: 16),
-              pw.Container(
-                alignment: pw.Alignment.centerRight,
-                child: pw.Container(
-                  width: 220,
-                  padding: const pw.EdgeInsets.all(12),
-                  decoration: pw.BoxDecoration(
-                    color: PdfColor.fromHex('#F8F1E4'),
-                    borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
-                  ),
-                  child: pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('TOTAL', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                      pw.Text('FCFA ${total.toStringAsFixed(0)}',
-                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14,
-                              color: PdfColor.fromHex('#D97A2B'))),
-                    ],
-                  ),
+            ),
+            pw.SizedBox(height: 20),
+            // ------- Guest / meta grid -------
+            pw.Row(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+              pw.Expanded(child: pw.Container(
+                padding: const pw.EdgeInsets.all(13),
+                decoration: pw.BoxDecoration(
+                    color: cream, borderRadius: pw.BorderRadius.circular(10)),
+                child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Text('BILLED TO', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey700, letterSpacing: 1.6)),
+                  pw.SizedBox(height: 5),
+                  pw.Text(guestName, style: pw.TextStyle(fontSize: 14.5, fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 3),
+                  pw.Text('Phone: $phone', style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700)),
+                  pw.Text('Email: ${email.isEmpty ? "—" : email}',
+                      style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700)),
+                ]),
+              )),
+              pw.SizedBox(width: 12),
+              pw.Expanded(child: pw.Container(
+                padding: const pw.EdgeInsets.all(13),
+                decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey300!),
+                    borderRadius: pw.BorderRadius.circular(10)),
+                child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                  pw.Text('INVOICE DETAILS', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold,
+                      color: PdfColors.grey700, letterSpacing: 1.6)),
+                  pw.SizedBox(height: 5),
+                  pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                      pw.Text('Reference', style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700)),
+                      pw.Text(reference, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                  pw.SizedBox(height: 3),
+                  pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                      pw.Text('Issued', style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700)),
+                      pw.Text(issuedOn, style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                  pw.SizedBox(height: 3),
+                  pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                      pw.Text('Stay', style: const pw.TextStyle(fontSize: 9.5, color: PdfColors.grey700)),
+                      pw.Text('$nights night${nights > 1 ? 's' : ''}',
+                          style: pw.TextStyle(fontSize: 9.5, fontWeight: pw.FontWeight.bold)),
+                  ]),
+                ]),
+              )),
+            ]),
+            pw.SizedBox(height: 18),
+            // ------- Line items table -------
+            pw.Table.fromTextArray(
+              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5,
+                  color: PdfColors.white),
+              headerDecoration: pw.BoxDecoration(color: navy,
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(6))),
+              cellStyle: const pw.TextStyle(fontSize: 10),
+              cellPadding: const pw.EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+              headerPadding: const pw.EdgeInsets.symmetric(horizontal: 9, vertical: 8),
+              oddRowDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#FBF7EE')),
+              headers: ['Description', 'Qty', 'Rate (FCFA)', 'Amount (FCFA)'],
+              data: [
+                ['Room: $roomLabel', '$nights night${nights > 1 ? 's' : ''}',
+                    rate.toStringAsFixed(0), total.toStringAsFixed(0)],
+              ],
+            ),
+            pw.SizedBox(height: 16),
+            // ------- Total band -------
+            pw.Container(
+              alignment: pw.Alignment.centerRight,
+              child: pw.Container(
+                width: 250,
+                padding: const pw.EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+                decoration: pw.BoxDecoration(
+                  color: cream,
+                  border: pw.Border.all(color: orange, width: 1.1),
+                  borderRadius: pw.BorderRadius.circular(10),
                 ),
+                child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.end, children: [
+                  pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                      pw.Text('Subtotal', style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey700)),
+                      pw.Text('FCFA ${total.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
+                  ]),
+                  pw.SizedBox(height: 5),
+                  pw.Divider(color: PdfColors.grey300!, thickness: 0.7, height: 1),
+                  pw.SizedBox(height: 5),
+                  pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+                      pw.Text('TOTAL DUE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11,
+                          color: navy, letterSpacing: 0.8)),
+                      pw.Text('FCFA ${total.toStringAsFixed(0)}',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 15, color: orange)),
+                  ]),
+                ]),
               ),
-              pw.SizedBox(height: 26),
-              pw.Text('Reference: $reference',
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-              pw.Text('Issued: $issuedOn',
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-              pw.SizedBox(height: 8),
-              pw.Text(hotel.hotelAddress,
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-              pw.Text('Reception: (+237) 679-915-967',
-                  style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
-              pw.Spacer(),
-              pw.Center(
-                child: pw.Text('Thank you for choosing La-Maliva Vista Hotel!',
-                    style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 10.5,
-                        color: PdfColor.fromHex('#08123A'))),
-              ),
-            ],
-          ),
+            ),
+            pw.Spacer(),
+            // ------- Footer -------
+            pw.Divider(color: navy, thickness: 1.1),
+            pw.SizedBox(height: 7),
+            pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
+              pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
+                pw.Text(hotel.hotelAddress, style: const pw.TextStyle(fontSize: 8.6, color: PdfColors.grey700)),
+                pw.Text('Reception: (+237) 679-915-967',
+                    style: const pw.TextStyle(fontSize: 8.6, color: PdfColors.grey700)),
+              ]),
+              pw.Text('Thank you for choosing La-Maliva Vista Hotel!',
+                  style: pw.TextStyle(fontStyle: pw.FontStyle.italic, fontSize: 9, color: navy)),
+            ]),
+          ],
         ),
       ),
     );
@@ -1265,6 +1687,23 @@ class Invoice {
       await Printing.layoutPdf(onLayout: (_) => bytes, name: name);
     } catch (_) {
       await Printing.sharePdf(bytes: bytes, filename: '$name.pdf');
+    }
+  }
+
+  /// Download: saves the PDF to the device (Android Downloads via share sheet,
+  /// Windows via the save dialog). Never needs a printer.
+  static Future<void> download(Uint8List bytes, String name, BuildContext context) async {
+    try {
+      await Printing.sharePdf(bytes: bytes, filename: '$name.pdf');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Invoice saved — $name.pdf')));
+      }
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not save the invoice')));
+      }
     }
   }
 }
@@ -1288,6 +1727,11 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     // Real connectivity awareness from the first frame
     NetService.instance.probe();
+    // Cached notification feed immediately; server feed when online
+    NotificationFeed.instance.load();
+    NotificationFeed.instance.refreshFromServer();
+    // Silent update check (notifies only when a newer build exists)
+    UpdateService.instance.check();
     // When internet returns: refresh everything + sync offline bookings
     _netSub = NetService.instance.onChange.listen((onlineNow) {
       if (!mounted) return;
@@ -1295,6 +1739,7 @@ class _HomeShellState extends State<HomeShell> {
         RoomRepository.instance.refresh();
         SnackbarRepository.instance.refresh();
         SessionService.instance.refreshFeatures();
+        NotificationFeed.instance.refreshFromServer();
         _syncOfflineRegistrations();
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Back online — everything synced 🔄'),
@@ -1341,11 +1786,10 @@ class _HomeShellState extends State<HomeShell> {
       const SnackbarPage(),
       const AccountPage(),
     ];
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: const AppDrawer(),
-      body: Column(children: [
-        // Live connectivity banner (amber = offline, green pulse = back online)
+    return LayoutBuilder(builder: (context, constraints) {
+      final desktop = constraints.maxWidth >= 900; // Windows EXE: multi-panel
+      final shell = Column(children: [
+        // Live connectivity banner (amber = offline, pulse = back online)
         ValueListenableBuilder<bool>(
           valueListenable: NetService.instance.online,
           builder: (context, isOnline, _) {
@@ -1375,29 +1819,115 @@ class _HomeShellState extends State<HomeShell> {
             );
           },
         ),
+        // Smooth fade+slide page switching (synced with bottom nav / rail)
         Expanded(
           child: ValueListenableBuilder<int>(
             valueListenable: _tab,
-            builder: (context, tab, _) => pages[tab],
+            builder: (context, tab, _) => AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              transitionBuilder: (child, anim) => FadeTransition(
+                opacity: anim,
+                child: SlideTransition(
+                  position: Tween<Offset>(begin: const Offset(0, 0.014), end: Offset.zero)
+                      .animate(anim),
+                  child: child,
+                ),
+              ),
+              // LayoutBuilder keeps every page filling the shell while animating
+              child: KeyedSubtree(
+                key: ValueKey<int>(tab),
+                child: pages[tab],
+              ),
+            ),
           ),
         ),
-      ]),
-      bottomNavigationBar: ValueListenableBuilder<int>(
-        valueListenable: _tab,
-        builder: (context, tab, _) => NavigationBar(
-          height: 66,
-          selectedIndex: tab,
-          onDestinationSelected: (i) => _tab.value = i,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-            NavigationDestination(icon: Icon(Icons.king_bed_outlined), selectedIcon: Icon(Icons.king_bed), label: 'Rooms'),
-            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Bookings'),
-            NavigationDestination(icon: Icon(Icons.local_bar_outlined), selectedIcon: Icon(Icons.local_bar), label: 'Snackbar'),
-            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Account'),
-          ],
+      ]);
+
+      if (desktop) {
+        // ============ WINDOWS / DESKTOP: side rail + wide panels ============
+        return Scaffold(
+          key: _scaffoldKey,
+          drawer: const AppDrawer(),
+          body: Row(children: [
+            Material(
+              color: AppColors.navy950,
+              child: SizedBox(
+                width: 92,
+                child: Column(children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14, bottom: 6),
+                    child: Column(children: [
+                      // THE single menu button — top-left, beside the logo
+                      IconButton(
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                        icon: Icon(Icons.menu, color: AppColors.cream50),
+                        tooltip: 'Menu',
+                      ),
+                      const SizedBox(height: 4),
+                      ClipOval(
+                        child: Image.asset('assets/logo.png', width: 34, height: 34,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(Icons.hotel, color: AppColors.gold)),
+                      ),
+                    ]),
+                  ),
+                  Expanded(
+                    child: ValueListenableBuilder<int>(
+                      valueListenable: _tab,
+                      builder: (context, tab, _) => NavigationRail(
+                        selectedIndex: tab,
+                        onDestinationSelected: (i) => _tab.value = i,
+                        backgroundColor: Colors.transparent,
+                        indicatorColor: AppColors.orange600.withOpacity(0.25),
+                        selectedIconTheme: IconThemeData(color: AppColors.orange500),
+                        unselectedIconTheme: IconThemeData(color: AppColors.cream50.withOpacity(0.8)),
+                        selectedLabelTextStyle: TextStyle(color: AppColors.gold, fontSize: 11.5),
+                        unselectedLabelTextStyle: TextStyle(color: AppColors.cream50.withOpacity(0.75), fontSize: 11),
+                        labelType: NavigationRailLabelType.all,
+                        leading: const SizedBox(height: 8),
+                        destinations: const [
+                          NavigationRailDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: Text('Home')),
+                          NavigationRailDestination(icon: Icon(Icons.king_bed_outlined), selectedIcon: Icon(Icons.king_bed), label: Text('Rooms')),
+                          NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: Text('Bookings')),
+                          NavigationRailDestination(icon: Icon(Icons.local_bar_outlined), selectedIcon: Icon(Icons.local_bar), label: Text('Snackbar')),
+                          NavigationRailDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: Text('Account')),
+                        ],
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            VerticalDivider(width: 1, thickness: 1, color: AppColors.navy800),
+            Expanded(child: shell),
+          ]),
+        );
+      }
+
+      // ============ ANDROID / PHONE: top bar + bottom nav ============
+      return Scaffold(
+        key: _scaffoldKey,
+        drawer: const AppDrawer(),
+        body: shell,
+        bottomNavigationBar: ValueListenableBuilder<int>(
+          valueListenable: _tab,
+          builder: (context, tab, _) => NavigationBar(
+            height: 66,
+            selectedIndex: tab,
+            onDestinationSelected: (i) => _tab.value = i,
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+              NavigationDestination(icon: Icon(Icons.king_bed_outlined), selectedIcon: Icon(Icons.king_bed), label: 'Rooms'),
+              NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Bookings'),
+              NavigationDestination(icon: Icon(Icons.local_bar_outlined), selectedIcon: Icon(Icons.local_bar), label: 'Snackbar'),
+              NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Account'),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 
@@ -1639,11 +2169,31 @@ class HomePage extends StatelessWidget {
           Text('La-Maliva Vista', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
         ]),
         actions: [
-          IconButton(icon: const Icon(Icons.notifications_outlined), onPressed: () async {
-            await NotificationService.instance.init();
-            await NotificationService.instance.notify('La-Maliva Vista',
-                'You are up to date. Karibu!');
-          }),
+          // Bell → real notification inbox (developer team + hotel admin + app alerts)
+          ValueListenableBuilder<int>(
+            valueListenable: NotificationFeed.instance.unread,
+            builder: (context, count, _) => Stack(children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                onPressed: () async {
+                  await Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const NotificationsPage()));
+                },
+              ),
+              if (count > 0)
+                Positioned(
+                  right: 8, top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                        color: AppColors.orange600, shape: BoxShape.circle),
+                    child: Text('$count',
+                        style: const TextStyle(
+                            color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+            ]),
+          ),
         ],
       ),
       body: WavyBackground(
@@ -1656,7 +2206,7 @@ class HomePage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [
-            _Hero(onMenu: () => Scaffold.of(context).openDrawer()),
+            const _Hero(),
             const SizedBox(height: 16),
             // Quick options — the slide-menu shortcut row below the logo/hero
             SizedBox(
@@ -1767,8 +2317,7 @@ Future<void> _openBooking(BuildContext context, Room room) async {
 }
 
 class _Hero extends StatelessWidget {
-  final VoidCallback onMenu;
-  const _Hero({required this.onMenu});
+  const _Hero();
 
   @override
   Widget build(BuildContext context) {
@@ -1805,11 +2354,6 @@ class _Hero extends StatelessWidget {
               child: Text('RESERVE NOW', style: TextStyle(letterSpacing: 1.5, fontSize: 12, fontWeight: FontWeight.w600)),
             ),
             SizedBox(width: 10),
-            IconButton.filledTonal(
-              onPressed: onMenu,
-              icon: Icon(Icons.menu, color: AppColors.cream50),
-              style: IconButton.styleFrom(backgroundColor: AppColors.navy800),
-            ),
           ]),
         ],
       ),
@@ -2309,13 +2853,17 @@ class _BookingTile extends StatelessWidget {
         Text('Check-in ${_fmt(b.checkIn)}  →  Check-out ${_fmt(b.checkOut)}',
             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
         const SizedBox(height: 12),
-        Row(children: [
+        Wrap(spacing: 8, runSpacing: 8, children: [
           OutlinedButton.icon(
             onPressed: () => _receipt(context),
             icon: const Icon(Icons.description_outlined, size: 16),
             label: const Text('Receipt'),
           ),
-          const SizedBox(width: 8),
+          OutlinedButton.icon(
+            onPressed: () => _download(context),
+            icon: const Icon(Icons.download_outlined, size: 16),
+            label: const Text('Download'),
+          ),
           OutlinedButton.icon(
             onPressed: () => _print(context),
             icon: const Icon(Icons.print_outlined, size: 16),
@@ -2350,6 +2898,18 @@ class _BookingTile extends StatelessWidget {
     }
   }
 
+  /// Nights between check-in and check-out (min 1) for correct invoices.
+  static int _nightsOf(Map<String, dynamic> bk) {
+    try {
+      final ci = DateTime.parse((bk['check_in'] ?? '').toString());
+      final co = DateTime.parse((bk['check_out'] ?? '').toString());
+      final n = co.difference(ci).inDays;
+      return n < 1 ? 1 : n;
+    } catch (_) {
+      return 1;
+    }
+  }
+
   Future<void> _print(BuildContext context) async {
     try {
       final res = await Api.get('/api/booking/${b.id}', auth: true);
@@ -2361,15 +2921,38 @@ class _BookingTile extends StatelessWidget {
         phone: (bk['guest_phone'] ?? '').toString(),
         email: (bk['guest_email'] ?? '').toString(),
         roomLabel: 'Room ${bk['room']} (${bk['room_type']})',
-        nights: 1,
+        nights: _nightsOf(bk),
         rate: (bk['amount'] as num?)?.toDouble() ?? 0,
         reference: 'RES-${bk['id']}',
         issuedOn: _fmt((bk['check_in'] ?? '').toString()),
       );
-      await Invoice.print(bytes, 'lamaliva-receipt-${b.id}');
+      await Invoice.print(bytes, 'lamaliva-invoice-${b.id}');
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Printing needs a connection')));
+    }
+  }
+
+  Future<void> _download(BuildContext context) async {
+    try {
+      final res = await Api.get('/api/booking/${b.id}', auth: true);
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      if (data['ok'] != true) throw 'x';
+      final bk = data['booking'] as Map<String, dynamic>;
+      final bytes = await Invoice.build(
+        guestName: (bk['guest_name'] ?? 'Guest').toString(),
+        phone: (bk['guest_phone'] ?? '').toString(),
+        email: (bk['guest_email'] ?? '').toString(),
+        roomLabel: 'Room ${bk['room']} (${bk['room_type']})',
+        nights: _nightsOf(bk),
+        rate: (bk['amount'] as num?)?.toDouble() ?? 0,
+        reference: 'RES-${bk['id']}',
+        issuedOn: _fmt((bk['check_in'] ?? '').toString()),
+      );
+      await Invoice.download(bytes, 'lamaliva-invoice-${b.id}', context);
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Downloading needs a connection')));
     }
   }
 }
@@ -2749,6 +3332,7 @@ class _AccountPageState extends State<AccountPage> {
             ],
           ),
         ),
+        _UpdateTile(),
         _SettingsTile(
           icon: Icons.notifications_active_outlined,
           title: 'Notification permission',
@@ -2780,6 +3364,193 @@ class _AccountPageState extends State<AccountPage> {
             child: Text('© La-Maliva Vista Hotel · Buea, Cameroon',
                 style: TextStyle(color: AppColors.ink500, fontSize: 11))),
       ]),
+    );
+  }
+}
+
+// ------------------------------------------------------------
+// Notifications Center — developer team + hotel admin posts + app alerts
+// ------------------------------------------------------------
+class NotificationsPage extends StatefulWidget {
+  const NotificationsPage({super.key});
+  @override
+  State<NotificationsPage> createState() => _NotificationsPageState();
+}
+
+class _NotificationsPageState extends State<NotificationsPage> {
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    await NotificationFeed.instance.refreshFromServer();
+    if (!mounted) return;
+    setState(() => _loading = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final items = NotificationFeed.instance.items;
+    return Scaffold(
+      appBar: AppBar(title: const Text('Notifications')),
+      body: WavyBackground(
+        dark: false,
+        child: _loading
+            ? Center(child: CircularProgressIndicator(color: AppColors.orange500))
+            : items.isEmpty
+                ? Center(child: Text('No notifications yet',
+                    style: TextStyle(color: AppColors.ink500)))
+                : RefreshIndicator(
+                    onRefresh: NotificationFeed.instance.refreshFromServer,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 24),
+                      itemCount: items.length,
+                      itemBuilder: (context, i) {
+                        final n = items[i];
+                        final icon = n.source == 'team'
+                            ? Icons.verified_outlined
+                            : n.source == 'admin'
+                                ? Icons.campaign_outlined
+                                : Icons.notifications_outlined;
+                        final label = n.source == 'team'
+                            ? 'LA-MALIVA TEAM'
+                            : n.source == 'admin'
+                                ? 'HOTEL ADMIN'
+                                : 'APP';
+                        final color = n.source == 'team'
+                            ? AppColors.orange600
+                            : n.source == 'admin'
+                                ? AppColors.navy900
+                                : AppColors.ink500;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 11),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(16)),
+                          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Container(
+                              width: 40, height: 40,
+                              decoration: BoxDecoration(
+                                  color: color.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(12)),
+                              child: Icon(icon, size: 20, color: color),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Text(n.title, style: const TextStyle(
+                                  fontWeight: FontWeight.w700, fontSize: 13.5)),
+                              const SizedBox(height: 3),
+                              Text(n.body, style: TextStyle(
+                                  color: AppColors.ink500, fontSize: 12.5, height: 1.4)),
+                              const SizedBox(height: 6),
+                              Text('$label · ${_feedTime(n.at)}',
+                                  style: TextStyle(color: AppColors.ink500, fontSize: 10.5, letterSpacing: 0.4)),
+                            ])),
+                          ]),
+                        );
+                      },
+                    ),
+                  ),
+      ),
+    );
+  }
+
+  static String _feedTime(DateTime t) {
+    final d = DateTime.now().difference(t);
+    if (d.inMinutes < 1) return 'just now';
+    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+    if (d.inHours < 24) return '${d.inHours}h ago';
+    return '${t.day}/${t.month}/${t.year}';
+  }
+}
+
+// ------------------------------------------------------------
+// Check-for-updates tile (Account) — only reports/downloads when the
+// website backend announces a newer version than this build.
+// ------------------------------------------------------------
+class _UpdateTile extends StatefulWidget {
+  @override
+  State<_UpdateTile> createState() => _UpdateTileState();
+}
+
+class _UpdateTileState extends State<_UpdateTile> {
+  bool _checking = false;
+  String? _latest;
+  bool _upToDate = false;
+
+  Future<void> _check() async {
+    setState(() => _checking = true);
+    final latest = await UpdateService.instance.check(notifyIfUpToDate: true);
+    if (!mounted) return;
+    setState(() {
+      _checking = false;
+      _latest = latest;
+      _upToDate = latest == null;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: _checking ? null : _check,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              Container(
+                width: 44, height: 44,
+                decoration: BoxDecoration(
+                    color: AppColors.orange500.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(12)),
+                child: _checking
+                    ? Padding(
+                        padding: const EdgeInsets.all(11),
+                        child: CircularProgressIndicator(strokeWidth: 2.2,
+                            color: AppColors.orange600))
+                    : Icon(Icons.system_update_outlined,
+                        color: AppColors.navy900),
+              ),
+              const SizedBox(width: 14),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Check for updates',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14.5)),
+                const SizedBox(height: 2),
+                Text(
+                  _checking
+                      ? 'Contacting the hotel server…'
+                      : _latest != null
+                          ? 'v$_latest available — tap Download below'
+                          : _upToDate
+                              ? 'You are on the latest version (v$kAppVersion)'
+                              : 'Updates install from the official downloads page',
+                  style: TextStyle(color: AppColors.ink500, fontSize: 12),
+                ),
+              ])),
+              if (_latest != null)
+                ElevatedButton(
+                  onPressed: () => UpdateService.instance.downloadLatest(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.orange500,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                  ),
+                  child: const Text('Download', style: TextStyle(fontSize: 12.5)),
+                ),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -3364,7 +4135,7 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
                 Text('${r.roomLabel} · ${r.nights} night(s) · FCFA ${r.total.toStringAsFixed(0)}',
                     style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
                 const SizedBox(height: 10),
-                Row(children: [
+                Wrap(spacing: 8, runSpacing: 8, children: [
                   OutlinedButton.icon(
                     onPressed: () async {
                       final bytes = await Invoice.build(
@@ -3378,7 +4149,20 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
                     icon: const Icon(Icons.print_outlined, size: 16),
                     label: const Text('Print invoice'),
                   ),
-                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final bytes = await Invoice.build(
+                        guestName: r.name, phone: r.phone, email: r.email,
+                        roomLabel: r.roomLabel, nights: r.nights, rate: r.rate,
+                        reference: 'OFF-REG-${r.id}',
+                        issuedOn: r.createdAt,
+                      );
+                      if (!mounted) return;
+                      await Invoice.download(bytes, 'lamaliva-invoice-${r.id}', context);
+                    },
+                    icon: const Icon(Icons.download_outlined, size: 16),
+                    label: const Text('Download'),
+                  ),
                   IconButton(
                     onPressed: () async {
                       await OfflineRegStore.instance.remove(r.id);
@@ -3450,7 +4234,7 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
           const SizedBox(height: 12),
           Row(children: [
             Expanded(child: DropdownButtonFormField<int>(
-              value: _nights,
+              initialValue: _nights,
               decoration: const InputDecoration(labelText: 'Nights', border: OutlineInputBorder()),
               items: [1, 2, 3, 4, 5, 6, 7, 10, 14, 30]
                   .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
@@ -3575,7 +4359,7 @@ class _SnackbarManagerPageState extends State<SnackbarManagerPage> {
                 border: OutlineInputBorder())),
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
-          value: _category,
+          initialValue: _category,
           decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
           items: ['Drinks', 'Beer', 'Wine', 'Whisky', 'Meals', 'Snacks']
               .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -3713,7 +4497,7 @@ class _AdminPageState extends State<AdminPage> {
                   decoration: const InputDecoration(labelText: 'Password (8+ chars)', border: OutlineInputBorder())),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
-                value: role,
+                initialValue: role,
                 decoration: const InputDecoration(labelText: 'Role', border: OutlineInputBorder()),
                 items: const [
                   DropdownMenuItem(value: 'staff', child: Text('Staff (limited access)')),

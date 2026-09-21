@@ -330,7 +330,13 @@
             background: rgba(10, 22, 40, 0.5);
             border: 1px solid var(--shell-line);
             color: var(--shell-text);
+            border-radius: 10px;
+            padding: 0.52rem 0.85rem;
+            font-size: 0.92rem;
+            min-height: 42px;               /* comfortable touch target on phones */
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
+        textarea.form-control { min-height: 96px; }
         .form-control:focus, .form-select:focus {
             background: rgba(10, 22, 40, 0.7);
             border-color: var(--shell-orange);
@@ -338,7 +344,12 @@
             box-shadow: 0 0 0 0.2rem rgba(240, 140, 46, 0.2);
         }
         .form-control::placeholder { color: rgba(185,194,206,0.6); }
-        .form-label { color: var(--shell-gold); font-weight: 500; }
+        .form-label { color: var(--shell-gold); font-weight: 500; font-size: 0.86rem; letter-spacing: 0.2px; margin-bottom: 0.35rem; }
+        /* Inputs stay thumb-friendly but compact on phones */
+        @media (max-width: 575.98px) {
+            .form-control, .form-select { font-size: 16px; }  /* kills iOS zoom-on-focus */
+            .form-label { font-size: 0.82rem; }
+        }
         table.table { color: var(--shell-text); }
         .table > :not(caption) > * > * { background: transparent; color: var(--shell-text); }
         .table thead th { color: var(--shell-gold); border-color: var(--shell-line); }
@@ -612,7 +623,7 @@
             <div class="style-grid" id="stylePicker" title="Design style"></div>
         </div>
 
-        <div class="sidebar-foot">v2.2.3 · Buea, Cameroon<br>© La-Maliva Vista Hotel</div>
+        <div class="sidebar-foot">v2.3.0 · Buea, Cameroon<br>© La-Maliva Vista Hotel</div>
     </aside>
 
     <!-- ================= MAIN COLUMN ================= -->
@@ -754,7 +765,7 @@
         <a class="side-link" style="color:#ff8f9c" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right" style="color:#ff8f9c"></i> Logout</a>
         {% endif %}
     </div>
-    <div class="sidebar-foot">v2.2.3 · Buea, Cameroon</div>
+    <div class="sidebar-foot">v2.3.0 · Buea, Cameroon</div>
 </nav>
 
 <!-- ================= MOBILE BOTTOM NAV ================= -->
