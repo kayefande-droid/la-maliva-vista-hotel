@@ -143,7 +143,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.0"
+APP_VERSION = "2.3.1"
 BUILD_CHANNEL = "stable"
 
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
@@ -2268,6 +2268,7 @@ def api_sync_offline_registrations():
             access_deadline=check_in + timedelta(hours=24),
         )
         db.session.add(res)
+        db.session.flush()  # assign res.id now so the app can show it
         created.append({'name': name, 'reservation_id': res.id})
     db.session.commit()
     _perform_log(f"Synced {len(created)} offline registration(s) from native app")
