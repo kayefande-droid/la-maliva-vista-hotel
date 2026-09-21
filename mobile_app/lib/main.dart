@@ -30,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.2';
+const String kAppVersion = '2.3.3';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -257,14 +257,29 @@ class LamalivaApp extends StatefulWidget {
   State<LamalivaApp> createState() => _LamalivaAppState();
 }
 
-class _LamalivaAppState extends State<LamalivaApp> {
+class _LamalivaAppState extends State<LamalivaApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.light;
   String _styleId = 'royal';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    AppFx.load();
     _loadTheme();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Battery: freeze every ambient animation while the app is not visible.
+    AppFx.appPaused.value =
+        state == AppLifecycleState.paused || state == AppLifecycleState.hidden;
   }
 
   Future<void> _loadTheme() async {
@@ -648,6 +663,9 @@ class UpdateService {
   static final UpdateService instance = UpdateService._();
 
   final ValueNotifier<String> status = ValueNotifier<String>('');
+  /// Newest version available (null = up to date). The app shell listens to
+  /// this and shows the proactive update banner before the user ever checks.
+  final ValueNotifier<String?> latest = ValueNotifier<String?>(null);
 
   /// Returns the newest version string if an update is available, else null.
   Future<String?> check({bool notifyIfUpToDate = false}) async {
@@ -656,17 +674,19 @@ class UpdateService {
       final res = await Api.get('/api/version').timeout(const Duration(seconds: 12));
       if (res.statusCode != 200) throw 'x';
       final data = jsonDecode(res.body) as Map<String, dynamic>;
-      final latest = (data['version'] ?? '').toString();
-      final newer = _isNewer(latest, kAppVersion);
+      final newest = (data['version'] ?? '').toString();
+      final newer = _isNewer(newest, kAppVersion);
       status.value = '';
       if (newer) {
+        latest.value = newest;
         await NotificationFeed.instance.addLocalIfNew(
-            'Update available — v$latest',
-            'La-Maliva v$latest is ready. Open Account → Check for updates to install.');
-        await NotificationService.instance.notify('La-Maliva update v$latest',
+            'Update available — v$newest',
+            'La-Maliva v$newest is ready. Open Account → Check for updates to install.');
+        await NotificationService.instance.notify('La-Maliva update v$newest',
             'A newer app version is available. Tap Account → Check for updates.');
-        return latest;
+        return newest;
       }
+      latest.value = null;
       if (notifyIfUpToDate) {
         await NotificationFeed.instance.addLocalIfNew(
             'You are up to date', 'La-Maliva v$kAppVersion is the latest version.');
@@ -865,9 +885,48 @@ mixin NetAware {
   }
 }
 
+/// Battery & performance gate for all ambient effects.
+///
+/// • When the app is backgrounded, every looping animation freezes (the OS
+///   would otherwise keep painting frames — the #1 hidden battery drain).
+/// • 'Battery saver' (Settings → Battery saver) drops ambient motion
+///   entirely while keeping the static gradient look.
+/// • Respects the OS 'remove animations' accessibility setting too.
+class AppFx {
+  AppFx._();
+  static final ValueNotifier<bool> appPaused = ValueNotifier<bool>(false);
+  static final ValueNotifier<bool> batterySaver = ValueNotifier<bool>(false);
+  static bool _osReduceMotion = false;
+  static bool _loaded = false;
+
+  static Future<void> load() async {
+    if (_loaded) return;
+    _loaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      batterySaver.value = prefs.getBool('battery_saver') ?? false;
+      _osReduceMotion = WidgetsBinding
+          .instance.platformDispatcher.accessibilityFeatures.disableAnimations;
+    } catch (_) {}
+  }
+
+  static void setBatterySaver(bool on) {
+    batterySaver.value = on;
+    SharedPreferences.getInstance().then((p) => p.setBool('battery_saver', on));
+  }
+
+  /// True → ambient controllers should stand still.
+  static bool get still =>
+      appPaused.value || batterySaver.value || _osReduceMotion;
+
+  /// Save-helpers used by the account page toggle.
+  static bool get saverOn => batterySaver.value;
+}
+
 /// Ambient animated brand background — the motion style follows the active
 /// design pack: Royal=waves, Sunset=embers, Emerald=petals, Plum=orbs,
-/// Ocean=bubbles, Noir=streaks. Continuous, brand-tinted, GPU-cheap.
+/// Ocean=bubbles, Noir=streaks. Battery-aware: freezes when backgrounded
+/// or when Battery saver is on.
 class WavyBackground extends StatefulWidget {
   final Widget? child;
   final bool dark; // navy variant (headers/splash) vs cream variant
@@ -880,10 +939,29 @@ class WavyBackground extends StatefulWidget {
 class _WavyBackgroundState extends State<WavyBackground>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctl =
-      AnimationController(vsync: this, duration: const Duration(seconds: 9))..repeat();
+      AnimationController(vsync: this, duration: const Duration(seconds: 9));
+
+  @override
+  void initState() {
+    super.initState();
+    AppFx.appPaused.addListener(_syncMotion);
+    AppFx.batterySaver.addListener(_syncMotion);
+    _syncMotion();
+  }
+
+  void _syncMotion() {
+    if (AppFx.still) {
+      _ctl.stop(canceled: false);
+    } else if (!_ctl.isAnimating) {
+      _ctl.repeat();
+    }
+    if (mounted) setState(() {});
+  }
 
   @override
   void dispose() {
+    AppFx.appPaused.removeListener(_syncMotion);
+    AppFx.batterySaver.removeListener(_syncMotion);
     _ctl.dispose();
     super.dispose();
   }
@@ -1592,7 +1670,7 @@ class Invoice {
               pw.Expanded(child: pw.Container(
                 padding: const pw.EdgeInsets.all(13),
                 decoration: pw.BoxDecoration(
-                    border: pw.Border.all(color: PdfColors.grey300!),
+                    border: pw.Border.all(color: PdfColors.grey300),
                     borderRadius: pw.BorderRadius.circular(10)),
                 child: pw.Column(crossAxisAlignment: pw.CrossAxisAlignment.start, children: [
                   pw.Text('INVOICE DETAILS', style: pw.TextStyle(fontSize: 8, fontWeight: pw.FontWeight.bold,
@@ -1651,7 +1729,7 @@ class Invoice {
                       pw.Text('FCFA ${total.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 10)),
                   ]),
                   pw.SizedBox(height: 5),
-                  pw.Divider(color: PdfColors.grey300!, thickness: 0.7, height: 1),
+                  pw.Divider(color: PdfColors.grey300, thickness: 0.7, height: 1),
                   pw.SizedBox(height: 5),
                   pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
                       pw.Text('TOTAL DUE', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 11,
@@ -1721,6 +1799,7 @@ class _HomeShellState extends State<HomeShell> {
   final ValueNotifier<int> _tab = ValueNotifier<int>(0);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<bool>? _netSub;
+  String? _updateDismissed; // hides the update banner for this version until a new one ships
 
   @override
   void initState() {
@@ -1789,6 +1868,41 @@ class _HomeShellState extends State<HomeShell> {
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 900; // Windows EXE: multi-panel
       final shell = Column(children: [
+        // Proactive update banner — appears by itself when a newer version
+        // exists (startup check already ran). One tap → straight to download.
+        ValueListenableBuilder<String?>(
+          valueListenable: UpdateService.instance.latest,
+          builder: (context, newest, _) {
+            if (newest == null || newest == _updateDismissed) {
+              return const SizedBox.shrink();
+            }
+            return Material(
+              color: AppColors.navy800,
+              child: InkWell(
+                onTap: () => UpdateService.instance.downloadLatest(context),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+                  child: Row(children: [
+                    Icon(Icons.system_update_alt, size: 16, color: AppColors.gold),
+                    const SizedBox(width: 9),
+                    Expanded(
+                        child: Text('La-Maliva v$newest is available — tap to update',
+                            style: TextStyle(fontSize: 12.5, color: AppColors.cream50,
+                                fontWeight: FontWeight.w600))),
+                    GestureDetector(
+                      onTap: () => setState(() => _updateDismissed = newest),
+                      child: Padding(
+                        padding: const EdgeInsets.all(6),
+                        child: Icon(Icons.close, size: 15, color: AppColors.cream50),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            );
+          },
+        ),
         // Live connectivity banner (amber = offline, pulse = back online)
         ValueListenableBuilder<bool>(
           valueListenable: NetService.instance.online,
@@ -3399,6 +3513,25 @@ class _AccountPageState extends State<AccountPage> {
             ],
           ),
         ),
+        _SettingsTile(
+          icon: Icons.battery_saver,
+          title: 'Battery saver',
+          subtitle: AppFx.saverOn
+              ? 'On — background motion paused'
+              : 'Off — full animated backgrounds',
+          trailing: Switch.adaptive(
+            value: AppFx.saverOn,
+            activeColor: AppColors.orange500,
+            onChanged: (v) {
+              AppFx.setBatterySaver(v);
+              setState(() {});
+            },
+          ),
+          onTap: () {
+            AppFx.setBatterySaver(!AppFx.saverOn);
+            setState(() {});
+          },
+        ),
         _UpdateTile(),
         _SettingsTile(
           icon: Icons.notifications_active_outlined,
@@ -3628,12 +3761,14 @@ class _SettingsTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final bool danger;
+  final Widget? trailing;
   const _SettingsTile({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.onTap,
     this.danger = false,
+    this.trailing,
   });
 
   @override
@@ -3669,7 +3804,9 @@ class _SettingsTile extends StatelessWidget {
                 Text(subtitle,
                     style: TextStyle(color: AppColors.ink500, fontSize: 12)),
               ])),
-              Icon(Icons.chevron_right, color: AppColors.ink500),
+              if (trailing != null) trailing!,
+              if (trailing == null)
+                Icon(Icons.chevron_right, color: AppColors.ink500),
             ]),
           ),
         ),
