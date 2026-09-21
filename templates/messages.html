@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="page-head mb-3">
+  <h1 class="page-title mb-1">Messages</h1>
+  <p class="text-muted-lux mb-0">
+    {% if current_user.role == 'admin' %}Direct line to your staff — text and file transfer.{% else %}Direct line to the administrator — text and file transfer.{% endif %}
+  </p>
+</div>
+
+<div class="row g-3">
+  {# ---- Conversation list ---- #}
+  <div class="col-12 col-lg-4">
+    <div class="glass-panel p-3">
+      <div class="side-label mb-2">Conversations</div>
+      {% for p in partners %}
+      <a class="side-link d-flex justify-content-between align-items-center {{ 'active' if partner and partner.id == p.id }}"
+         href="{{ url_for('messages', with_=p.id) }}">
+        <span><i class="bi bi-person-circle"></i> {{ p.username }}
+          <small class="text-muted-lux">({{ p.role }})</small></span>
+        {% if unread_counts.get(p.id) %}
+        <span class="badge rounded-pill" style="background:#f08c2e; color:#08123A;">{{ unread_counts[p.id] }}</span>
+        {% endif %}
+      </a>
+      {% else %}
+      <p class="text-muted-lux mb-0">
+        {% if current_user.role == 'admin' %}No staff accounts yet — create one under User Management.{% else %}No admin available.{% endif %}
+      </p>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ---- Thread ---- #}
+  <div class="col-12 col-lg-8">
+    <div class="glass-panel p-3 d-flex flex-column" style="min-height: 420px;">
+      {% if partner %}
+      <div class="d-flex align-items-center gap-2 border-bottom pb-2 mb-3" style="border-color: var(--shell-line) !important;">
+        <i class="bi bi-chat-dots" style="color:#f08c2e;"></i>
+        <strong class="lux-serif">Chat with {{ partner.username }}</strong>
+        <span class="badge bg-secondary" style="border-radius:999px;">{{ partner.role }}</span>
+      </div>
+
+      <div class="flex-grow-1 overflow-auto mb-3" style="max-height: 46vh;">
+        {% for m in thread %}
+        <div class="d-flex mb-2 {{ 'justify-content-end' if m.sender_id == current_user.id }}">
+          <div class="p-3 rounded-4 {{ 'mw-75' }}"
+               style="max-width: 78%;
+                      background: {{ 'linear-gradient(135deg, rgba(240,140,46,.22), rgba(240,140,46,.10))' if m.sender_id == current_user.id else 'rgba(253,250,244,.07)' }};
+                      border: 1px solid var(--shell-line);">
+            <div style="font-size: 13.5px; color: rgba(245,241,232,.9); white-space: pre-wrap;">{{ m.body }}</div>
+            {% if m.attachment_path %}
+            <a class="d-inline-flex align-items-center gap-2 mt-2 p-2 rounded-3"
+               href="{{ url_for('messages_attachment', msg_id=m.id) }}"
+               style="background: rgba(253,250,244,.08); border: 1px solid var(--shell-line); color: #f5f1e8; text-decoration: none; font-size: 12.5px;">
+              <i class="bi bi-paperclip" style="color:#f08c2e;"></i> {{ m.attachment_name }}
+              {% if m.attachment_size %}<small class="text-muted-lux">({{ '%.1f'|format(m.attachment_size / 1024) }} KB)</small>{% endif %}
+              <i class="bi bi-download"></i>
+            </a>
+            {% endif %}
+            <div class="text-end mt-1">
+              <small class="text-muted-lux" style="font-size: 10.5px;">
+                {{ m.sender.username }} · {{ m.created_at.strftime('%d %b %H:%M') }}{% if m.read_at and m.sender_id == current_user.id %} · <i class="bi bi-check2-all"></i>{% endif %}
+              </small>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-muted-lux text-center py-4">No messages yet — say hello 👋</p>
+        {% endfor %}
+      </div>
+
+      <form method="POST" action="{{ url_for('messages_send') }}" enctype="multipart/form-data" class="d-flex gap-2 align-items-end flex-wrap">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="recipient_id" value="{{ partner.id }}">
+        <textarea name="body" rows="2" class="form-control lux-input flex-grow-1" placeholder="Write a message…" style="min-width: 200px;"></textarea>
+        <div>
+          <label class="btn btn-lux-outline mb-0" style="cursor:pointer;">
+            <i class="bi bi-paperclip"></i><input type="file" name="attachment" hidden
+                  onchange="this.closest('form').querySelector('.file-name').textContent = this.files[0] ? this.files[0].name : '';">
+          </label>
+          <div class="file-name text-muted-lux" style="font-size: 11px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></div>
+        </div>
+        <button type="submit" class="btn btn-lux-orange"><i class="bi bi-send"></i> Send</button>
+      </form>
+      {% else %}
+      <div class="lux-empty text-center my-auto py-5">
+        <i class="bi bi-chat-square-text" style="font-size:3rem;opacity:.35;"></i>
+        <p class="mt-3 mb-0">Select a conversation on the left.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

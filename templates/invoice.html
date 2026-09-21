@@ -1,207 +1,272 @@
 {% extends 'base.html' %}
+{% block title %}Invoice #{{ res.id }} — LA-MALIVA VISTA HOTEL{% endblock %}
+
 {% block content %}
 <style>
-    /* Print-specific adjustments */
+    /* ============ Screen (luxury) ============ */
+    .invoice-toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+    .invoice-sheet-wrap {
+        max-width: 860px;
+        margin: 0 auto;
+    }
+    .invoice-sheet {
+        background: #fdfaf4;
+        color: #1d2b3f;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+        animation: sheetIn .55s cubic-bezier(.22,1,.36,1) both;
+    }
+    @keyframes sheetIn {
+        from { opacity: 0; transform: translateY(24px) scale(.985); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* Brand masthead */
+    .inv-mast {
+        background: linear-gradient(135deg, #0a1630 0%, #10264a 55%, #16305c 100%);
+        color: #fdfaf4;
+        padding: 30px 38px;
+        position: relative;
+        overflow: hidden;
+    }
+    .inv-mast::after {
+        content: "";
+        position: absolute;
+        inset: auto -40px -70px auto;
+        width: 240px;
+        height: 240px;
+        background: radial-gradient(circle at center, rgba(240,140,46,.35), transparent 65%);
+        pointer-events: none;
+    }
+    .inv-mast .inv-logo {
+        height: 64px;
+        filter: drop-shadow(0 3px 8px rgba(0,0,0,.45));
+    }
+    .inv-mast h1 {
+        font-family: 'Cormorant Garamond', serif;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin: 10px 0 2px;
+        color: #fdfaf4;
+    }
+    .inv-mast .inv-tag {
+        color: #f0b36b;
+        font-size: 13px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+    }
+    .inv-mast .inv-contact {
+        font-size: 12px;
+        color: rgba(253,250,244,.75);
+        margin-top: 6px;
+    }
+    .inv-badge {
+        position: absolute;
+        top: 30px;
+        right: 38px;
+        background: linear-gradient(135deg, #f08c2e, #d97a2b);
+        color: #fff;
+        font-weight: 800;
+        font-size: 13px;
+        letter-spacing: 1.5px;
+        padding: 10px 18px;
+        border-radius: 999px;
+        box-shadow: 0 6px 18px rgba(240,140,46,.45);
+    }
+
+    /* Body */
+    .inv-body { padding: 34px 38px 26px; }
+    .inv-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 2.2px;
+        text-transform: uppercase;
+        color: #c96a1f;
+        border-bottom: 2px solid rgba(201,106,31,.25);
+        padding-bottom: 6px;
+        margin-bottom: 14px;
+    }
+    .inv-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 26px;
+        margin-bottom: 26px;
+    }
+    .inv-field { margin-bottom: 10px; }
+    .inv-label {
+        font-size: 11px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: #8a94a6;
+        margin-bottom: 2px;
+    }
+    .inv-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #1d2b3f;
+    }
+    .inv-stay-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-bottom: 26px;
+    }
+    .inv-stay-cell {
+        background: #f6f1e6;
+        border: 1px solid #e7ddc8;
+        border-radius: 0.6rem;
+        padding: 14px 16px;
+        text-align: center;
+    }
+    .inv-stay-cell .inv-value { font-size: 15px; }
+    .inv-total {
+        background: linear-gradient(135deg, #0a1630, #16305c);
+        color: #fdfaf4;
+        border-radius: 0.8rem;
+        padding: 22px 26px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+    .inv-total .t-label {
+        font-size: 13px;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        color: #f0b36b;
+        font-weight: 700;
+    }
+    .inv-total .t-amount {
+        font-size: 30px;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+    .inv-total .t-hint {
+        font-size: 12px;
+        color: rgba(253,250,244,.65);
+    }
+    .inv-foot {
+        border-top: 1px dashed #d8ccb2;
+        margin: 26px 38px 0;
+        padding: 18px 0 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 12px;
+        color: #8a94a6;
+    }
+    .inv-foot .inv-sign {
+        border-top: 1px solid #1d2b3f;
+        padding-top: 4px;
+        min-width: 180px;
+        text-align: center;
+        font-size: 11px;
+        letter-spacing: 1px;
+        color: #1d2b3f;
+    }
+
+    /* ============ Print (A4, exact colors) ============ */
     @media print {
-        @page {
-            size: A4;
-            margin: 0;
-        }
-        body {
-            margin: 0;
-            padding: 0;
-            background: white !important;
+        @page { size: A4; margin: 0; }
+        html, body {
+            background: #fff !important;
+            margin: 0 !important;
+            padding: 0 !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
         }
-        body * {
-            visibility: hidden;
-        }
-        #invoice-card, #invoice-card * {
-            visibility: visible;
-        }
+        /* Hide everything except the sheet */
+        body * { visibility: hidden; }
+        #invoice-card, #invoice-card * { visibility: visible; }
         #invoice-card {
             position: absolute;
-            left: 0;
-            top: 0;
+            inset: 0 auto auto 0;
             width: 100%;
-            margin: 0;
-            padding: 20px;
+            border-radius: 0 !important;
             box-shadow: none !important;
-            border: none !important;
-            background: white !important;
-            color: #333 !important; /* Ensure text is dark for print */
+            animation: none !important;
         }
-        #invoice-card h6, #invoice-card .info-value, #invoice-card .total-amount {
-            color: #333 !important;
-        }
-        .main-content {
-            border: none !important;
-            box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            background: white !important;
-        }
-        .no-print {
-            display: none !important;
-        }
-    }
-
-    /* Screen Styles */
-    .invoice-wrapper {
-        max-width: 800px;
-        margin: 0 auto;
-    }
-    .invoice-header-strip {
-        background: linear-gradient(135deg, #eec37a 0%, #f08c2e 100%); /* Brighter gold gradient strip */
-        height: 10px;
-        border-radius: 0.75rem 0.75rem 0 0;
-    }
-    .invoice-box {
-        background: rgba(255, 255, 255, 0.15); /* Semi-transparent white */
-        border: 1px solid rgba(255, 255, 255, 0.4); /* More prominent light border */
-        border-radius: 0 0 0.75rem 0.75rem;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-        padding: 40px;
-        color: #f5f1e8; /* Lighter text */
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
-    .invoice-title {
-        color: #eec37a; /* Brighter gold text */
-        font-weight: 800;
-        font-size: 28px;
-        text-transform: uppercase;
-        margin-bottom: 5px;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.4);
-    }
-    .invoice-subtitle {
-        color: #f5f1e8; /* Lighter text */
-        font-weight: 600;
-        font-size: 14px;
-        letter-spacing: 1px;
-    }
-    .divider {
-        border-top: 2px solid rgba(255, 255, 255, 0.2);
-        margin: 25px 0;
-    }
-    .info-label {
-        font-size: 12px;
-        color: #b9c2ce; /* Brighter muted text */
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 2px;
-    }
-    .info-value {
-        font-size: 16px;
-        font-weight: 600;
-        color: #eec37a; /* Brighter gold for values */
-        margin-bottom: 15px;
-    }
-    .total-box {
-        background: rgba(0, 0, 0, 0.25); /* Darker transparent background */
-        border-left: 4px solid #eec37a; /* Brighter gold border */
-        padding: 20px;
-        margin-top: 30px;
-        text-align: right;
-        border-radius: 0.5rem;
-    }
-    .total-label {
-        font-size: 14px;
-        color: #f5f1e8; /* Lighter text */
-    }
-    .total-amount {
-        font-size: 24px;
-        color: #eec37a; /* Brighter gold total amount */
-        font-weight: 800;
-        text-shadow: 0 1px 3px rgba(0,0,0,0.4);
-    }
-    .invoice-box .text-muted {
-        color: #b9c2ce !important; /* Brighter muted text */
+        .no-print { display: none !important; }
+        .inv-mast { background: #0a1630 !important; -webkit-print-color-adjust: exact; }
+        .inv-total { background: #10264a !important; -webkit-print-color-adjust: exact; }
     }
 </style>
 
 <div class="container-fluid">
     <div class="main-content glass-panel">
-        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
-            <h5 class="text-gold"><i class="bi bi-receipt"></i> Invoice Details</h5>
+        <div class="invoice-toolbar no-print">
             <div>
-                <button onclick="window.print()" class="btn btn-gold me-2"><i class="bi bi-printer"></i> Print</button>
-                <a href="{{ url_for('download_booking_proof', res_id=res.id) }}" class="btn btn-gold"><i class="bi bi-download"></i> Download PDF</a>
+                <h5 class="mb-1" style="color:#fdfaf4;"><i class="bi bi-receipt"></i> Invoice #{{ res.id }}</h5>
+                <span class="text-muted-lux" style="font-size: 13px;">Guest billing document — print or download the official PDF copy</span>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button onclick="window.print()" class="btn btn-lux-orange"><i class="bi bi-printer"></i> Print Invoice</button>
+                <a href="{{ url_for('download_booking_proof', res_id=res.id) }}" class="btn btn-lux-outline"><i class="bi bi-download"></i> Download PDF</a>
+                <a href="javascript:history.back()" class="btn btn-lux-outline"><i class="bi bi-arrow-left"></i> Back</a>
             </div>
         </div>
 
-        <div class="invoice-wrapper" id="invoice-card">
-            <div class="invoice-header-strip"></div>
-            <div class="invoice-box">
-                <!-- Header -->
-                <div class="text-center mb-4">
-                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" style="height: 80px; margin-bottom: 15px;">
-                    <div class="invoice-title">LA-MALIVA VISTA HOTEL</div>
-                    <div class="invoice-subtitle">A Taste of Paradise • Buea, Cameroon</div>
-                    <div class="text-muted" style="font-size: 12px; margin-top: 5px;">www.lamalivavistahotel.com • (+237) 679-915-967</div>
+        <div class="invoice-sheet-wrap" id="invoice-card">
+            <div class="invoice-sheet">
+                <!-- Masthead -->
+                <div class="inv-mast">
+                    <span class="inv-badge">INVOICE</span>
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="inv-logo">
+                    <h1>LA-MALIVA VISTA HOTEL</h1>
+                    <div class="inv-tag">A Taste of Paradise</div>
+                    <div class="inv-contact">Fako Heart Entrance, GRA Bokwaongo, Buea — Cameroon &bull; (+237) 679-915-967</div>
                 </div>
 
-                <div class="divider"></div>
-
-                <!-- Content Grid -->
-                <div class="row">
-                    <!-- Guest Info -->
-                    <div class="col-6">
-                        <h6 class="text-gold mb-3"><i class="bi bi-person"></i> Guest Information</h6>
-                        <div class="info-label">Name</div>
-                        <div class="info-value">{{ res.guest.name if res.guest else 'N/A' }}</div> {# Safely access guest name #}
-
-                        <div class="info-label">Email</div>
-                        <div class="info-value">{{ res.guest.email if res.guest else 'N/A' }}</div> {# Safely access guest email #}
-
-                        <div class="info-label">Phone</div>
-                        <div class="info-value">{{ res.guest.phone if res.guest else 'N/A' }}</div> {# Safely access guest phone #}
+                <div class="inv-body">
+                    <!-- Guest / Room -->
+                    <div class="inv-grid">
+                        <div>
+                            <div class="inv-section-title"><i class="bi bi-person"></i> Guest Information</div>
+                            <div class="inv-field"><div class="inv-label">Guest Name</div><div class="inv-value">{{ res.guest.name if res.guest else 'N/A' }}</div></div>
+                            <div class="inv-field"><div class="inv-label">Email</div><div class="inv-value">{{ res.guest.email if res.guest else 'N/A' }}</div></div>
+                            <div class="inv-field"><div class="inv-label">Phone</div><div class="inv-value">{{ res.guest.phone if res.guest else 'N/A' }}</div></div>
+                        </div>
+                        <div>
+                            <div class="inv-section-title"><i class="bi bi-door-open"></i> Room Details</div>
+                            <div class="inv-field"><div class="inv-label">Room</div><div class="inv-value">{{ res.room.room_number if res.room else 'N/A' }} — {{ res.room.room_type if res.room else 'N/A' }}</div></div>
+                            <div class="inv-field"><div class="inv-label">Price per Night</div><div class="inv-value">FCFA {{ "{:,.0f}".format(res.room.price) if res.room else 'N/A' }}</div></div>
+                            <div class="inv-field"><div class="inv-label">Status</div><div class="inv-value">{{ res.status }}</div></div>
+                        </div>
                     </div>
 
-                    <!-- Room Info -->
-                    <div class="col-6 text-end">
-                        <h6 class="text-gold mb-3"><i class="bi bi-door-open"></i> Room Details</h6>
-                        <div class="info-label">Room Number</div>
-                        <div class="info-value">{{ res.room.room_number if res.room else 'N/A' }}</div> {# Safely access room number #}
-
-                        <div class="info-label">Room Type</div>
-                        <div class="info-value">{{ res.room.room_type if res.room else 'N/A' }}</div> {# Safely access room type #}
-
-                        <div class="info-label">Price per Night</div>
-                        <div class="info-value">FCFA {{ "{:,.0f}".format(res.room.price) if res.room else 'N/A' }}</div> {# Safely access room price #}
+                    <!-- Stay -->
+                    <div class="inv-section-title"><i class="bi bi-calendar-check"></i> Stay Summary</div>
+                    <div class="inv-stay-grid">
+                        <div class="inv-stay-cell"><div class="inv-label">Check-in</div><div class="inv-value">{{ res.check_in.strftime('%d %b %Y, %H:%M') }}</div></div>
+                        <div class="inv-stay-cell"><div class="inv-label">Check-out</div><div class="inv-value">{{ res.check_out.strftime('%d %b %Y, %H:%M') }}</div></div>
+                        <div class="inv-stay-cell"><div class="inv-label">Duration</div><div class="inv-value">{{ days|round(1) }} Night{{ 's' if days > 1 else '' }}</div></div>
                     </div>
-                </div>
 
-                <div class="divider"></div>
-
-                <!-- Reservation Details -->
-                <h6 class="text-gold mb-3"><i class="bi bi-calendar-check"></i> Reservation Summary</h6>
-                <div class="row">
-                    <div class="col-4">
-                        <div class="info-label">Check-in</div>
-                        <div class="info-value">{{ res.check_in.strftime('%d %b %Y, %H:%M') }}</div>
-                    </div>
-                    <div class="col-4 text-center">
-                        <div class="info-label">Check-out</div>
-                        <div class="info-value">{{ res.check_out.strftime('%d %b %Y, %H:%M') }}</div>
-                    </div>
-                    <div class="col-4 text-end">
-                        <div class="info-label">Duration</div>
-                        <div class="info-value">{{ days|round(1) }} Nights</div>
+                    <!-- Total -->
+                    <div class="inv-total">
+                        <div>
+                            <div class="t-label">Total Amount Due</div>
+                            <div class="t-hint">Payment at the front desk — FCFA accepted</div>
+                        </div>
+                        <div class="t-amount">FCFA {{ "{:,.0f}".format(res.amount) }}</div>
                     </div>
                 </div>
 
-                <!-- Total -->
-                <div class="total-box">
-                    <span class="total-label">Total Amount Due:</span><br>
-                    <span class="total-amount">FCFA {{ "{:,.0f}".format(res.amount) }}</span>
-                </div>
-
-                <!-- Footer -->
-                <div class="text-center mt-5">
-                    <p class="text-muted" style="font-size: 13px;">Thank you for choosing LA-MALIVA VISTA HOTEL!</p>
-                    <p class="text-muted" style="font-size: 11px;">Generated on {{ now.strftime('%d %B %Y at %H:%M') }}</p>
+                <div class="inv-foot">
+                    <span>Generated {{ now.strftime('%d %B %Y at %H:%M') }} &bull; Ref: LAMALIVA-INV-{{ res.id }}</span>
+                    <div class="inv-sign">Guest Signature</div>
                 </div>
             </div>
         </div>

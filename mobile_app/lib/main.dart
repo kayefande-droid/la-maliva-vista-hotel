@@ -12,6 +12,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -28,7 +29,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.2.1';
+const String kAppVersion = '2.2.2';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -198,14 +199,8 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.brandNavy,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.35),
-            radius: 1.1,
-            colors: [Color(0xFF16305C), AppColors.brandNavy],
-          ),
-        ),
+      body: WavyBackground(
+        dark: true,
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -425,6 +420,185 @@ class Api {
     final streamed = await req.send().timeout(const Duration(seconds: 30));
     return await http.Response.fromStream(streamed);
   }
+}
+
+// ------------------------------------------------------------
+// Connectivity — real internet detection (Wi-Fi/mobile data may be on
+// but the hotel API can be unreachable), probe + auto-retry + broadcast
+// ------------------------------------------------------------
+class NetService {
+  NetService._();
+  static final NetService instance = NetService._();
+
+  final ValueNotifier<bool> online = ValueNotifier<bool>(true);
+  final StreamController<bool> _changes = StreamController<bool>.broadcast();
+  Stream<bool> get onChange => _changes.stream;
+  Timer? _retry;
+  int _failures = 0;
+  bool _probing = false;
+
+  /// Cheap reachability check against the hotel backend's health endpoint.
+  Future<bool> probe() async {
+    if (_probing) return online.value;
+    _probing = true;
+    try {
+      final res = await http
+          .get(Uri.parse('$kBaseUrl/api/health'))
+          .timeout(const Duration(seconds: 8));
+      _setOnline(res.statusCode < 500);
+    } catch (_) {
+      _setOnline(false);
+    } finally {
+      _probing = false;
+    }
+    return online.value;
+  }
+
+  void noteSuccess() => _setOnline(true);
+
+  void noteFailure() {
+    _failures++;
+    if (_failures >= 2 && !online.value) return;
+    if (_failures >= 2) {
+      _setOnline(false);
+      _startRetry();
+    }
+  }
+
+  void _setOnline(bool value) {
+    if (value) {
+      _failures = 0;
+      _retry?.cancel();
+      _retry = null;
+    }
+    if (online.value != value) {
+      online.value = value;
+      _changes.add(value);
+      if (!value) _startRetry();
+    }
+  }
+
+  /// Auto-retry every 12s while offline so the app re-syncs on its own
+  /// the moment the network returns (no user action needed).
+  void _startRetry() {
+    if (_retry != null) return;
+    _retry = Timer.periodic(const Duration(seconds: 12), (_) async {
+      if (await probe()) _retry?.cancel();
+    });
+  }
+
+  void dispose() {
+    _retry?.cancel();
+    _changes.close();
+  }
+}
+
+/// Blanket HTTP + response-error interceptor: routes through [NetService]
+/// so every screen knows the true connectivity state.
+mixin NetAware {
+  Future<http.Response> netGet(String path, {bool auth = false}) async {
+    try {
+      final res = await Api.get(path, auth: auth);
+      NetService.instance.noteSuccess();
+      return res;
+    } catch (_) {
+      NetService.instance.noteFailure();
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> netPost(String path, Map<String, dynamic> body,
+      {bool auth = false}) async {
+    try {
+      final data = await Api.post(path, body, auth: auth);
+      NetService.instance.noteSuccess();
+      return data;
+    } catch (_) {
+      NetService.instance.noteFailure();
+      rethrow;
+    }
+  }
+}
+
+/// Wavy animated brand background — layered sine curves in the site's
+/// navy/orange palette, drifting continuously (matches website hero waves).
+class WavyBackground extends StatefulWidget {
+  final Widget? child;
+  final bool dark; // navy variant (headers/splash) vs cream variant
+  const WavyBackground({super.key, this.child, this.dark = true});
+
+  @override
+  State<WavyBackground> createState() => _WavyBackgroundState();
+}
+
+class _WavyBackgroundState extends State<WavyBackground>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctl =
+      AnimationController(vsync: this, duration: const Duration(seconds: 9))..repeat();
+
+  @override
+  void dispose() {
+    _ctl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final base = widget.dark ? AppColors.brandNavy : AppColors.cream50;
+    return Stack(children: [
+      Positioned.fill(child: ColoredBox(color: base)),
+      Positioned.fill(
+        child: FadeTransition(
+          opacity: Tween<double>(begin: 0.55, end: 1.0).animate(_ctl),
+          child: AnimatedBuilder(
+            animation: _ctl,
+            builder: (context, _) => CustomPaint(
+              painter: _WavesPainter(
+                phase: _ctl.value * 2 * math.pi,
+                dark: widget.dark,
+              ),
+            ),
+          ),
+        ),
+      ),
+      if (widget.child != null) widget.child!,
+    ]);
+  }
+}
+
+class _WavesPainter extends CustomPainter {
+  final double phase;
+  final bool dark;
+  _WavesPainter({required this.phase, required this.dark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final List<Color> tones = dark
+        ? [const Color(0xFF16305C), AppColors.orange600, AppColors.navy800]
+        : [const Color(0xFFE8DFC9), AppColors.orange500, const Color(0xFFDCE6F5)];
+    for (var i = 0; i < 3; i++) {
+      final paint = Paint()
+        ..color = tones[i].withOpacity(dark ? 0.16 : 0.22)
+        ..style = PaintingStyle.fill;
+      final path = Path()..moveTo(0, size.height);
+      for (double x = 0; x <= size.width; x += 14) {
+        final y = size.height * (0.62 + 0.09 * i) +
+            (18 + 7.0 * i) *
+                _sin(x / (110 + 34.0 * i) + phase + i * 2.1) +
+            10 * _sin(x / 47 + phase * 1.7);
+        path.lineTo(x, y);
+      }
+      path
+        ..lineTo(size.width, size.height)
+        ..close();
+      canvas.drawPath(path, paint);
+    }
+  }
+
+  double _sin(double x) => 0.5 * (1 + math.sin(x)); // 0..1
+
+  @override
+  bool shouldRepaint(_WavesPainter oldDelegate) => oldDelegate.phase != phase;
 }
 
 // ------------------------------------------------------------
@@ -734,9 +908,11 @@ class RoomRepository {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(
             _cacheKey, jsonEncode(rooms.map((r) => r.toMap()).toList()));
+        NetService.instance.noteSuccess();
       }
     } catch (_) {
       fromCache = true;
+      NetService.instance.noteFailure();
     }
     return rooms;
   }
@@ -792,9 +968,11 @@ class SnackbarRepository {
                   })
               .toList(),
         }));
+        NetService.instance.noteSuccess();
       }
     } catch (_) {
       fromCache = true;
+      NetService.instance.noteFailure();
     }
   }
 }
@@ -1017,6 +1195,56 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   final ValueNotifier<int> _tab = ValueNotifier<int>(0);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+  StreamSubscription<bool>? _netSub;
+
+  @override
+  void initState() {
+    super.initState();
+    // Real connectivity awareness from the first frame
+    NetService.instance.probe();
+    // When internet returns: refresh everything + sync offline bookings
+    _netSub = NetService.instance.onChange.listen((onlineNow) {
+      if (!mounted) return;
+      if (onlineNow) {
+        RoomRepository.instance.refresh();
+        SnackbarRepository.instance.refresh();
+        SessionService.instance.refreshFeatures();
+        _syncOfflineRegistrations();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Back online — everything synced 🔄'),
+            duration: Duration(seconds: 2)));
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('No internet — showing cached hotel data'),
+            duration: Duration(seconds: 2)));
+      }
+    });
+  }
+
+  Future<void> _syncOfflineRegistrations() async {
+    final regs = await OfflineRegStore.instance.all();
+    if (regs.isEmpty) return;
+    try {
+      final data = await Api.post('/api/sync-offline-registrations', {
+        'registrations': regs.map((r) => r.toMap()).toList(),
+      });
+      if (data['ok'] == true) {
+        for (final reg in regs) {
+          await OfflineRegStore.instance.remove(reg.id);
+        }
+        await NotificationService.instance.notify('Offline registrations synced',
+            '${data['synced']} guest record(s) uploaded to the hotel database.');
+      }
+    } catch (_) {
+      // still offline — retried automatically the next time internet returns
+    }
+  }
+
+  @override
+  void dispose() {
+    _netSub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1030,10 +1258,44 @@ class _HomeShellState extends State<HomeShell> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const AppDrawer(),
-      body: ValueListenableBuilder<int>(
-        valueListenable: _tab,
-        builder: (context, tab, _) => pages[tab],
-      ),
+      body: Column(children: [
+        // Live connectivity banner (amber = offline, green pulse = back online)
+        ValueListenableBuilder<bool>(
+          valueListenable: NetService.instance.online,
+          builder: (context, isOnline, _) {
+            if (isOnline) return const SizedBox.shrink();
+            return Material(
+              color: AppColors.gold.withOpacity(0.25),
+              child: InkWell(
+                onTap: () => NetService.instance.probe(),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 7, horizontal: 16),
+                  child: Row(children: const [
+                    Icon(Icons.wifi_off, size: 15, color: AppColors.navy900),
+                    SizedBox(width: 8),
+                    Expanded(
+                        child: Text('No internet — offline mode active. Tap to retry.',
+                            style: TextStyle(fontSize: 12, color: AppColors.navy900,
+                                fontWeight: FontWeight.w600))),
+                    SizedBox(width: 8),
+                    SizedBox(
+                        width: 12, height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.8,
+                            color: AppColors.orange600)),
+                  ]),
+                ),
+              ),
+            );
+          },
+        ),
+        Expanded(
+          child: ValueListenableBuilder<int>(
+            valueListenable: _tab,
+            builder: (context, tab, _) => pages[tab],
+          ),
+        ),
+      ]),
       bottomNavigationBar: ValueListenableBuilder<int>(
         valueListenable: _tab,
         builder: (context, tab, _) => NavigationBar(
@@ -1246,7 +1508,9 @@ class HomePage extends StatelessWidget {
           }),
         ],
       ),
-      body: RefreshIndicator(
+      body: WavyBackground(
+        dark: false,
+        child: RefreshIndicator(
         onRefresh: () async {
           await RoomRepository.instance.refresh();
           await SessionService.instance.refreshFeatures();
@@ -1307,6 +1571,7 @@ class HomePage extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -1526,6 +1791,7 @@ class _RoomCard extends StatelessWidget {
                         errorBuilder: (_, __, ___) => _imgFallback())
                     : _imgFallback(),
               ),
+              // (fallback shows the bundled default room photo)
               Positioned(
                 top: 10, left: 10,
                 child: Container(
@@ -1580,10 +1846,18 @@ class _RoomCard extends StatelessWidget {
     );
   }
 
-  Widget _imgFallback() => Container(
-        color: AppColors.cream100,
-        child: const Center(child: Icon(Icons.hotel, size: 44, color: AppColors.orange500)),
-      );
+  /// Bundled default room photo — always available, even fully offline,
+  /// so room cards never show an empty grey box.
+  Widget _imgFallback() {
+    final img = room.type.toLowerCase().contains('deluxe') || room.type.toLowerCase().contains('suite')
+        ? 'assets/room_deluxe.jpg'
+        : 'assets/room_default.jpg';
+    return Image.asset(img, fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+              color: AppColors.cream100,
+              child: const Center(child: Icon(Icons.hotel, size: 44, color: AppColors.orange500)),
+            ));
+  }
 }
 
 class BookingSheet extends StatefulWidget {

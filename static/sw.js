@@ -8,7 +8,7 @@
      - Offline fallback       : /offline page + cached shell
    ============================================================ */
 
-const VERSION = 'v2.2.1';
+const VERSION = 'v2.2.2';
 const SHELL_CACHE = 'lmv-shell-' + VERSION;
 const PAGES_CACHE = 'lmv-pages-' + VERSION;
 const ASSETS_CACHE = 'lmv-assets-' + VERSION;
@@ -91,6 +91,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (url.origin !== self.location.origin && !isStaticAsset(url)) return;
   if (url.pathname.startsWith('/sw.js')) return;
+  // NEVER cache the connectivity probe — the banner must reflect real reachability
+  if (url.pathname === '/static/ping.txt') return;
 
   // 1) Static + CDN assets: stale-while-revalidate
   if (isStaticAsset(url)) {

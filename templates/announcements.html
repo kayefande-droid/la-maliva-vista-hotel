@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Announcements{% endblock %}
+
+{% block content %}
+<div class="page-head d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+  <div>
+    <h1 class="page-title mb-1">Announcements</h1>
+    <p class="text-muted-lux mb-0">Notices from the administrator{% if current_user.role == 'admin' %} — you compose, they read{% endif %}.</p>
+  </div>
+  {% if current_user.role == 'admin' %}
+  <button class="btn btn-lux-orange" data-bs-toggle="modal" data-bs-target="#newPost"><i class="bi bi-megaphone me-2"></i>New Announcement</button>
+  {% endif %}
+</div>
+
+{% if current_user.role == 'admin' %}
+<div class="modal fade" id="newPost" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <form class="modal-content lux-modal" method="POST" action="{{ url_for('announcement_post') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="modal-header"><h5 class="modal-title lux-serif">Post an Announcement</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label-lux">Title</label>
+          <input type="text" name="title" class="form-control lux-input" maxlength="150" required placeholder="e.g. Staff briefing — Friday 3 PM">
+        </div>
+        <div class="mb-3">
+          <label class="form-label-lux">Message</label>
+          <textarea name="body" rows="6" class="form-control lux-input" required placeholder="Write the notice…"></textarea>
+        </div>
+        <div class="row g-3 align-items-center">
+          <div class="col-7">
+            <label class="form-label-lux">Audience</label>
+            <select name="audience" class="form-select lux-input">
+              <option value="staff">Staff &amp; admins only</option>
+              <option value="everyone">Everyone (staff + guests)</option>
+            </select>
+          </div>
+          <div class="col-5">
+            <div class="form-check form-switch mt-4">
+              <input class="form-check-input" type="checkbox" role="switch" name="pinned" id="pinSwitch">
+              <label class="form-check-label text-muted-lux" for="pinSwitch">Pin to top</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-lux-outline" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-lux-orange">Publish</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="row g-4">
+  {% for post in posts %}
+  <div class="col-12">
+    <div class="glass-panel p-4 h-100 position-relative {{ 'border-warning' if post.pinned }}">
+      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+        <div>
+          {% if post.pinned %}<span class="badge room-status-badge status-maintenance position-static me-2"><i class="bi bi-pin-angle-fill"></i> Pinned</span>{% endif %}
+          <span class="badge {% if post.audience == 'everyone' %}bg-success{% else %}bg-secondary{% endif %} position-static me-2" style="border-radius:999px;">
+            {{ 'Everyone' if post.audience == 'everyone' else 'Staff' }}
+          </span>
+          <h5 class="lux-serif d-inline">{{ post.title }}</h5>
+        </div>
+        {% if current_user.role == 'admin' %}
+        <form method="POST" action="{{ url_for('announcement_delete', post_id=post.id) }}"
+              onsubmit="return confirm('Delete this announcement?');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm btn-lux-danger-outline"><i class="bi bi-trash"></i></button>
+        </form>
+        {% endif %}
+      </div>
+      <p class="mt-3 mb-2" style="white-space: pre-wrap; color: rgba(245,241,232,.88);">{{ post.body }}</p>
+      <small class="text-muted-lux"><i class="bi bi-person-badge"></i> {{ post.author.username if post.author else 'Admin' }} · {{ post.created_at.strftime('%d %b %Y, %H:%M') }}</small>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="lux-empty text-center py-5">
+      <i class="bi bi-megaphone" style="font-size:3rem;opacity:.35;"></i>
+      <p class="mt-3 mb-0">No announcements yet{% if current_user.role == 'admin' %} — post the first one{% endif %}.</p>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
