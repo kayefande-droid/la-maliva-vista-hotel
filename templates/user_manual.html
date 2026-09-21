@@ -1,209 +1,114 @@
 {% extends 'base.html' %}
+{% block title %}User Manual{% endblock %}
+
 {% block content %}
-<style>
-    /* Specific styles for user_manual.html, overriding/extending base.html where needed */
-    .user-manual-header {
-        text-align: center;
-        margin-bottom: 40px;
-        background: linear-gradient(135deg, rgba(10, 22, 40, 0.6), rgba(15, 34, 64, 0.6)); /* Deeper dark blue gradient */
-        color: white;
-        padding: 30px;
-        border-radius: 0.75rem;
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        border: 1px solid rgba(255, 255, 255, 0.4); /* Glassmorphism border */
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-    }
-    .user-manual-header h2 {
-        color: #eec37a; /* Brighter gold text */
-        font-weight: bold;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        margin-bottom: 10px;
-    }
-    .user-manual-header p {
-        color: #f5f1e8; /* Brighter text */
-        opacity: 0.9;
-    }
+<div class="page-head mb-3">
+  <h1 class="page-title mb-1">Guest User Manual</h1>
+  <p class="text-muted-lux mb-0">Everything you need to use the La-Maliva Vista app and website — nothing else to learn.</p>
+</div>
 
-    .list-group-item {
-        background-color: rgba(255, 255, 255, 0.15); /* Semi-transparent background */
-        border: 1px solid rgba(255, 255, 255, 0.4);
-        color: #f5f1e8; /* Brighter text */
-        transition: all 0.3s ease;
-        border-radius: 0.5rem;
-        margin-bottom: 5px;
-    }
-    .list-group-item:hover {
-        background-color: rgba(238, 195, 122, 0.15); /* Subtle brighter gold hover */
-        color: #eec37a; /* Brighter gold text on hover */
-        border-color: #eec37a;
-        transform: translateX(5px);
-    }
-    .list-group-item.active {
-        background: linear-gradient(135deg, #0f2240, #16305c) !important; /* Deeper dark blue gradient active */
-        border-color: #eec37a !important; /* Brighter gold border */
-        color: #eec37a !important; /* Brighter gold text */
-    }
+<div class="row g-3">
 
-    section h4 {
-        color: #eec37a; /* Brighter gold for section titles */
-        border-bottom: 2px solid rgba(238, 195, 122, 0.5); /* Brighter gold border */
-        padding-bottom: 8px;
-        margin-bottom: 20px;
-    }
-    section p, section ul, section ol {
-        color: #f5f1e8; /* Brighter text */
-    }
-    section li strong {
-        color: #eec37a; /* Brighter gold for strong text */
-    }
-    .card {
-        @extend .glass-panel; /* Apply glassmorphism to cards */
-        padding: 15px;
-    }
-    .card h6 {
-        color: #eec37a; /* Brighter gold for card titles */
-    }
-    .card p {
-        color: #f5f1e8; /* Brighter text */
-    }
-    .alert-info {
-        background: rgba(23, 162, 184, 0.25) !important;
-        border: 1px solid #17a2b8 !important;
-        color: #f5f1e8 !important;
-    }
-    .badge.bg-danger { background-color: #dc3545 !important; }
-    .badge.bg-primary { background-color: #007bff !important; }
-    .badge.bg-success { background-color: #28a745 !important; }
-    .btn-outline-primary {
-        color: #eec37a;
-        border-color: #eec37a;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        border-radius: 0.5rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    .btn-outline-primary:hover {
-        background-color: #eec37a;
-        color: #0f2240;
-        box-shadow: 0 8px 20px rgba(238, 195, 122, 0.5);
-        transform: translateY(-3px);
-    }
-</style>
-
-<div class="container-fluid">
-    <div class="main-content glass-panel">
-        <div class="user-manual-header">
-            <h2><i class="bi bi-book-half"></i> User Manual</h2>
-            <p class="lead">Complete guide to using the LA-MALIVA VISTA HOTEL Management System</p>
-        </div>
-
-        <div class="row">
-            <!-- Navigation -->
-            <div class="col-md-3 mb-4">
-                <div class="list-group sticky-top" style="top: 20px;">
-                    <a href="#getting-started" class="list-group-item list-group-item-action active">Getting Started</a>
-                    <a href="#dashboard" class="list-group-item list-group-item-action">Dashboard Overview</a>
-                    <a href="#reservations" class="list-group-item list-group-item-action">Managing Reservations</a>
-                    <a href="#checkin-out" class="list-group-item list-group-item-action">Check-in & Check-out</a>
-                    <a href="#billing" class="list-group-item list-group-item-action">Billing & Invoices</a>
-                    <a href="#admin-tools" class="list-group-item list-group-item-action">Admin Tools</a>
-                </div>
-            </div>
-
-            <!-- Content -->
-            <div class="col-md-9">
-
-                <!-- Section 1: Getting Started -->
-                <section id="getting-started" class="mb-5">
-                    <h4>1. Getting Started</h4>
-                    <p>Welcome to the La-Maliva Vista Hotel PMS. This system allows you to manage rooms, guests, and bookings efficiently.</p>
-                    <ul>
-                        <li><strong>Login:</strong> Access the system at <code>/login</code> using your username and password.</li>
-                        <li><strong>Roles:</strong>
-                            <ul>
-                                <li><span class="badge bg-danger">Admin</span> Full access to all settings, users, and financial data.</li>
-                                <li><span class="badge bg-primary">Staff</span> Access to reservations, guests, and daily operations.</li>
-                            </ul>
-                        </li>
-                    </ul>
-                </section>
-
-                <!-- Section 2: Dashboard -->
-                <section id="dashboard" class="mb-5">
-                    <h4>2. Dashboard Overview</h4>
-                    <p>The dashboard is your command center. It provides a real-time snapshot of the hotel's status.</p>
-                    <div class="card mb-3">
-                        <div class="card-body">
-                            <h6><i class="bi bi-speedometer2"></i> Key Metrics</h6>
-                            <p>View total rooms, occupied rooms, and current occupancy percentage instantly.</p>
-                            <h6><i class="bi bi-list-task"></i> Today's Activity</h6>
-                            <p>See a list of guests arriving today (Check-ins) and guests departing today (Check-outs).</p>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Section 3: Managing Reservations -->
-                <section id="reservations" class="mb-5">
-                    <h4>3. Managing Reservations</h4>
-                    <p>You can create bookings via the "New Reservation" button or the Calendar view.</p>
-                    <ol>
-                        <li>Click <strong>New Booking</strong> in the toolbar.</li>
-                        <li>Enter guest details (Name, Phone, Email).</li>
-                        <li>Select a Room Type (Standard, Deluxe, Suite, Family).</li>
-                        <li>Choose Check-in and Check-out dates/times.</li>
-                        <li>Click <strong>Create Reservation</strong>.</li>
-                    </ol>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle"></i> Tip: Use the <strong>Calendar</strong> view to drag and drop bookings or see gaps in the schedule.
-                    </div>
-                </section>
-
-                <!-- Section 4: Check-in & Check-out -->
-                <section id="checkin-out" class="mb-5">
-                    <h4>4. Check-in & Check-out</h4>
-                    <p>Managing guest flow is simple:</p>
-
-                    <h6 class="mt-3 text-gold">Check-in Process</h6>
-                    <p>Go to <strong>Today's Arrivals</strong> or the Calendar. Click the green <button class="btn btn-sm btn-success disabled">Check-in</button> button. The room status will change to "Occupied".</p>
-
-                    <h6 class="mt-3 text-gold">Check-out Process</h6>
-                    <p>Go to <strong>Departures</strong>. Click <button class="btn btn-sm btn-warning disabled">Checkout</button>. The room will become "Available" again.</p>
-                </section>
-
-                <!-- Section 5: Billing -->
-                <section id="billing" class="mb-5">
-                    <h4>5. Billing & Invoices</h4>
-                    <p>Generate professional invoices for any reservation.</p>
-                    <ul>
-                        <li>Navigate to a reservation details page.</li>
-                        <li>Click the <strong>Invoice</strong> button.</li>
-                        <li>Review the details (Room charges + duration).</li>
-                        <li>Use the <strong>Print</strong> button for a physical copy or <strong>Download PDF</strong> for a digital file.</li>
-                    </ul>
-                </section>
-
-                <!-- Section 6: Admin Tools -->
-                <section id="admin-tools" class="mb-5">
-                    <h4>6. Admin Tools (Admins Only)</h4>
-                    <p>Administrators have exclusive access to the <strong>Tools</strong> menu.</p>
-                    <ul>
-                        <li><strong>User Management:</strong> Add new staff accounts or remove old ones.</li>
-                        <li><strong>Settings:</strong> Update hotel name, address, and tax rates.</li>
-                        <li><strong>Backup/Restore:</strong> Download a copy of the database (`lamaliva.db`) to keep your data safe.</li>
-                        <li><strong>Export Data:</strong> Download guest lists as CSV files for Excel.</li>
-                        <li><strong>Admin Monitoring:</strong> Monitor staff and user activity, and send individual messages.</li>
-                    </ul>
-                </section>
-
-                <div class="text-center mt-5 pt-4 border-top">
-                    <p>Need more help?</p>
-                    <a href="tel:679915967" class="btn btn-outline-primary"><i class="bi bi-telephone"></i> Contact Support: 679915967</a>
-                </div>
-
-            </div>
-        </div>
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-phone me-2"></i>Getting the app</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li><strong>Android:</strong> open the <a href="{{ url_for('downloads') }}">Downloads</a> page and tap <em>Download for Android</em>, then open the APK to install.</li>
+        <li><strong>Windows:</strong> download the ZIP, unzip it and run <code>lamaliva_app.exe</code>.</li>
+        <li><strong>Phone or PC without installing?</strong> Use the website — you can also install it as an app from your browser (“Add to Home Screen” / “Install”).</li>
+      </ul>
     </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-person me-2"></i>Your account</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li>Create your account on the website’s sign-up page — the same username and password work in the app.</li>
+        <li>Sign in on any device; your bookings and receipts follow you everywhere.</li>
+        <li>Change your password anytime from the app’s <em>Account</em> tab or the website menu.</li>
+        <li>Forgot your password? Call reception on <strong>(+237) 679-915-967</strong> and we’ll reset it.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-door-open me-2"></i>Booking a room</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li>Open <strong>Rooms</strong> (app or website) to see live photos, prices in FCFA and availability.</li>
+        <li>Pick your dates, choose the number of nights and confirm — you’ll get an instant confirmation with a reference number.</li>
+        <li>Your booking appears under <strong>Bookings</strong> in the app and in “My Bookings” on the website.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-receipt me-2"></i>Receipts &amp; invoices</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li>Every booking has three buttons: <strong>Receipt</strong> (quick view), <strong>Download</strong> (saves a branded PDF), and <strong>Print</strong>.</li>
+        <li>On the website, open any booking and use <em>Print Invoice</em> or <em>Download PDF</em>.</li>
+        <li>Invoices include the hotel’s address and reception number — perfect for expense claims.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-wifi me-2"></i>Using the app offline</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li>Room photos, prices and the menu are saved on your device — they open even with no internet.</li>
+        <li>An amber banner appears when you’re offline; it disappears automatically the moment the connection returns and everything refreshes itself.</li>
+        <li>Booking and receipt actions need internet; everything else works anytime.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-palette me-2"></i>Make it yours</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li><strong>Six design styles:</strong> Royal Navy, Sunset Amber, Emerald Royale, Plum Noir, Ocean Teal, Graphite Noir — app drawer → <em>Change app theme</em>, or the color dots in the website sidebar.</li>
+        <li>Pick <em>Light</em>, <em>Dark</em>, or follow your system’s appearance.</li>
+        <li>Each style has its own animated background — waves, embers, petals, orbs, bubbles or streaks.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-bell me-2"></i>Notifications</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li>The bell in the app shows messages from the <strong>La-Maliva team</strong> and the <strong>hotel</strong> — plus your booking and update alerts.</li>
+        <li>A small number badge means unread news; opening the bell marks it read.</li>
+        <li>Keep notifications enabled so booking confirmations reach you instantly.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12 col-lg-6">
+    <div class="lux-card h-100">
+      <h4 class="mb-2"><i class="bi bi-arrow-repeat me-2"></i>Keeping the app up to date</h4>
+      <ul class="text-muted-lux mb-0" style="line-height:1.9">
+        <li>The app checks for updates on its own and quietly notifies you when a new version ships.</li>
+        <li>You can also check manually: <em>Account → Check for updates</em>.</li>
+        <li>If an update exists, tap <strong>Download</strong> — it takes you straight to the official download; install it and you’re current.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="lux-card">
+      <h4 class="mb-2"><i class="bi bi-geo-alt me-2"></i>Find &amp; contact us</h4>
+      <p class="text-muted-lux mb-2">Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon — the <em>Location</em> shortcut on the app home page opens Google Maps straight to us.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-lux-orange" href="{{ url_for('contact') }}"><i class="bi bi-chat-dots me-1"></i> Contact page</a>
+        <a class="btn btn-lux-outline" href="{{ url_for('downloads') }}"><i class="bi bi-download me-1"></i> Get the apps</a>
+        <a class="btn btn-lux-outline" href="{{ url_for('public_home') }}"><i class="bi bi-house me-1"></i> Home</a>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}
