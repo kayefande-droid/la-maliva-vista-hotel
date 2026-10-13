@@ -33,3 +33,8 @@ dnspython==2.7.0
 # --- ASVS L3 security ---
 argon2-cffi==25.1.0
 qrcode==8.2
+
+# --- Persistent production database + error monitoring (env-driven, optional) ---
+# DATABASE_URL (Neon/Render Postgres) -> psycopg2 driver; SENTRY_DSN -> error tracking
+psycopg2-binary==2.9.10
+sentry-sdk==2.25.0

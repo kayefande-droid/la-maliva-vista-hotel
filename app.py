@@ -174,11 +174,42 @@ def _load_secret_key() -> str:
 
 
 app.config['SECRET_KEY'] = _load_secret_key()
-# Use absolute path for database to ensure it runs correctly everywhere
+# Use an absolute path for the fallback database to ensure it runs correctly everywhere.
+# Production: a full DATABASE_URL (e.g. Neon / Render Postgres) always wins, so guest
+# bookings & accounts persist across deploys. Without it we fall back to local SQLite.
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+_database_url = os.environ.get('DATABASE_URL', '').strip()
+# SQLAlchemy 2.x only knows the 'postgresql://' scheme; normalize the legacy one.
+if _database_url.startswith('postgres://'):
+    _database_url = 'postgresql://' + _database_url[len('postgres://'):]
+if _database_url:
+    from urllib.parse import urlparse, urlencode
+    _db_url = urlparse(_database_url)
+    if _db_url.scheme in ('postgres', 'postgresql'):
+        # Enforce TLS in transit; Neon/Render accept sslmode=require.
+        if 'sslmode' not in (_db_url.query or ''):
+            _sep = '&' if _db_url.query else '?'
+            db_path = _database_url + _sep + urlencode({'sslmode': 'require'})
+        else:
+            db_path = _database_url
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_path
+    else:
+        app.config['SQLALCHEMY_DATABASE_URI'] = _database_url
+else:
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# --- Production error monitoring: activates only when SENTRY_DSN is set ---
+if os.environ.get('SENTRY_DSN'):
+    import sentry_sdk
+    from sentry_sdk.integrations.flask import FlaskIntegration
+    sentry_sdk.init(
+        dsn=os.environ['SENTRY_DSN'],
+        integrations=[FlaskIntegration()],
+        traces_sample_rate=0.1,
+        send_default_pii=False,  # never ship guest emails/PII off-device
+    )
 
 # MTN Mobile Money Configuration
 app.config['MTN_MOMO_SUBSCRIPTION_KEY'] = os.environ.get('MTN_MOMO_SUBSCRIPTION_KEY', '')
