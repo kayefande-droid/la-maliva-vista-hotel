@@ -428,13 +428,17 @@ def enforce_rate_limits():
     rule = _RATE_RULES.get(request.endpoint)
     if not rule:
         return
+    if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        # Safe methods never mutate state; counting them would lock out
+        # guests who merely browse (e.g. >5 views of /signup per hour).
+        return
     max_hits, window = rule
     ident = ''
     if request.endpoint == 'login':
         ident = (request.form.get('username') or '').strip().lower()
     key = f"{request.endpoint}:{request.remote_addr}:{ident}"
     if _rate_limit_hit(key, max_hits, window):
-        _perform_log_later(f"Rate limit hit on {request.endpoint} from {request.remote_addr}")
+        _perform_log_later(f"Rate limit hit on {request.endpoint} (POST) from {request.remote_addr}")
         if request.path.startswith('/api/') or request.is_json:
             return jsonify({'ok': False, 'error': 'Too many attempts — slow down and try again shortly.'}), 429
         flash('⛔ Too many attempts. Please wait a few minutes and try again.', 'error')
@@ -1056,6 +1060,24 @@ def sync_ui_flash_message(response):
     if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
         return response
     _persist_flash_to_session_later(response)
+    return response
+
+
+def _persist_flash_to_session_later(response):
+    """Serialize the current request's pending get_flashed_messages(with_categories=True)
+    into session['lmv_synced_flash'] for the subsequent GET to consume."""
+    import json as _json
+    try:
+        flashes = get_flashed_messages(with_categories=True)
+    except Exception:
+        flashes = []
+    if not flashes:
+        return response
+    try:
+        session['lmv_synced_flash'] = _json.dumps(
+            [{'m': m, 'c': cat} for cat, m in flashes])
+    except Exception:
+        pass
     return response
 
 

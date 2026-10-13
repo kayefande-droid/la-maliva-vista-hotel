@@ -9,13 +9,35 @@ permissions:
   contents: write
 
 jobs:
-  build-windows-exe:
-    runs-on: windows-latest
+  tests:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run backend test suite
+        run: python -m pytest tests/ -v
+
+  build-windows-exe:
+    needs: [tests]
+    runs-on: windows-latest
+    if: ${{ !cancelled() && needs.tests.result == 'success' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -47,18 +69,20 @@ jobs:
         run: Compress-Archive -Path dist/La-Maliva-Vista-Server -DestinationPath La-Maliva-Vista-Setup-${{ github.ref_name }}.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: windows-exe
           path: La-Maliva-Vista-Setup-${{ github.ref_name }}.zip
 
   build-android-apk:
+    needs: [tests]
     runs-on: ubuntu-latest
+    if: ${{ !cancelled() && needs.tests.result == 'success' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -78,7 +102,7 @@ jobs:
              ../la-maliva-vista-${{ github.ref_name }}.apk
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: android-apk
           path: la-maliva-vista-${{ github.ref_name }}.apk
@@ -89,7 +113,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
 
       - name: Attach binaries to GitHub Release
         uses: softprops/action-gh-release@v2
