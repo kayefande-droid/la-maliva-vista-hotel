@@ -1,7 +1,18 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// Release signing: when key.properties + the keystore exist (developer machine
+// or CI restore from secrets), release builds are store-signed; otherwise we
+// fall back to the debug keystore so local sideload testing still works.
+val releaseProps = Properties()
+val releasePropsFile = rootProject.file("key.properties")
+if (releasePropsFile.exists()) {
+    releasePropsFile.inputStream().use { releaseProps.load(it) }
 }
 
 android {
@@ -28,11 +39,25 @@ android {
         multiDexEnabled = true
     }
 
+    signingConfigs {
+        create("release") {
+            if (releasePropsFile.exists()) {
+                keyAlias = releaseProps.getProperty("keyAlias")
+                keyPassword = releaseProps.getProperty("keyPassword")
+                storeFile = file(releaseProps.getProperty("storeFile"))
+                storePassword = releaseProps.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Real signing config when key.properties is present (CI/dev);
+            // otherwise the debug keys, so `flutter run --release` still works.
+            signingConfig = if (releasePropsFile.exists())
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug")
         }
     }
 }

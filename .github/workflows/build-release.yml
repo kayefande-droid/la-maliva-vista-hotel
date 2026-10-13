@@ -93,6 +93,20 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Restore release keystore
+        env:
+          KEYSTORE_B64: ${{ secrets.APK_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.APK_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.APK_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > mobile_app/android/la-maliva-release.jks
+          cat > mobile_app/android/key.properties <<EOF
+          storePassword=$KS_PASS
+          keyPassword=$KEY_PASS
+          keyAlias=lamaliva
+          storeFile=../la-maliva-release.jks
+          EOF
+
       - name: Build APK
         run: |
           cd mobile_app

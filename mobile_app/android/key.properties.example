@@ -1,0 +1,4 @@
+storePassword=LAMALIVA_KEYSTORE_PASSWORD_PLACEHOLDER
+keyPassword=LAMALIVA_KEY_PASSWORD_PLACEHOLDER
+keyAlias=lamaliva
+storeFile=../la-maliva-release.jks

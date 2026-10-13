@@ -19,3 +19,7 @@ mobile_app/build/
 mobile_app/.gradle/
 mobile_app/*.log
 *.log
+
+# Release signing secrets (never commit)
+mobile_app/android/key.properties
+mobile_app/android/la-maliva-release.jks
