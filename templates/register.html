@@ -37,14 +37,14 @@
             <label for="password" class="form-label">Password</label>
             <div class="input-group">
                 <input type="password" class="form-control" id="password" name="password" required
-                       minlength="8" placeholder="Create a strong password">
+                       minlength="12" placeholder="Create a strong password (12+ characters)">
                 <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                     <i class="bi bi-eye-slash"></i>
                 </button>
             </div>
             <div id="passwordStrength" class="form-text mt-2"></div>
             <div class="form-text">
-                Password must be at least 8 characters with uppercase, lowercase, number, and special character
+                Password must be at least 12 characters with uppercase, lowercase, number, and special character
             </div>
         </div>
 
@@ -52,7 +52,7 @@
             <label for="confirm_password" class="form-label">Confirm Password</label>
             <div class="input-group">
                 <input type="password" class="form-control" id="confirm_password" name="confirm_password" required
-                       minlength="8" placeholder="Confirm your password">
+                       minlength="12" placeholder="Confirm your password">
                 <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
                     <i class="bi bi-eye-slash"></i>
                 </button>
@@ -149,10 +149,10 @@
         let strength = 0;
         let messages = [];
 
-        if (password.length >= 8) {
+        if (password.length >= 12) {
             strength += 1;
         } else {
-            messages.push('At least 8 characters');
+            messages.push('At least 12 characters');
         }
 
         if (password.match(/[A-Z]/)) {

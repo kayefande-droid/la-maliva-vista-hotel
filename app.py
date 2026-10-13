@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, session, Response
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, send_file, make_response, session, Response, get_flashed_messages
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -143,10 +143,37 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.5"
+APP_VERSION = "2.3.6"
 BUILD_CHANNEL = "stable"
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'lamaliva_vista_paradise_2026')
+def _load_secret_key() -> str:
+    """Env var first; otherwise a random key persisted in instance/ (git-ignored).
+
+    A hardcoded fallback would let anyone who reads the repo forge session
+    cookies, so the built-in fallback is a per-install random secret instead.
+    """
+    env_key = os.environ.get('SECRET_KEY')
+    if env_key:
+        return env_key
+    key_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', '.secret_key')
+    try:
+        with open(key_file, 'r') as fh:
+            saved = fh.read().strip()
+        if len(saved) >= 32:
+            return saved
+    except OSError:
+        pass
+    new_key = secrets.token_hex(32)
+    try:
+        os.makedirs(os.path.dirname(key_file), exist_ok=True)
+        with open(key_file, 'w') as fh:
+            fh.write(new_key)
+    except OSError:
+        pass  # non-persistent disk: a session-destroying restart beats a weak key
+    return new_key
+
+
+app.config['SECRET_KEY'] = _load_secret_key()
 # Use absolute path for database to ensure it runs correctly everywhere
 basedir = os.path.abspath(os.path.dirname(__file__))
 db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
@@ -309,6 +336,8 @@ _RATE_RULES = {           # endpoint -> (max_hits, window_seconds)
     'api_book': (10, 3600),          # 10 bookings / hour / IP
     'api_install': (30, 3600),       # 30 install reports / hour / IP
     'api_pwa_install': (30, 3600),   # same ceiling for PWA install reports
+    'forgot_password': (5, 3600),    # 5 reset emails / hour / IP — anti email-bombing
+    'reset_password': (20, 3600),    # 20 token attempts / hour / IP — anti brute-force
 }
 
 
@@ -324,6 +353,43 @@ def _rate_limit_hit(bucket_key, max_hits, window):
         for k in [k for k, v in _RATE_BUCKET.items() if not v or now - v[-1] > window * 2]:
             _RATE_BUCKET.pop(k, None)
     return len(hits) > max_hits
+
+
+# ---- AI scraper / training-bot firewall (site owner + AI_ALLOW_IPS excepted) ----
+_AI_BOT_TOKENS = (
+    'gptbot', 'oai-searchbot', 'chatgpt-user', 'claudebot', 'anthropic-ai',
+    'claude-web', 'claude-user', 'ccbot', 'cohere-ai', 'perplexitybot',
+    'perplexity-user', 'google-extended', 'bytespider', 'meta-externalagent',
+    'meta-externalbot', 'amazonbot', 'applebot-extended', 'yisouspider',
+    'youbot', 'diffbot', 'imagesiftbot', 'petalbot', 'grokbots', 'xai-bot',
+)
+_AI_ALLOW_IPS = {ip.strip() for ip in os.environ.get('AI_ALLOW_IPS', '').split(',') if ip.strip()}
+_AI_BLOCK_LOGGED: set = set()
+
+
+@app.before_request
+def block_ai_scraper_bots():
+    """403 known AI training/scraping crawlers so they cannot mirror the site.
+
+    Regular browsers (including the hotel owner's) and search engines like
+    Googlebot are untouched. The owner's own IP — or any IP listed in the
+    AI_ALLOW_IPS env var — bypasses the block entirely, so you can still test
+    with any user-agent. Humans excepted by construction: only these specific
+    bot user-agents are rejected.
+    """
+    ua = (request.headers.get('User-Agent') or '').lower()
+    if not ua or request.remote_addr in _AI_ALLOW_IPS:
+        return
+    if any(tok in ua for tok in _AI_BOT_TOKENS):
+        if ua not in _AI_BLOCK_LOGGED:  # log each bot once per process, not per hit
+            _AI_BLOCK_LOGGED.add(ua)
+            _perform_log_later(f"Blocked AI scraper bot: {ua[:80]}")
+        if request.path.startswith('/api/') or request.is_json:
+            return jsonify({'ok': False, 'error': 'Forbidden.'}), 403
+        # POST-based paths are actions, never serve a bot; allow safe GET assets
+        if request.method != 'GET' or request.path != '/':
+            return Response('Forbidden', status=403, mimetype='text/plain')
+        return Response('Forbidden', status=403, mimetype='text/plain')
 
 
 @app.before_request
@@ -940,6 +1006,27 @@ class AppEvent(db.Model):
     email = db.Column(db.String(120), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
 
+# ================================================================
+# Flash-to-client listener: keeps server-side `flash()` messages on the
+# PWA page that follows a POST redirect (so the UI never drops them).
+# ================================================================
+
+
+@app.after_request
+def sync_ui_flash_message(response):
+    """After any POST that redirects (3xx), stash the request's pending Flask
+    flash() queue into the session under lmv_synced_flash so the client-side
+    listener in signup.html / etc. reads it once on the GET that follows.
+
+    Non-redirecting or non-POST responses are a no-op here.
+    """
+    if response.status_code not in (301, 302, 303, 307, 308):
+        return response
+    if request.method not in ('POST', 'PUT', 'DELETE', 'PATCH'):
+        return response
+    _persist_flash_to_session_later(response)
+    return response
+
 
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
@@ -966,7 +1053,6 @@ def initialize_database():
             # In a production environment, you might want to re-raise or handle this differently
             raise
 
-# Call database initialization
 
 # Security headers + PWA offline support
 @app.after_request
@@ -988,12 +1074,12 @@ def add_security_headers(response):
     # scripts used by the templates, but blocks everything else.
     response.headers.setdefault('Content-Security-Policy',
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://pagead2.googlesyndication.com; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "font-src 'self' data: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.gstatic.com; "
         "img-src 'self' data: blob: https:; "
-        "connect-src 'self'; "
-        "frame-src 'self' https://www.google.com https://maps.google.com; "
+        "connect-src 'self' https://pagead2.googlesyndication.com https://googleads.g.doubleclick.net; "
+        "frame-src 'self' https://www.google.com https://maps.google.com https://googleads.g.doubleclick.net https://*.googlesyndication.com; "
         "worker-src 'self'; "
         "object-src 'none'; "
         "base-uri 'self'; "
@@ -1464,9 +1550,10 @@ def signup():
             flash('❌ Username or Email already exists!', 'error')
             return redirect(url_for('signup'))
 
-        # Friendly password rule: 8+ characters (policy kept simple on purpose)
-        if not password or len(password) < 8:
-            flash('❌ Password must be at least 8 characters.', 'error')
+        # NIST-style policy (12+ chars, mixed case, digit, symbol, no common fragments)
+        policy_err = password_policy_error(password)
+        if policy_err:
+            flash(f'❌ {policy_err}', 'error')
             return redirect(url_for('signup'))
 
         new_user = User(username=username, email=email, password_hash=hash_password(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
@@ -1584,8 +1671,9 @@ def reset_password(token):
     if request.method == 'POST':
         pw = request.form.get('password', '')
         confirm = request.form.get('confirm', '')
-        if len(pw) < 8:
-            flash('Password must be at least 8 characters.', 'error')
+        policy_err = password_policy_error(pw)
+        if policy_err:
+            flash(policy_err, 'error')
         elif pw != confirm:
             flash('Passwords do not match.', 'error')
         else:
@@ -1675,8 +1763,8 @@ def change_password():
 
         if not verify_password(current_user.password_hash, current_pw):
             flash('❌ Current password is incorrect.', 'error')
-        elif not new_pw or len(new_pw) < 8:
-            flash('❌ New password must be at least 8 characters.', 'error')
+        elif password_policy_error(new_pw):
+            flash(f'❌ {password_policy_error(new_pw)}', 'error')
         elif new_pw != confirm_pw:
             flash('❌ New passwords do not match.', 'error')
         elif verify_password(current_user.password_hash, new_pw):
@@ -2077,8 +2165,9 @@ def users():
             if User.query.filter((User.username == username) | (User.email == email)).first():
                 flash(f'❌ User {username} or email already exists!', 'error')
             else:
-                if not password or len(password) < 8:
-                    flash('❌ Password must be at least 8 characters.', 'error')
+                policy_err = password_policy_error(password)
+                if policy_err:
+                    flash(f'❌ {policy_err}', 'error')
                     return redirect(url_for('users'))
                 new_user = User(username=username, email=email, password_hash=hash_password(password), role=role, registered_on=datetime.now(timezone.utc), first_login_done=True) # Staff/Admin accounts are not new users
                 new_user.email_verified = True  # created internally by admin -> pre-verified
@@ -2386,6 +2475,14 @@ def robots_txt():
         mimetype='text/plain')
 
 
+@app.route('/ads.txt')
+def ads_txt():
+    """IAB ads.txt — authorizes Google AdSense to sell inventory on this domain."""
+    return Response(
+        'google.com, pub-8169360078935571, DIRECT, f08c47fec0942fa0\n',
+        mimetype='text/plain')
+
+
 @app.route('/sitemap.xml')
 def sitemap_xml():
     """Static sitemap of every public page — helps Google index the site
@@ -2464,6 +2561,17 @@ def api_version():
 # /api/changelog (cached offline), so notes reach users without a rebuild.
 # ---------------------------------------------------------------------------
 CHANGELOG = [
+    {
+        'version': '2.3.6',
+        'date': '2026-10-13',
+        'highlights': ['Stronger passwords', 'Security firewall', 'AdSense ready'],
+        'notes': [
+            'Passwords are now 12+ characters with letters, numbers and a symbol — everywhere you sign up or change one.',
+            'A new security layer blocks AI scraping bots from copying the site, while everyday visitors are untouched.',
+            'The website is now fully wired for Google AdSense (ads.txt + verification), ready to earn once approved.',
+            'Internal hardening: shared secret key handling, tighter reset-password limits, cleaner app code.',
+        ],
+    },
     {
         'version': '2.3.5',
         'date': '2026-09-21',
@@ -2831,8 +2939,9 @@ def api_auth_register():
     password = data.get('password') or ''
     if not username or not email or not password:
         return jsonify({'ok': False, 'error': 'Username, email and password are required.'}), 400
-    if len(password) < 8:
-        return jsonify({'ok': False, 'error': 'Password must be at least 8 characters.'}), 400
+    policy_err = password_policy_error(password)
+    if policy_err:
+        return jsonify({'ok': False, 'error': policy_err}), 400
 
     check = validate_email_real(email)
     if not check['valid']:
@@ -2893,8 +3002,9 @@ def api_auth_change_password():
     new_pw = data.get('new_password', '')
     if not verify_password(user.password_hash, current_pw):
         return jsonify({'ok': False, 'error': 'Current password is incorrect.'}), 400
-    if not new_pw or len(new_pw) < 8:
-        return jsonify({'ok': False, 'error': 'New password must be at least 8 characters.'}), 400
+    policy_err = password_policy_error(new_pw)
+    if policy_err:
+        return jsonify({'ok': False, 'error': policy_err}), 400
     user.password_hash = hash_password(new_pw)
     user.password_changed = True
     db.session.commit()
@@ -3255,8 +3365,9 @@ def api_admin_users():
             return jsonify({'ok': False, 'error': 'Role must be staff or admin.'}), 400
         if not username or not email:
             return jsonify({'ok': False, 'error': 'Username and email are required.'}), 400
-        if not password or len(password) < 8:
-            return jsonify({'ok': False, 'error': 'Password must be at least 8 characters.'}), 400
+        policy_err = password_policy_error(password)
+        if policy_err:
+            return jsonify({'ok': False, 'error': policy_err}), 400
         if User.query.filter((User.username == username) | (User.email == email)).first():
             return jsonify({'ok': False, 'error': 'Username or email already exists.'}), 409
         nu = User(username=username, email=email, password_hash=hash_password(password),
@@ -3333,7 +3444,7 @@ def manifest():
         'display': 'standalone',
         'orientation': 'portrait-primary',
         'background_color': '#08123A',
-        'theme_color': '#08123A',
+        'theme_color': '#0a1628',
         'lang': 'en',
         'categories': ['travel', 'lifestyle'],
         'icons': [

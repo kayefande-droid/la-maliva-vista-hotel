@@ -30,7 +30,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.5';
+const String kAppVersion = '2.3.6';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -156,12 +156,12 @@ ThemeData buildLight() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.navy950,
-      indicatorColor: AppColors.orange600.withOpacity(0.25),
+      indicatorColor: AppColors.orange600.withValues(alpha: 0.25),
       iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-          color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withOpacity(0.8))),
+          color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withValues(alpha: 0.8))),
       labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
           fontSize: 11.5,
-          color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withOpacity(0.75))),
+          color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withValues(alpha: 0.75))),
     ),
     snackBarTheme: SnackBarThemeData(
       backgroundColor: AppColors.navy900,
@@ -176,11 +176,11 @@ ThemeData buildLight() {
       fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.navy800.withOpacity(0.25)),
+        borderSide: BorderSide(color: AppColors.navy800.withValues(alpha: 0.25)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.navy800.withOpacity(0.25)),
+        borderSide: BorderSide(color: AppColors.navy800.withValues(alpha: 0.25)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -210,12 +210,12 @@ ThemeData buildDark() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.navy950,
-      indicatorColor: AppColors.orange600.withOpacity(0.25),
+      indicatorColor: AppColors.orange600.withValues(alpha: 0.25),
       iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-          color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withOpacity(0.8))),
+          color: states.contains(WidgetState.selected) ? AppColors.orange500 : AppColors.cream50.withValues(alpha: 0.8))),
       labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
           fontSize: 11.5,
-          color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withOpacity(0.75))),
+          color: states.contains(WidgetState.selected) ? AppColors.gold : AppColors.cream50.withValues(alpha: 0.75))),
     ),
     cardTheme: CardThemeData(color: AppColors.navy900),
     snackBarTheme: SnackBarThemeData(
@@ -227,20 +227,20 @@ ThemeData buildDark() {
       isDense: true,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       filled: true,
-      fillColor: AppColors.navy800.withOpacity(0.35),
+      fillColor: AppColors.navy800.withValues(alpha: 0.35),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.cream50.withOpacity(0.2)),
+        borderSide: BorderSide(color: AppColors.cream50.withValues(alpha: 0.2)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: AppColors.cream50.withOpacity(0.2)),
+        borderSide: BorderSide(color: AppColors.cream50.withValues(alpha: 0.2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: AppColors.orange500, width: 1.6),
       ),
-      labelStyle: TextStyle(color: AppColors.cream50.withOpacity(0.75), fontSize: 13.5),
+      labelStyle: TextStyle(color: AppColors.cream50.withValues(alpha: 0.75), fontSize: 13.5),
     ),
   );
 }
@@ -250,14 +250,14 @@ ThemeData buildDark() {
 // ------------------------------------------------------------
 class LamalivaApp extends StatefulWidget {
   const LamalivaApp({super.key});
-  static _LamalivaAppState of(BuildContext context) =>
-      context.findAncestorStateOfType<_LamalivaAppState>()!;
+  static LamalivaAppState of(BuildContext context) =>
+      context.findAncestorStateOfType<LamalivaAppState>()!;
 
   @override
-  State<LamalivaApp> createState() => _LamalivaAppState();
+  State<LamalivaApp> createState() => LamalivaAppState();
 }
 
-class _LamalivaAppState extends State<LamalivaApp> with WidgetsBindingObserver {
+class LamalivaAppState extends State<LamalivaApp> with WidgetsBindingObserver {
   ThemeMode _themeMode = ThemeMode.light;
   String _styleId = 'royal';
 
@@ -387,7 +387,7 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                              color: AppColors.orange500.withOpacity(0.4),
+                              color: AppColors.orange500.withValues(alpha: 0.4),
                               blurRadius: 46,
                               spreadRadius: 6),
                         ],
@@ -395,7 +395,7 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
                       child: ClipOval(
                         child: Image.asset('assets/logo.png',
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) =>
+                            errorBuilder: (_, _, _) =>
                                 Icon(Icons.hotel, size: 48, color: AppColors.gold)),
                       ),
                     ),
@@ -443,8 +443,8 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const HomeShell(),
-        transitionsBuilder: (_, anim, __, child) => FadeTransition(
+        pageBuilder: (_, _, _) => const HomeShell(),
+        transitionsBuilder: (_, anim, _, child) => FadeTransition(
           opacity: CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
           child: SlideTransition(
             position: Tween<Offset>(begin: const Offset(0, 0.02), end: Offset.zero)
@@ -1120,7 +1120,7 @@ class _AmbientPainter extends CustomPainter {
     final tones = _tones;
     for (var i = 0; i < 3; i++) {
       final paint = Paint()
-        ..color = tones[i].withOpacity(dark ? 0.16 : 0.22)
+        ..color = tones[i].withValues(alpha: dark ? 0.16 : 0.22)
         ..style = PaintingStyle.fill;
       final path = Path()..moveTo(0, size.height);
       for (double x = 0; x <= size.width; x += 14) {
@@ -1157,10 +1157,10 @@ class _AmbientPainter extends CustomPainter {
         ..style = big ? PaintingStyle.stroke : PaintingStyle.fill
         ..strokeWidth = big ? 1.4 : 0;
       if (big) {
-        paint.color = tone.withOpacity(dark ? 0.14 : 0.20);
+        paint.color = tone.withValues(alpha: dark ? 0.14 : 0.20);
         canvas.drawCircle(Offset(x % (size.width + 40) - 20, y), radius, paint);
       } else {
-        paint.color = tone.withOpacity(dark ? 0.20 : 0.30);
+        paint.color = tone.withValues(alpha: dark ? 0.20 : 0.30);
         canvas.drawCircle(Offset(x % (size.width + 30) - 15, y), radius, paint);
       }
     }
@@ -1177,7 +1177,7 @@ class _AmbientPainter extends CustomPainter {
       final y = (seedX * size.height + travel) % (size.height + 60) - 30;
       final x = seedX * size.width + math.sin(phase * 0.8 + i) * 34;
       final paint = Paint()
-        ..color = tones[i % tones.length].withOpacity(dark ? 0.16 : 0.24)
+        ..color = tones[i % tones.length].withValues(alpha: dark ? 0.16 : 0.24)
         ..style = PaintingStyle.fill;
       canvas.save();
       canvas.translate(x % (size.width + 50) - 25, y);
@@ -1199,7 +1199,7 @@ class _AmbientPainter extends CustomPainter {
       final paint = Paint()
         ..shader = ui.Gradient.radial(
             Offset(cx + wobble, cy + wobble * 0.6), r,
-            [tone.withOpacity(dark ? 0.13 : 0.18), tone.withOpacity(0.0)])
+            [tone.withValues(alpha: dark ? 0.13 : 0.18), tone.withValues(alpha: 0.0)])
         ..style = PaintingStyle.fill;
       canvas.drawCircle(Offset(cx + wobble, cy + wobble * 0.6), r, paint);
     }
@@ -1212,7 +1212,7 @@ class _AmbientPainter extends CustomPainter {
       final paint = Paint()
         ..shader = ui.Gradient.linear(
             Offset(-40, y), Offset(size.width * 0.7, y + 26),
-            [tones[i % tones.length].withOpacity(dark ? 0.16 : 0.22), tones[i % tones.length].withOpacity(0.0)])
+            [tones[i % tones.length].withValues(alpha: dark ? 0.16 : 0.22), tones[i % tones.length].withValues(alpha: 0.0)])
         ..style = PaintingStyle.fill;
       final path = Path()
         ..moveTo(-40, y)
@@ -1447,7 +1447,7 @@ class SessionService {
     final data = await Api.post('/api/auth/login', {
       'username': identifier,
       'password': password,
-      if (otp != null) 'otp': otp,
+      'otp': ?otp,
     });
     if (data['ok'] != true) {
       if (data['needs_mfa'] == true) {
@@ -1819,7 +1819,7 @@ class Invoice {
             ]),
             pw.SizedBox(height: 18),
             // ------- Line items table -------
-            pw.Table.fromTextArray(
+            pw.TableHelper.fromTextArray(
               headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 9.5,
                   color: PdfColors.white),
               headerDecoration: pw.BoxDecoration(color: navy,
@@ -2042,7 +2042,7 @@ class _HomeShellState extends State<HomeShell> {
           builder: (context, isOnline, _) {
             if (isOnline) return const SizedBox.shrink();
             return Material(
-              color: AppColors.gold.withOpacity(0.25),
+              color: AppColors.gold.withValues(alpha: 0.25),
               child: InkWell(
                 onTap: () => NetService.instance.probe(),
                 child: Container(
@@ -2116,7 +2116,7 @@ class _HomeShellState extends State<HomeShell> {
                       ClipOval(
                         child: Image.asset('assets/logo.png', width: 34, height: 34,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(Icons.hotel, color: AppColors.gold)),
+                            errorBuilder: (_, _, _) => Icon(Icons.hotel, color: AppColors.gold)),
                       ),
                     ]),
                   ),
@@ -2127,11 +2127,11 @@ class _HomeShellState extends State<HomeShell> {
                         selectedIndex: tab,
                         onDestinationSelected: (i) => _tab.value = i,
                         backgroundColor: Colors.transparent,
-                        indicatorColor: AppColors.orange600.withOpacity(0.25),
+                        indicatorColor: AppColors.orange600.withValues(alpha: 0.25),
                         selectedIconTheme: IconThemeData(color: AppColors.orange500),
-                        unselectedIconTheme: IconThemeData(color: AppColors.cream50.withOpacity(0.8)),
+                        unselectedIconTheme: IconThemeData(color: AppColors.cream50.withValues(alpha: 0.8)),
                         selectedLabelTextStyle: TextStyle(color: AppColors.gold, fontSize: 11.5),
-                        unselectedLabelTextStyle: TextStyle(color: AppColors.cream50.withOpacity(0.75), fontSize: 11),
+                        unselectedLabelTextStyle: TextStyle(color: AppColors.cream50.withValues(alpha: 0.75), fontSize: 11),
                         labelType: NavigationRailLabelType.all,
                         leading: const SizedBox(height: 8),
                         destinations: const [
@@ -2219,9 +2219,9 @@ class AppDrawer extends StatelessWidget {
                 Container(
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.orange600.withOpacity(0.18),
+                    color: AppColors.orange600.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: AppColors.orange600.withOpacity(0.5)),
+                    border: Border.all(color: AppColors.orange600.withValues(alpha: 0.5)),
                   ),
                   child: Text('${user.username} · ${user.role.toUpperCase()}',
                       style: TextStyle(color: AppColors.gold, fontSize: 11,
@@ -2332,7 +2332,7 @@ class AppDrawer extends StatelessWidget {
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     decoration: BoxDecoration(
-                      color: AppColors.navy900.withOpacity(0.06),
+                      color: AppColors.navy900.withValues(alpha: 0.06),
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                           color: appState._styleId == m['id'] ? AppColors.orange500 : Colors.transparent,
@@ -2368,15 +2368,15 @@ class AppDrawer extends StatelessWidget {
             }),
             const Divider(height: 26),
             const Text('Appearance', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-            RadioListTile<ThemeMode>(
-              value: ThemeMode.light, groupValue: appState._themeMode,
-              title: const Text('Light'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
-            RadioListTile<ThemeMode>(
-              value: ThemeMode.dark, groupValue: appState._themeMode,
-              title: const Text('Dark'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
-            RadioListTile<ThemeMode>(
-              value: ThemeMode.system, groupValue: appState._themeMode,
-              title: const Text('Follow system'), onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); }),
+            RadioGroup<ThemeMode>(
+              groupValue: appState._themeMode,
+              onChanged: (m) { appState.setThemeMode(m!); Navigator.pop(ctx); },
+              child: const Column(children: [
+                RadioListTile<ThemeMode>(value: ThemeMode.light, title: Text('Light')),
+                RadioListTile<ThemeMode>(value: ThemeMode.dark, title: Text('Dark')),
+                RadioListTile<ThemeMode>(value: ThemeMode.system, title: Text('Follow system')),
+              ]),
+            ),
           ]),
         ),
       ),
@@ -2388,9 +2388,9 @@ class AppDrawer extends StatelessWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 10),
       child: ListTile(
-        leading: Icon(icon, color: danger ? Colors.redAccent : accent ? AppColors.orange500 : AppColors.cream50.withOpacity(0.85)),
+        leading: Icon(icon, color: danger ? Colors.redAccent : accent ? AppColors.orange500 : AppColors.cream50.withValues(alpha: 0.85)),
         title: Text(label, style: TextStyle(
-            color: danger ? Colors.redAccent : accent ? AppColors.orange500 : AppColors.cream50.withOpacity(0.92),
+            color: danger ? Colors.redAccent : accent ? AppColors.orange500 : AppColors.cream50.withValues(alpha: 0.92),
             fontSize: 14)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onTap: onTap,
@@ -2524,7 +2524,7 @@ class HomePage extends StatelessWidget {
   BoxDecoration _cardDeco(BuildContext context) => BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(18),
-        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.07), blurRadius: 16, offset: Offset(0, 7))],
+        boxShadow: [BoxShadow(color: AppColors.navy950.withValues(alpha: 0.07), blurRadius: 16, offset: Offset(0, 7))],
       );
 
   Widget _quick(BuildContext context, IconData icon, String label, Widget? page,
@@ -2551,7 +2551,7 @@ class HomePage extends StatelessWidget {
             Container(
               width: 40, height: 40,
               decoration: BoxDecoration(
-                  color: AppColors.orange500.withOpacity(0.13),
+                  color: AppColors.orange500.withValues(alpha: 0.13),
                   borderRadius: BorderRadius.circular(12)),
               child: Icon(icon, color: AppColors.orange600, size: 21),
             ),
@@ -2597,7 +2597,7 @@ class _Hero extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: [AppColors.navy950, AppColors.navy800],
         ),
-        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.35), blurRadius: 30, offset: Offset(0, 12))],
+        boxShadow: [BoxShadow(color: AppColors.navy950.withValues(alpha: 0.35), blurRadius: 30, offset: Offset(0, 12))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2702,7 +2702,7 @@ class _RoomsPageState extends State<RoomsPage> {
 }
 
 Widget _offlineBanner(String text) => Container(
-      color: AppColors.gold.withOpacity(0.22),
+      color: AppColors.gold.withValues(alpha: 0.22),
       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(children: [
         Icon(Icons.wifi_off, size: 15, color: AppColors.navy900),
@@ -2724,7 +2724,7 @@ class _RoomCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: AppColors.navy950.withOpacity(0.08), blurRadius: 20, offset: Offset(0, 8))],
+        boxShadow: [BoxShadow(color: AppColors.navy950.withValues(alpha: 0.08), blurRadius: 20, offset: Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2737,7 +2737,7 @@ class _RoomCard extends StatelessWidget {
                 width: double.infinity,
                 child: room.imageUrl != null && room.imageUrl!.isNotEmpty
                     ? Image.network(room.imageUrl!, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _imgFallback())
+                        errorBuilder: (_, _, _) => _imgFallback())
                     : _imgFallback(),
               ),
               // (fallback shows the bundled default room photo)
@@ -2745,7 +2745,7 @@ class _RoomCard extends StatelessWidget {
                 top: 10, left: 10,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.92), borderRadius: BorderRadius.circular(999)),
+                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.92), borderRadius: BorderRadius.circular(999)),
                   child: Text('ROOM ${room.number}',
                       style: TextStyle(fontSize: 9, letterSpacing: 1.6, fontWeight: FontWeight.w700, color: AppColors.navy900)),
                 ),
@@ -2753,7 +2753,7 @@ class _RoomCard extends StatelessWidget {
               if (!available)
                 Positioned.fill(
                   child: Container(
-                    color: Colors.black.withOpacity(0.45),
+                    color: Colors.black.withValues(alpha: 0.45),
                     child: const Center(
                       child: Text('NOT AVAILABLE', style: TextStyle(color: Colors.white, letterSpacing: 2, fontSize: 11, fontWeight: FontWeight.w700)),
                     ),
@@ -2802,7 +2802,7 @@ class _RoomCard extends StatelessWidget {
         ? 'assets/room_deluxe.jpg'
         : 'assets/room_default.jpg';
     return Image.asset(img, fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(
+        errorBuilder: (_, _, _) => Container(
               color: AppColors.cream100,
               child: Center(child: Icon(Icons.hotel, size: 44, color: AppColors.orange500)),
             ));
@@ -2883,7 +2883,7 @@ class _BookingSheetState extends State<BookingSheet> {
       });
       if (data['ok'] == true) {
         await NotificationService.instance.notify('Booking confirmed 🎉',
-            'Room ${widget.room.number} · ${_nights} night(s) · FCFA ${_total.toStringAsFixed(0)}');
+            'Room ${widget.room.number} · $_nights night(s) · FCFA ${_total.toStringAsFixed(0)}');
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -2924,9 +2924,9 @@ class _BookingSheetState extends State<BookingSheet> {
                     margin: const EdgeInsets.only(bottom: 14),
                     padding: const EdgeInsets.all(13),
                     decoration: BoxDecoration(
-                        color: AppColors.gold.withOpacity(0.16),
+                        color: AppColors.gold.withValues(alpha: 0.16),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.gold.withOpacity(0.45))),
+                        border: Border.all(color: AppColors.gold.withValues(alpha: 0.45))),
                     child: Row(children: [
                       Icon(Icons.wifi_off, size: 18, color: AppColors.orange600),
                       const SizedBox(width: 10),
@@ -2971,7 +2971,7 @@ class _BookingSheetState extends State<BookingSheet> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.orange500,
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: AppColors.ink500.withOpacity(0.4),
+                  disabledBackgroundColor: AppColors.ink500.withValues(alpha: 0.4),
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                 ),
@@ -2994,7 +2994,7 @@ class _BookingSheetState extends State<BookingSheet> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-            border: Border.all(color: AppColors.navy900.withOpacity(0.25)),
+            border: Border.all(color: AppColors.navy900.withValues(alpha: 0.25)),
             borderRadius: BorderRadius.circular(12)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(label, style: TextStyle(fontSize: 10.5, color: AppColors.ink500)),
@@ -3155,7 +3155,7 @@ class _BookingTile extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.14),
+                color: statusColor.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(999)),
             child: Text(b.status, style: TextStyle(color: statusColor, fontSize: 10.5, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
           ),
@@ -3207,6 +3207,7 @@ class _BookingTile extends StatelessWidget {
         showModalBottomSheet(context: context, builder: (ctx) => _ReceiptSheet(bk: bk));
       }
     } catch (_) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Receipt needs a connection')));
     }
@@ -3242,6 +3243,7 @@ class _BookingTile extends StatelessWidget {
       );
       await Invoice.print(bytes, 'lamaliva-invoice-${b.id}');
     } catch (_) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Printing needs a connection')));
     }
@@ -3263,8 +3265,10 @@ class _BookingTile extends StatelessWidget {
         reference: 'RES-${bk['id']}',
         issuedOn: _fmt((bk['check_in'] ?? '').toString()),
       );
+      if (!context.mounted) return;
       await Invoice.download(bytes, 'lamaliva-invoice-${b.id}', context);
     } catch (_) {
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Downloading needs a connection')));
     }
@@ -3422,7 +3426,7 @@ class _SnackTile extends StatelessWidget {
             width: 54, height: 54,
             child: item.imageUrl != null && item.imageUrl!.isNotEmpty
                 ? Image.network(item.imageUrl!, fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _fallback())
+                    errorBuilder: (_, _, _) => _fallback())
                 : _fallback(),
           ),
         ),
@@ -3495,7 +3499,7 @@ class PaymentsPage extends StatelessWidget {
       child: Row(children: [
         Container(
           width: 48, height: 48,
-          decoration: BoxDecoration(color: AppColors.orange500.withOpacity(0.13),
+          decoration: BoxDecoration(color: AppColors.orange500.withValues(alpha: 0.13),
               borderRadius: BorderRadius.circular(14)),
           child: Icon(icon, color: AppColors.orange600),
         ),
@@ -3528,7 +3532,7 @@ class ComingSoonView extends StatelessWidget {
           Container(
             width: 86, height: 86,
             decoration: BoxDecoration(
-                color: AppColors.orange500.withOpacity(0.12),
+                color: AppColors.orange500.withValues(alpha: 0.12),
                 shape: BoxShape.circle),
             child: Icon(icon, size: 40, color: AppColors.orange500),
           ),
@@ -3542,7 +3546,7 @@ class ComingSoonView extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 7),
             decoration: BoxDecoration(
-                color: AppColors.gold.withOpacity(0.18),
+                color: AppColors.gold.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(999)),
             child: Text('COMING SOON',
                 style: TextStyle(color: AppColors.orange600, fontSize: 10.5,
@@ -3699,7 +3703,7 @@ class _AccountPageState extends State<AccountPage> {
               : 'Off — full animated backgrounds',
           trailing: Switch.adaptive(
             value: AppFx.saverOn,
-            activeColor: AppColors.orange500,
+            activeThumbColor: AppColors.orange500,
             onChanged: (v) {
               AppFx.setBatterySaver(v);
               setState(() {});
@@ -3785,7 +3789,7 @@ class ChangelogPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final line = isDark ? Colors.white12 : AppColors.navy900.withOpacity(0.08);
+    final line = isDark ? Colors.white12 : AppColors.navy900.withValues(alpha: 0.08);
     return Scaffold(
       appBar: AppBar(title: const Text("What's new")),
       body: WavyBackground(
@@ -3820,7 +3824,7 @@ class ChangelogPage extends StatelessWidget {
                               border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
-                                    color: AppColors.orange600.withOpacity(0.35),
+                                    color: AppColors.orange600.withValues(alpha: 0.35),
                                     blurRadius: 8, spreadRadius: 1),
                               ],
                             ),
@@ -3858,7 +3862,7 @@ class ChangelogPage extends StatelessWidget {
                                               horizontal: 9, vertical: 3),
                                           decoration: BoxDecoration(
                                               color: AppColors.orange500
-                                                  .withOpacity(0.15),
+                                                  .withValues(alpha: 0.15),
                                               borderRadius:
                                                   BorderRadius.circular(999)),
                                           child: Text('INSTALLED',
@@ -3886,7 +3890,7 @@ class ChangelogPage extends StatelessWidget {
                                                       vertical: 4),
                                                   decoration: BoxDecoration(
                                                       color: AppColors.gold
-                                                          .withOpacity(0.16),
+                                                          .withValues(alpha: 0.16),
                                                       borderRadius: BorderRadius
                                                           .circular(999)),
                                                   child: Text(h,
@@ -4014,7 +4018,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                             Container(
                               width: 40, height: 40,
                               decoration: BoxDecoration(
-                                  color: color.withOpacity(0.12),
+                                  color: color.withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(12)),
                               child: Icon(icon, size: 20, color: color),
                             ),
@@ -4088,7 +4092,7 @@ class _UpdateTileState extends State<_UpdateTile> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                    color: AppColors.orange500.withOpacity(0.12),
+                    color: AppColors.orange500.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12)),
                 child: _checking
                     ? Padding(
@@ -4174,7 +4178,7 @@ class _SettingsTile extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                    color: (danger ? Colors.redAccent : AppColors.navy900).withOpacity(0.07),
+                    color: (danger ? Colors.redAccent : AppColors.navy900).withValues(alpha: 0.07),
                     borderRadius: BorderRadius.circular(12)),
                 child: Icon(icon,
                     color: danger ? Colors.redAccent : AppColors.navy900),
@@ -4190,7 +4194,7 @@ class _SettingsTile extends StatelessWidget {
                 Text(subtitle,
                     style: TextStyle(color: AppColors.ink500, fontSize: 12)),
               ])),
-              if (trailing != null) trailing!,
+              ?trailing,
               if (trailing == null)
                 Icon(Icons.chevron_right, color: AppColors.ink500),
             ]),
@@ -4260,9 +4264,9 @@ class _LoginPageState extends State<LoginPage> {
             child: Container(
               width: 92, height: 92,
               decoration: BoxDecoration(shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: AppColors.orange500.withOpacity(0.35), blurRadius: 36, spreadRadius: 3)]),
+                  boxShadow: [BoxShadow(color: AppColors.orange500.withValues(alpha: 0.35), blurRadius: 36, spreadRadius: 3)]),
               child: ClipOval(child: Image.asset('assets/logo.png', fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Icon(Icons.hotel, color: AppColors.gold))),
+                  errorBuilder: (_, _, _) => Icon(Icons.hotel, color: AppColors.gold))),
             ),
           ),
           SizedBox(height: 20),
@@ -4363,6 +4367,15 @@ class SignUpPage extends StatefulWidget {
   State<SignUpPage> createState() => _SignUpPageState();
 }
 
+/// Mirrors the server's NIST-style password policy (12+ chars, mixed case,
+/// digit, symbol) so the app rejects bad passwords before a round-trip.
+bool _passwordPolicyOk(String pw) =>
+    pw.length >= 12 &&
+    pw.contains(RegExp(r'[A-Z]')) &&
+    pw.contains(RegExp(r'[a-z]')) &&
+    pw.contains(RegExp(r'\d')) &&
+    pw.contains(RegExp(r'[^A-Za-z0-9]'));
+
 class _SignUpPageState extends State<SignUpPage> {
   final _username = TextEditingController();
   final _email = TextEditingController();
@@ -4381,8 +4394,13 @@ class _SignUpPageState extends State<SignUpPage> {
       setState(() => _error = 'Enter a real email address — we send a confirmation link to it.');
       return;
     }
-    if (_pw.text.length < 8) {
-      setState(() => _error = 'Password must be at least 8 characters.');
+    if (_pw.text.length < 12) {
+      setState(() => _error = 'Password must be at least 12 characters.');
+      return;
+    }
+    if (!_passwordPolicyOk(_pw.text)) {
+      setState(() =>
+          _error = 'Password needs upper & lower case letters, a number and a symbol.');
       return;
     }
     if (_pw.text != _confirm.text) {
@@ -4439,7 +4457,7 @@ class _SignUpPageState extends State<SignUpPage> {
           const SizedBox(height: 14),
           TextField(controller: _pw, obscureText: _obscure,
               style: const TextStyle(color: Colors.white),
-              decoration: _dec('Password (8+ characters)', Icons.lock_outline).copyWith(
+              decoration: _dec('Password (12+ characters)', Icons.lock_outline).copyWith(
                 suffixIcon: IconButton(
                   icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility, color: AppColors.ink500),
                   onPressed: () => setState(() => _obscure = !_obscure),
@@ -4548,7 +4566,7 @@ class _VerifyEmailPageState extends State<VerifyEmailPage> {
             Container(
               width: 96, height: 96,
               decoration: BoxDecoration(
-                  color: AppColors.orange500.withOpacity(0.12), shape: BoxShape.circle),
+                  color: AppColors.orange500.withValues(alpha: 0.12), shape: BoxShape.circle),
               child: Icon(Icons.mark_email_unread_outlined, size: 44, color: AppColors.gold),
             ),
             const SizedBox(height: 24),
@@ -4619,6 +4637,11 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
       setState(() => _error = 'New passwords do not match.');
       return;
     }
+    if (!_passwordPolicyOk(_new.text)) {
+      setState(() => _error =
+          'New password must be 12+ characters with upper & lower case, a number and a symbol.');
+      return;
+    }
     setState(() { _busy = true; _error = null; });
     try {
       await SessionService.instance.changePassword(_cur.text, _new.text);
@@ -4648,7 +4671,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                   border: OutlineInputBorder())),
           const SizedBox(height: 14),
           TextField(controller: _new, obscureText: true,
-              decoration: const InputDecoration(labelText: 'New password (8+ characters)',
+              decoration: const InputDecoration(labelText: 'New password (12+ characters)',
                   border: OutlineInputBorder())),
           const SizedBox(height: 14),
           TextField(controller: _confirm, obscureText: true,
@@ -4989,10 +5012,10 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
           builder: (context, online, _) => Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-                color: (online ? Colors.green : AppColors.orange600).withOpacity(0.12),
+                color: (online ? Colors.green : AppColors.orange600).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(15),
                 border: Border.all(
-                    color: (online ? Colors.green : AppColors.orange600).withOpacity(0.4))),
+                    color: (online ? Colors.green : AppColors.orange600).withValues(alpha: 0.4))),
             child: Row(children: [
               Icon(online ? Icons.cloud_done : Icons.cloud_off,
                   color: online ? Colors.green : AppColors.orange600),
@@ -5017,9 +5040,9 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
                 margin: const EdgeInsets.only(top: 10),
                 padding: const EdgeInsets.all(13),
                 decoration: BoxDecoration(
-                    color: AppColors.gold.withOpacity(0.14),
+                    color: AppColors.gold.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(13),
-                    border: Border.all(color: AppColors.gold.withOpacity(0.4))),
+                    border: Border.all(color: AppColors.gold.withValues(alpha: 0.4))),
                 child: Row(children: [
                   Icon(Icons.pending_outlined, size: 18, color: AppColors.orange600),
                   const SizedBox(width: 10),
@@ -5091,7 +5114,7 @@ class _OfflineRegisterPageState extends State<OfflineRegisterPage> {
                         reference: 'OFF-REG-${r.id}',
                         issuedOn: r.createdAt,
                       );
-                      if (!mounted) return;
+                      if (!context.mounted) return;
                       await Invoice.download(bytes, 'lamaliva-invoice-${r.id}', context);
                     },
                     icon: const Icon(Icons.download_outlined, size: 16),
@@ -5223,7 +5246,7 @@ class _OfflineRegFormState extends State<_OfflineRegForm> {
               builder: (context, online, _) => Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                    color: (online ? Colors.green : AppColors.orange600).withOpacity(0.14),
+                    color: (online ? Colors.green : AppColors.orange600).withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(999)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Icon(online ? Icons.cloud_done : Icons.cloud_off, size: 13,
@@ -5475,10 +5498,12 @@ class _AdminPageState extends State<AdminPage> {
         SessionService.instance.updateToggles(
             payments: data['payments_active'] == true,
             snackbar: data['snackbar_active'] == true);
-        if (mounted) setState(() {
+        if (mounted) {
+          setState(() {
           _payments = data['payments_active'] == true;
           _snackbar = data['snackbar_active'] == true;
         });
+        }
         await NotificationService.instance.notify(
             'Feature switch flipped',
             'Payments: ${_payments ? "ON" : "OFF"} · Snackbar: ${_snackbar ? "ON" : "OFF"} — live on web & app.');
@@ -5614,7 +5639,7 @@ class _AdminPageState extends State<AdminPage> {
                   color: Theme.of(context).cardColor, borderRadius: BorderRadius.circular(13)),
               child: Row(children: [
                 CircleAvatar(
-                  backgroundColor: (u['role'] == 'admin' ? AppColors.orange600 : AppColors.navy800).withOpacity(0.18),
+                  backgroundColor: (u['role'] == 'admin' ? AppColors.orange600 : AppColors.navy800).withValues(alpha: 0.18),
                   child: Text((u['username'] ?? '?').toString().substring(0, 1).toUpperCase(),
                       style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800,
                           color: u['role'] == 'admin' ? AppColors.orange600 : AppColors.navy900)),
