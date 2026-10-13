@@ -307,6 +307,8 @@ _RATE_RULES = {           # endpoint -> (max_hits, window_seconds)
     'resend_verification': (3, 600), # 3 emails / 10 min / IP
     'chat': (30, 60),                # 30 msgs / min / IP
     'api_book': (10, 3600),          # 10 bookings / hour / IP
+    'api_install': (30, 3600),       # 30 install reports / hour / IP
+    'api_pwa_install': (30, 3600),   # same ceiling for PWA install reports
 }
 
 
@@ -407,6 +409,9 @@ class User(UserMixin, db.Model):
     # ---- Native-app API access ----
     api_token = db.Column(db.String(64), nullable=True, index=True)  # SHA-256 hash of the bearer token
     api_token_issued = db.Column(db.DateTime, nullable=True)
+
+    # ---- Growth analytics: which surface created this account ----
+    signup_source = db.Column(db.String(20), nullable=True)  # 'web' | 'pwa' | 'android' | 'windows' | 'admin'
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -922,6 +927,20 @@ def api_messages():
     return jsonify({'ok': True, 'message': {'id': msg.id, 'attachment': att_path}})
 
 
+class AppEvent(db.Model):
+    """Growth-tracking event stream for the administrator's live dashboard.
+
+    kind:      'install' (a customer got the app) or 'signup' (new account)
+    platform:  'android' | 'windows' | 'pwa' | 'web' | 'unknown'
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    kind = db.Column(db.String(10), nullable=False, index=True)
+    platform = db.Column(db.String(20), default='unknown', index=True)
+    username = db.Column(db.String(80), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.now(timezone.utc), index=True)
+
+
 class ActivityLog(db.Model): # New ActivityLog Model
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -1292,6 +1311,8 @@ def _migrate_schema():
                 ("remember_me", "BOOLEAN DEFAULT 0"),
                 ("reset_token", "VARCHAR(128)"),
                 ("reset_sent_at", "DATETIME"),
+                # Growth analytics: which surface created the account
+                ("signup_source", "VARCHAR(20)"),
             ]
             for column, ddl in migrations:
                 if column not in existing:
@@ -1450,8 +1471,11 @@ def signup():
 
         new_user = User(username=username, email=email, password_hash=hash_password(password), role='user', registered_on=datetime.now(timezone.utc), first_login_done=False) # Set first_login_done to False
         new_user.email_verified = False  # verified via the branded email we send right now
+        new_user.signup_source = _normalize_platform(request.form.get('signup_source'), fallback='web')
         db.session.add(new_user)
         db.session.commit()
+        _record_app_event('signup', new_user.signup_source, username=new_user.username, email=new_user.email)
+        _notify_admins_signup(new_user, new_user.signup_source)
 
         sent = _issue_verification(new_user)
         if sent:
@@ -2543,6 +2567,11 @@ def download_release(platform):
     meta = _release_meta(platform)
     release_path = os.path.join(basedir, 'static', 'releases', meta['filename'])
     if meta['available']:
+        # Growth analytics: every served download counts as an install
+        try:
+            _record_app_event('install', platform)
+        except Exception:
+            db.session.rollback()
         return send_file(release_path, as_attachment=True, download_name=meta['filename'])
     flash(f"The {meta['label']} for v{APP_VERSION} is being packaged — check back shortly.", 'info')
     return redirect(url_for('downloads'))
@@ -2816,8 +2845,11 @@ def api_auth_register():
     new_user = User(username=username, email=email, password_hash=hash_password(password),
                     role='user', registered_on=datetime.now(timezone.utc), first_login_done=False)
     new_user.email_verified = False
+    new_user.signup_source = _normalize_platform(data.get('source'), fallback='android')
     db.session.add(new_user)
     db.session.commit()
+    _record_app_event('signup', new_user.signup_source, username=new_user.username, email=new_user.email)
+    _notify_admins_signup(new_user, new_user.signup_source)
 
     sent = _issue_verification(new_user)
     if not sent:
@@ -2991,6 +3023,129 @@ def api_staff_checkout(res_id):
     return jsonify({'ok': True, 'status': r.status})
 
 
+# ===================== GROWTH ANALYTICS (admin live) =====================
+
+_GROWTH_PLATFORMS = ('android', 'windows', 'pwa', 'web', 'unknown')
+
+
+def _normalize_platform(value, fallback='unknown'):
+    v = (value or '').strip().lower()
+    return v if v in _GROWTH_PLATFORMS else fallback
+
+
+def _record_app_event(kind, platform, username=None, email=None):
+    """Append one growth event; returns the row. Caller commits or uses _record_app_event_later."""
+    ev = AppEvent(kind=kind, platform=_normalize_platform(platform),
+                  username=(username or '')[:80] or None, email=(email or '')[:120] or None)
+    db.session.add(ev)
+    db.session.commit()
+    return ev
+
+
+def _notify_admins_signup(user, source):
+    """Live notice to every administrator account: a brand-new customer registered."""
+    try:
+        total = User.query.filter(User.role == 'user').count()
+        body = (f"{user.username} ({user.email or 'no email'}) just created an account on "
+                f"{(source or 'unknown').upper()}. The hotel now has {total} registered customer account(s).")
+        for admin in User.query.filter_by(role='admin').all():
+            db.session.add(UserNotification(
+                user_id=admin.id,
+                title=f"\U0001f195 New customer: {user.username}",
+                body=body,
+                source='system'))
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+
+def _growth_counts():
+    """Coalesce install + signup counters in one pass."""
+    rows = db.session.query(
+        sa_func.lower(AppEvent.platform).label('platform'),
+        sa_func.count(AppEvent.id).label('n'),
+    )
+    installs = dict(rows.filter(AppEvent.kind == 'install').group_by('platform').all())
+    signups = dict(rows.filter(AppEvent.kind == 'signup').group_by('platform').all())
+    accounts = db.session.query(
+        sa_func.lower(User.signup_source).label('src'), sa_func.count(User.id).label('n')
+    ).filter(User.role == 'user').group_by('src').all()
+    accounts_by_source = {str(a or 'web'): int(b) for a, b in accounts}
+    return {
+        'registered_accounts': sum(accounts_by_source.values()),
+        'accounts_by_source': accounts_by_source,
+        'installs_total': sum(installs.values()),
+        'installs_by_platform': {p: int(installs.get(p, 0)) for p in _GROWTH_PLATFORMS},
+        'signups_by_platform': {p: int(signups.get(p, 0)) for p in _GROWTH_PLATFORMS},
+    }
+
+
+def _growth_event_payload(ev):
+    return {
+        'id': ev.id,
+        'kind': ev.kind,
+        'platform': ev.platform,
+        'username': ev.username,
+        'email': ev.email,
+        'created_at': ev.created_at.isoformat() if ev.created_at else None,
+    }
+
+
+@app.route('/api/install', methods=['POST'])
+def api_install():
+    """Native app reports its install (first launch) — feeds the admin's live
+    download counter. Body: {platform: 'android'|'windows'}."""
+    data = request.get_json(silent=True) or {}
+    platform = _normalize_platform(data.get('platform'))
+    if platform in ('', 'unknown'):
+        platform = 'unknown'
+    ev = _record_app_event('install', platform, username=None, email=None)
+    return jsonify({'ok': True, 'event_id': ev.id})
+
+
+@app.route('/api/pwa-install', methods=['POST'])
+def api_pwa_install():
+    """Browser reports a PWA install ('appinstalled' event) — live counter."""
+    ev = _record_app_event('install', 'pwa')
+    return jsonify({'ok': True, 'event_id': ev.id})
+
+
+@app.route('/api/admin/growth')
+def api_admin_growth():
+    """Full growth snapshot for the administrator dashboard (live panel + app)."""
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Admin access only.'}), 403
+    counts = _growth_counts()
+    latest = AppEvent.query.order_by(AppEvent.id.desc()).limit(20).all()
+    return jsonify({
+        'ok': True,
+        'max_event_id': latest[0].id if latest else 0,
+        'counts': counts,
+        'events': [_growth_event_payload(e) for e in latest],
+    })
+
+
+@app.route('/api/admin/growth/events')
+def api_admin_growth_events():
+    """Lightweight live-poll: growth events newer than ?after_id (admin feed)."""
+    user = _current_api_user()
+    if not user or user.role not in ('admin', 'staff'):
+        return jsonify({'ok': False, 'error': 'Admin access only.'}), 403
+    try:
+        after_id = int(request.args.get('after_id') or 0)
+    except ValueError:
+        after_id = 0
+    rows = (AppEvent.query.filter(AppEvent.id > after_id)
+            .order_by(AppEvent.id.asc()).limit(50).all())
+    max_id = db.session.query(sa_func.max(AppEvent.id)).scalar() or 0
+    return jsonify({
+        'ok': True,
+        'max_event_id': int(max_id),
+        'events': [_growth_event_payload(e) for e in rows],
+    })
+
+
 # ===================== APP API: ADMIN CONTROLS =====================
 
 @app.route('/api/admin/rooms', methods=['GET', 'POST'])
@@ -3108,6 +3263,7 @@ def api_admin_users():
                   role=role, first_login_done=True)
         nu.email_verified = True
         nu.password_changed = True  # admin sets the password, so no default prompt
+        nu.signup_source = 'admin'
         db.session.add(nu)
         db.session.commit()
         return jsonify({'ok': True, 'user': {'id': nu.id, 'username': nu.username, 'role': nu.role}})

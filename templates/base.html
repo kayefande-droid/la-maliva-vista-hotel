@@ -998,5 +998,36 @@
         }).catch(() => {});
     })();
 </script>
+<script>
+/* ===================== Growth analytics: PWA install reporting =====================
+   Notifies the backend once per browser when this site is installed as an
+   app (Chrome/Edge 'appinstalled', iOS standalone). The admin's Live Growth
+   panel counts it as a PWA install. Best-effort: never blocks the page. */
+(function () {
+    var KEY = 'lmv_pwa_install_reported';
+    function report(force) {
+        try {
+            if (!force && localStorage.getItem(KEY) === '1') return;
+            fetch('/api/pwa-install', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ platform: 'pwa' }),
+                credentials: 'same-origin',
+                keepalive: true
+            }).then(function (r) {
+                if (r.ok) { try { localStorage.setItem(KEY, '1'); } catch (e) {} }
+            }).catch(function () {});
+        } catch (e) {}
+    }
+    window.addEventListener('appinstalled', function () {
+        report(navigator.standalone === true);
+    });
+    if (navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches
+        || window.matchMedia('(display-mode: fullscreen)').matches
+        || window.matchMedia('(display-mode: minimal-ui)').matches) {
+        report(false);
+    }
+})();
+</script>
 </body>
 </html>

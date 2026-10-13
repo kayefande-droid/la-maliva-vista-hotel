@@ -268,6 +268,7 @@
         {% endwith %}
 
         <form method="POST" class="stagger" id="regForm" novalidate>
+            <input type="hidden" name="signup_source" id="signupSource" value="web">
             <div class="field">
                 <label class="field-label" for="username">Operator ID</label>
                 <div class="control">
@@ -463,5 +464,18 @@
             });
         })();
     </script>
+<script>
+    /* Growth analytics: mark signups made from the installed PWA */
+    (function () {
+        var isStandalone = navigator.standalone === true
+            || window.matchMedia('(display-mode: standalone)').matches
+            || window.matchMedia('(display-mode: fullscreen)').matches
+            || window.matchMedia('(display-mode: minimal-ui)').matches;
+        if (isStandalone) {
+            var el = document.getElementById('signupSource');
+            if (el) el.value = 'pwa';
+        }
+    })();
+</script>
 </body>
 </html>

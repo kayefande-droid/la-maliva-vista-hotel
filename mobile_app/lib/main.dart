@@ -459,6 +459,22 @@ class _SplashGateState extends State<SplashGate> with SingleTickerProviderStateM
     RoomRepository.instance.refresh().catchError((_) => <Room>[]);
     SnackbarRepository.instance.refresh().catchError((_) {});
     SessionService.instance.refreshFeatures().catchError((_) {});
+    _reportInstallOnce();
+  }
+
+  /// Growth analytics: tell the hotel backend this app was installed.
+  /// Reported once per device (flag in SharedPreferences), never blocks boot.
+  Future<void> _reportInstallOnce() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('install_reported') == true) return;
+      await prefs.setBool('install_reported', true);
+      await http
+          .post(Uri.parse('$kBaseUrl/api/install'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode({'platform': Platform.isWindows ? 'windows' : 'android'}))
+          .timeout(const Duration(seconds: 10));
+    } catch (_) {/* offline / unreachable — never break startup */}
   }
 
   Future<void> _askPermissionsOnce() async {
@@ -1457,6 +1473,7 @@ class SessionService {
       'username': username,
       'email': email,
       'password': password,
+      'source': Platform.isWindows ? 'windows' : 'android',
     });
     return (data['message'] ?? (data['ok'] == true ? 'Account created' : 'Sign up failed')).toString();
   }
