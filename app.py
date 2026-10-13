@@ -1116,6 +1116,15 @@ def add_security_headers(response):
     # ASVS 14.4: cache nothing that carries session data
     if request.path.startswith('/api/') or request.path.startswith('/dashboard'):
         response.headers['Cache-Control'] = 'no-store'
+    # Perf: letters can't re-download what never changes on them. Vendor libs
+    # & room/menu uploads are the heaviest assets; keep HTML + the service
+    # worker fresh so PWA updates still land.
+    elif request.path.startswith('/static/vendor/'):
+        response.headers['Cache-Control'] = 'public, max-age=2592000, immutable'
+    elif request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=604800'
+    if request.path == '/sw.js':
+        response.headers['Cache-Control'] = 'no-cache'
     # ASVS 14.x: modern hardening headers
     if _IS_PROD:
         response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
