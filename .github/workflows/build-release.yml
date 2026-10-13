@@ -25,6 +25,12 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      # `instance/` (the local SQLite data folder) is gitignored, so it must be
+      # created on the runner or --add-data will abort the PyInstaller build.
+      - name: Create instance directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path instance | Out-Null
+
       - name: Build server executable
         run: >
           pyinstaller --noconfirm --clean
@@ -69,8 +75,8 @@ jobs:
         run: |
           keytool -genkeypair -v -keystore release.keystore -alias lamaliva \
             -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass "${{ secrets.APK_KEYSTORE_PASSWORD }}" \
-            -keypass "${{ secrets.APK_KEY_PASSWORD }}" \
+            -storepass "${{ secrets.APK_KEYSTORE_PASSWORD || 'lamaliva2026' }}" \
+            -keypass "${{ secrets.APK_KEY_PASSWORD || 'lamaliva2026' }}" \
             -dname "CN=La-Maliva Vista, OU=Hotel, O=La-Maliva, L=Buea, C=CM"
 
       - name: Build APK
@@ -78,8 +84,8 @@ jobs:
           cd twa
           bubblewrap build --skipPwaValidation \
             --keystore ../release.keystore \
-            --keystorePassword "${{ secrets.APK_KEYSTORE_PASSWORD }}" \
-            --keyPassword "${{ secrets.APK_KEY_PASSWORD }}" || true
+            --keystorePassword "${{ secrets.APK_KEYSTORE_PASSWORD || 'lamaliva2026' }}" \
+            --keyPassword "${{ secrets.APK_KEY_PASSWORD || 'lamaliva2026' }}" || true
           find . -name "*.apk" -exec cp {} ../la-maliva-vista-${{ github.ref_name }}.apk \;
 
       - name: Upload artifact
