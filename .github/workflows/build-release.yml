@@ -63,37 +63,25 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Bubblewrap (TWA builder)
-        run: npm install -g @bubblewrap/cli
-
-      - name: Create TWA project
-        run: |
-          bubblewrap init --manifest=https://la-maliva-vista-hotel.onrender.com/manifest.json --directory twa
-        continue-on-error: true
-
-      - name: Generate signing key
-        run: |
-          keytool -genkeypair -v -keystore release.keystore -alias lamaliva \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -storepass "${{ secrets.APK_KEYSTORE_PASSWORD || 'lamaliva2026' }}" \
-            -keypass "${{ secrets.APK_KEY_PASSWORD || 'lamaliva2026' }}" \
-            -dname "CN=La-Maliva Vista, OU=Hotel, O=La-Maliva, L=Buea, C=CM"
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
 
       - name: Build APK
         run: |
-          cd twa
-          bubblewrap build --skipPwaValidation \
-            --keystore ../release.keystore \
-            --keystorePassword "${{ secrets.APK_KEYSTORE_PASSWORD || 'lamaliva2026' }}" \
-            --keyPassword "${{ secrets.APK_KEY_PASSWORD || 'lamaliva2026' }}" || true
-          find . -name "*.apk" -exec cp {} ../la-maliva-vista-${{ github.ref_name }}.apk \;
+          cd mobile_app
+          flutter pub get
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             ../la-maliva-vista-${{ github.ref_name }}.apk
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: android-apk
           path: la-maliva-vista-${{ github.ref_name }}.apk
-        continue-on-error: true
 
   release:
     needs: [build-windows-exe, build-android-apk]
