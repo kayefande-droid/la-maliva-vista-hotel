@@ -6,7 +6,7 @@ Configuration (environment variables on Render/Railway):
     SMTP_PORT       587 (TLS, default) or 465 (SSL)
     SMTP_USER       mailbox username
     SMTP_PASSWORD   mailbox password / app password
-    MAIL_FROM       display sender, e.g. "La-Maliva Vista <no-reply@lamaliva.com>"
+    MAIL_FROM       display sender, e.g. "La-Maliva Vista <noreply@lamaliva.com>"
 
 If SMTP is not configured, send_email() returns False and the caller
 falls back to logging the link (useful for local development).
@@ -24,12 +24,14 @@ logger = logging.getLogger(__name__)
 
 SITE_BASE = "https://la-maliva-vista-hotel.onrender.com"
 LOGO_URL = f"{SITE_BASE}/static/icons/icon-192.png"
+LOGO_MAPS_URL = "https://maps.google.com/maps/api/staticmap?center=La+Maliva+Vista+Hotel,+Buea,+Cameroon&zoom=15&size=48x48&markers=size:tiny%7Ccolor:red%7CLa+Maliva+Vista+Hotel,+Buea,+Cameroon"
+
 
 # ---------------------------------------------------------------------------
 # Shared brand chrome — matches the website/app luxury design language:
 # deep navy canvas, gold frame, Cormorant-style serif headline, orange CTA.
 # ---------------------------------------------------------------------------
-_SHELL = """\
+_SHELL = """\\
 <!DOCTYPE html>
 <html>
 <head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
@@ -58,16 +60,11 @@ _SHELL = """\
             </td></tr>
             <tr><td style="padding:0 36px 34px;">
               <div style="height:1px;background:rgba(238,195,122,0.25);margin:0 0 18px;"></div>
-              <p style="color:rgba(253,250,244,0.45);font-size:11px;line-height:1.7;margin:0;text-align:center;">
-                Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon<br>
-                (+237) 679-915-967 &middot;
-                <a href="{site}" style="color:#eec37a;text-decoration:none;">la-maliva-vista-hotel.onrender.com</a>
-              </p>
+              <div style="font-size:10px;color:#4a6283;letter-spacing:2px;">
+                LA-MALIVA VISTA HOTEL &middot; <a href="https://maps.app.goo.gl/EMm95NsWc5sQCM6QA" style="color:#7a8cbd;text-decoration:none;">View on Google Maps</a>
+              </div>
             </td></tr>
           </table>
-        </td></tr>
-        <tr><td align="center" style="padding:16px 0 0;">
-          <span style="color:rgba(253,250,244,0.35);font-size:10px;letter-spacing:3px;">BUEA &middot; CAMEROON &middot; MOUNTAIN SIDE</span>
         </td></tr>
       </table>
     </td></tr>
@@ -76,53 +73,39 @@ _SHELL = """\
 </html>
 """
 
-
-def _brand_html(preheader: str, heading: str, body_html: str, cta_label: str, cta_url: str, footnote: str = "") -> str:
-    """Assemble a branded email on the shared navy/gold shell."""
-    cta = f'''
-    <table role="presentation" cellpadding="0" cellspacing="0" align="center" style="margin:6px auto 0;">
-      <tr><td style="border-radius:14px;background:linear-gradient(115deg,#ffc94d,#f08c2e);">
-        <a href="{cta_url}" style="display:inline-block;padding:15px 40px;color:#06122b;
-           font-weight:700;font-size:14px;letter-spacing:1px;text-decoration:none;border-radius:14px;">
-          {cta_label}
-        </a>
-      </td></tr>
-    </table>'''
-    foot = f'<p style="color:rgba(253,250,244,0.45);font-size:11.5px;line-height:1.7;margin:18px 0 0;text-align:center;">{footnote}</p>' if footnote else ''
-    content = f'''
-      <h2 style="color:#fdfaf4;font-size:24px;font-weight:600;margin:0 0 14px;text-align:center;font-family:Georgia,'Times New Roman',serif;letter-spacing:0.5px;">{heading}</h2>
-      <div style="height:1px;background:rgba(240,140,46,0.5);width:64px;margin:0 auto 20px;"></div>
-      <div style="color:rgba(253,250,244,0.82);font-size:14.5px;line-height:1.85;text-align:center;">{body_html}</div>
-      {cta}
-      {foot}
-    '''
-    return _SHELL.format(preheader=preheader, logo=LOGO_URL, site=SITE_BASE, content=content)
-
-
-VERIFY_BODY_TMPL = """\
-Welcome to <b style="color:#fdfaf4;">La&#8209;Maliva Vista Hotel</b> — the mountain's
-finest address in Buea. One quick confirmation and your account is fully
-active for booking rooms, viewing receipts and receiving hotel news.
-
-<div style="margin:18px auto 0;padding:14px 18px;background:rgba(240,140,46,0.10);border:1px solid rgba(240,140,46,0.35);border-radius:12px;max-width:380px;">
-  <span style="color:#eec37a;font-size:12px;letter-spacing:1px;">&#9203;&nbsp;YOUR LINK EXPIRES IN 24 HOURS</span>
-</div>
+VERIFY_BODY_TMPL = """
+  <p style="margin:0 0 22px;color:rgba(253,250,244,0.80);font-size:14px;line-height:1.6;">
+    Almost there — one tap and your account is active. Use the button below to
+    confirm this is really <b>{to}</b>.
+  </p>
+  <div style="text-align:center;margin:0 0 26px;">
+    <a href="{cta_url}" style="display:inline-block;background:#eec37a;border-radius:10px;padding:15px 34px;text-decoration:none;color:#0a1628;font-weight:700;font-size:16px;letter-spacing:1px;box-shadow:0 8px 22px rgba(238,195,122,0.40);">
+      Verify My Email
+    </a>
+  </div>
+  <p style="margin:0 0 0;color:rgba(253,250,244,0.55);font-size:12px;line-height:1.55;">
+    If the button doesn't work, paste this link into your browser:<br>
+    <a href="{cta_url}" style="color:#ffc94d;text-decoration:none;">{cta_url}</a>
+  </p>
 """
 
-VERIFY_FOOT = """Didn't create this account? You can safely ignore this email — the address will never be activated without your click."""
+VERIFY_FOOT = """Didn't request this? You can safely ignore this email — nobody else
+      can activate it without access to this inbox."""
 
 
-RESET_BODY_TMPL = """\
-We received a request to reset the password for your
-<b style="color:#fdfaf4;">La&#8209;Maliva Vista</b> account. Tap below to choose
-a new one and you're back in — your next stay is waiting.
-
-<div style="margin:18px auto 0;padding:14px 18px;background:rgba(240,140,46,0.10);border:1px solid rgba(240,140,46,0.35);border-radius:12px;max-width:380px;">
-  <span style="color:#eec37a;font-size:12px;letter-spacing:1px;">&#128274;&nbsp;SINGLE-USE &middot; EXPIRES IN 1 HOUR</span>
-</div>
-"""
-
-RESET_FOOT = """Didn't request a reset? Your password is untouched — you can safely ignore this email."""
+def _brand_html(preheader, heading, body_html, cta_label, cta_url, footnote):
+    return _SHELL.format(
+        logo=LOGO_URL,
+        logo_maps=LOGO_MAPS_URL,
+        preheader=preheader,
+        content=(
+            f'<p style="margin:0 0 6px 0;color:#eec37a;font-size:20px;letter-spacing:1px;">{heading}</p>'
+            f'{body_html}'
+            f'<div style="margin-top:24px;padding-top:18px;border-top:1px solid rgba(238,195,122,0.20);">'
+            f'<p style="margin:0;color:rgba(253,250,244,0.65);font-size:12px;line-height:1.5;">{footnote}</p>'
+            f'</div>'
+        ),
+    )
 
 
 def _smtp_config():
@@ -134,7 +117,7 @@ def _smtp_config():
         "port": int(os.environ.get("SMTP_PORT", "587")),
         "user": os.environ.get("SMTP_USER", ""),
         "password": os.environ.get("SMTP_PASSWORD", ""),
-        "from": os.environ.get("MAIL_FROM") or os.environ.get("SMTP_USER", "no-reply@lamaliva.com"),
+        "from": (os.environ.get("MAIL_FROM") or os.environ.get("SMTP_USER") or "no-reply@lamaliva.com").strip(),
     }
 
 
@@ -143,13 +126,20 @@ def smtp_configured():
 
 
 def send_email(to, subject, html):
-    """Send an HTML email. Returns True on success, False otherwise (never raises)."""
+    """Send an HTML email. Returns True on success, False otherwise (never raises).
+
+    Note: sending exactly the same content to the same address in a tight loop
+    (e.g. a broken front-end re-clicking 'resend' many times) will fail once
+    Gmail flags it as suspect. In that case the next send attempt should use a
+    slightly different body or a fresh token so Gmail's spam logic sees a new
+    message, not a duplicate.
+    """
     cfg = _smtp_config()
     if not cfg:
         logger.warning("SMTP not configured (set SMTP_HOST/SMTP_USER/SMTP_PASSWORD) — cannot send '%s' to %s", subject, to)
         return False
 
-    to = (to or "").strip()
+    to = (to or "").strip().lower()
     if not to or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", to):
         logger.error("Refusing to send email to invalid address: %r", to)
         return False
@@ -172,11 +162,44 @@ def send_email(to, subject, html):
                 server.starttls(context=ssl.create_default_context())
                 server.login(cfg["user"], cfg["password"])
                 server.sendmail(cfg["from"], [to], msg.as_string())
-        logger.info("Verification email sent to %s", to)
+        logger.info("Verification email sent to %s (From: %s)", to, cfg["from"])
         return True
     except Exception:
         logger.exception("Failed to send email to %s", to)
         return False
+
+
+RESET_BODY = """\
+  <p style="margin:0 0 22px;color:rgba(253,250,244,0.80);font-size:14px;line-height:1.6;">
+    Someone (or you) asked to reset the password for <b>{to}</b>.
+    Use the button below to set a new one.
+  </p>
+  <div style="text-align:center;margin:0 0 26px;">
+    <a href="{cta_url}" style="display:inline-block;background:#eec37a;border-radius:10px;padding:15px 34px;text-decoration:none;color:#0a1628;font-weight:700;font-size:16px;letter-spacing:1px;box-shadow:0 8px 22px rgba(238,195,122,0.40);">
+      Reset My Password
+    </a>
+  </div>
+  <p style="margin:0 0 0;color:rgba(253,250,244,0.55);font-size:12px;line-height:1.55;">
+    If the button doesn't work, paste this link into your browser:<br>
+    <a href="{cta_url}" style="color:#ffc94d;text-decoration:none;">{cta_url}</a>
+  </p>
+"""
+
+RESET_FOOT = """Didn't request this? You can safely ignore this email — your password
+      is unchanged. This link expires in one hour."""
+
+
+def send_password_reset_email(to, reset_url):
+    """Branded password-reset email, same shell as verification."""
+    html = _brand_html(
+        preheader="Reset your password for La-Maliva Vista.",
+        heading="Reset your password",
+        body_html=RESET_BODY,
+        cta_label="Reset My Password",
+        cta_url=reset_url,
+        footnote=RESET_FOOT,
+    )
+    return send_email(to, "Reset your password — La-Maliva Vista Hotel", html)
 
 
 def send_verification_email(to, verify_url):
@@ -190,61 +213,3 @@ def send_verification_email(to, verify_url):
         footnote=VERIFY_FOOT,
     )
     return send_email(to, "Confirm your email — La-Maliva Vista Hotel", html)
-
-
-RESET_BODY = """\
-<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;background:#f4f6fb;font-family:'Segoe UI',Arial,sans-serif;">
-  <div style="max-width:560px;margin:0 auto;padding:32px 20px;">
-    <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 6px 24px rgba(10,30,60,0.12);">
-      <div style="background:linear-gradient(135deg,#0a2a66,#123a8f);padding:28px 32px;text-align:center;">
-        <h1 style="color:#ffc94d;font-size:20px;letter-spacing:2px;margin:0;">LA-MALIVA VISTA</h1>
-        <p style="color:rgba(255,255,255,0.75);font-size:12px;letter-spacing:3px;margin:6px 0 0;">A TASTE OF PARADISE</p>
-      </div>
-      <div style="padding:32px;">
-        <h2 style="color:#0a2a66;font-size:18px;margin:0 0 12px;">Reset your password</h2>
-        <p style="color:#4a5568;font-size:14px;line-height:1.7;margin:0 0 24px;">
-          We received a request to reset the password for your La-Maliva Vista account.
-          The link below is valid for <strong>1 hour</strong> and can be used once.
-        </p>
-        <div style="text-align:center;margin:0 0 24px;">
-          <a href="{reset_url}"
-             style="display:inline-block;background:linear-gradient(115deg,#ffc94d,#ff9d2e);color:#06122b;
-                    font-weight:700;font-size:14px;letter-spacing:1px;text-decoration:none;
-                    padding:14px 34px;border-radius:12px;">
-             Choose a New Password
-          </a>
-        </div>
-        <p style="color:#8892a6;font-size:12px;line-height:1.6;margin:0 0 8px;">
-          Or paste this link into your browser:<br>
-          <span style="color:#123a8f;word-break:break-all;">{reset_url}</span>
-        </p>
-        <p style="color:#8892a6;font-size:12px;line-height:1.6;margin:0;">
-          Didn't request this? Your password is untouched — you can safely ignore this email.
-        </p>
-      </div>
-      <div style="background:#f4f6fb;padding:18px 32px;text-align:center;">
-        <p style="color:#8892a6;font-size:11px;margin:0;">
-          Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon<br>
-          (+237) 679-915-967 &middot; La-Maliva Vista Hotel
-        </p>
-      </div>
-    </div>
-  </div>
-</body>
-</html>
-"""
-
-
-def send_password_reset_email(to, reset_url):
-    """Branded password-reset email on the navy/gold luxury shell."""
-    html = _brand_html(
-        preheader="Choose a new password for your La-Maliva Vista account.",
-        heading="Reset your password",
-        body_html=RESET_BODY_TMPL,
-        cta_label="Choose a New Password",
-        cta_url=reset_url,
-        footnote=RESET_FOOT,
-    )
-    return send_email(to, "Reset your password — La-Maliva Vista Hotel", html)

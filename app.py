@@ -580,7 +580,7 @@ class Hotel(db.Model):
     payments_active = db.Column(db.Boolean, default=False)  # MoMo / bank payment sections
     snackbar_active = db.Column(db.Boolean, default=False)  # Snackbar / restaurant menu
     # ---- Google Maps location link (site contact page + native app "Location" option) ----
-    maps_url = db.Column(db.String(500), default='https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon')
+    maps_url = db.Column(db.String(500), default='https://maps.app.goo.gl/EMm95NsWc5sQCM6QA')
 
 class SnackbarItem(db.Model):
     """An item on the hotel's snackbar / restaurant menu (admin-managed)."""
@@ -1185,11 +1185,11 @@ def inject_branding():
             hotel_name=hotel.name,
             payments_active=bool(hotel.payments_active),
             snackbar_active=bool(hotel.snackbar_active),
-            maps_url=hotel.maps_url or 'https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon',
+            maps_url=hotel.maps_url or 'https://maps.app.goo.gl/EMm95NsWc5sQCM6QA',
         )
     except Exception:
         return dict(hotel_name='LA-MALIVA VISTA HOTEL', payments_active=False, snackbar_active=False,
-                    maps_url='https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon')
+                    maps_url='https://maps.app.goo.gl/EMm95NsWc5sQCM6QA')
 
 # ===================== ACTIVITY LOGGING =====================
 def _perform_log(action, details=None):
