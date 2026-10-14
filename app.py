@@ -5,6 +5,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta, timezone
 import os
+import sys
 import io
 import csv
 import random
@@ -143,8 +144,23 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.6"
+APP_VERSION = "2.3.8"
 BUILD_CHANNEL = "stable"
+
+
+def _app_base_dir() -> str:
+    """Writable per-install base dir for the desktop bundle.
+
+    Under PyInstaller onefile, __file__ lives in a temp extraction dir that
+    Windows deletes on every exit — anything saved there is lost on restart.
+    For frozen (EXE) runs we anchor instance/ next to the .exe itself so the
+    database and secret key survive; for normal Python/Render runs __file__
+    is already on a persistent path.
+    """
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(os.path.abspath(sys.executable))
+    return os.path.abspath(os.path.dirname(__file__))
+
 
 def _load_secret_key() -> str:
     """Env var first; otherwise a random key persisted in instance/ (git-ignored).
@@ -155,7 +171,7 @@ def _load_secret_key() -> str:
     env_key = os.environ.get('SECRET_KEY')
     if env_key:
         return env_key
-    key_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'instance', '.secret_key')
+    key_file = os.path.join(_app_base_dir(), 'instance', '.secret_key')
     try:
         with open(key_file, 'r') as fh:
             saved = fh.read().strip()
@@ -177,7 +193,7 @@ app.config['SECRET_KEY'] = _load_secret_key()
 # Use an absolute path for the fallback database to ensure it runs correctly everywhere.
 # Production: a full DATABASE_URL (e.g. Neon / Render Postgres) always wins, so guest
 # bookings & accounts persist across deploys. Without it we fall back to local SQLite.
-basedir = os.path.abspath(os.path.dirname(__file__))
+basedir = _app_base_dir()
 db_path = os.path.join(basedir, 'instance', 'lamaliva.db')
 _database_url = os.environ.get('DATABASE_URL', '').strip()
 # SQLAlchemy 2.x only knows the 'postgresql://' scheme; normalize the legacy one.
@@ -2624,9 +2640,30 @@ def api_version():
 # ---------------------------------------------------------------------------
 CHANGELOG = [
     {
+        'version': '2.3.8',
+        'date': '2026-10-14',
+        'highlights': ['Live announcements', 'Smarter inbox', 'In-app updates'],
+        'notes': [
+            'Announcements from the hotel team now arrive while the app is simply open — no need to open the inbox (polls every 90 seconds).',
+            'The inbox highlight now clears the moment you open notifications and returns only when a brand-new message lands.',
+            'Updates install inside the app: the new version downloads and the Android installer opens automatically when it finishes.',
+            'The location button now finds the hotel directly by name (“La Maliva Vista Hotel”) in Google Maps.',
+            'PWA fix: the mobile menu and chat can no longer freeze after switching pages or returning to the site.',
+        ],
+    },
+    {
+        'version': '2.3.7',
+        'date': '2026-10-14',
+        'highlights': ['Safer on every device', 'Windows data fix', 'Broader device support'],
+        'notes': [
+            'The Windows desktop app no longer forgets your data between restarts — bookings and accounts now persist on your PC.',
+            'Android app now targets a clearer set of phones (Android 8.0+ is now truly enforced) for more predictable behaviour on tablets and large screens.',
+            'Faster repeat visits on slow connections: website libraries and images remember themselves so pages return sooner.',
+            'Various reliability fixes across the website, Android and Windows apps.',
+        ],
+    },
+    {
         'version': '2.3.6',
-        'date': '2026-10-13',
-        'highlights': ['Stronger passwords', 'Security firewall', 'AdSense ready'],
         'notes': [
             'Passwords are now 12+ characters with letters, numbers and a symbol — everywhere you sign up or change one.',
             'A new security layer blocks AI scraping bots from copying the site, while everyday visitors are untouched.',

@@ -55,7 +55,7 @@ jobs:
 
       - name: Build server executable
         run: >
-          pyinstaller --noconfirm --clean
+          pyinstaller --noconfirm --clean --onefile
           --name La-Maliva-Vista-Server
           --add-data "templates;templates"
           --add-data "static;static"
@@ -66,9 +66,14 @@ jobs:
 
       - name: Zip bundle
         shell: pwsh
-        run: Compress-Archive -Path dist/La-Maliva-Vista-Server -DestinationPath La-Maliva-Vista-Setup-${{ github.ref_name }}.zip
+        run: |
+          Compress-Archive -Path dist/La-Maliva-Vista-Server.exe -DestinationPath La-Maliva-Vista-Setup-${{ github.ref_name }}.zip -Force
 
-      - name: Upload artifact
+      - name: Verify zip
+        run: |
+          powershell -NoLogo -NonInteractive -NoProfile -Command "Test-Path La-Maliva-Vista-Setup-${{ github.ref_name }}.zip"
+
+      - name: Archive windows build artifact
         uses: actions/upload-artifact@v5
         with:
           name: windows-exe
@@ -115,6 +120,21 @@ jobs:
           cp build/app/outputs/flutter-apk/app-release.apk \
              ../la-maliva-vista-${{ github.ref_name }}.apk
 
+      - name: Stage release bundles on the website
+        run: |
+          cd launcher_build
+          unzip -o La-Maliva-Vista-Setup-${{ github.ref_name }}.zip -d win_bundle
+          mkdir -p ../static/releases
+          cp win_bundle/*.exe ../static/releases/
+          cp win_bundle/*.zip ../static/releases/
+          cp ../mobile_app/build/app/outputs/flutter-apk/app-release.apk ../static/releases/
+          cd ..
+          git config user.email 'noreply@codebuff.com'
+          git config user.name 'Codebuff'
+          git add static/releases/[?.apk] static/releases/[?._exe] static/releases/[?._zip]
+          git commit -m "Stage ${{ github.ref_name }} release bundles for the downloads page" --allow-empty
+          git push
+
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
@@ -129,9 +149,29 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v5
 
-      - name: Attach binaries to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            windows-exe/*
-            android-apk/*
+      - name: Stage release bundles on the website
+        run: |
+          echo "Bundling ${{ github.ref_name }} release app files for the downloads page"
+          mkdir -p win_bundle android_builds
+          # Windows EXE (from the build artifact) + install wrappers
+          if [ -d windows-exe ]; then
+            cp windows-exe/*.exe win_bundle/ 2>/dev/null || true
+            cp windows-exe/*.zip win_bundle/ 2>/dev/null || true
+          fi
+          # Android APK (from the build artifact)
+          if [ -d android-apk ] && ls android-apk/*.apk 1>/dev/null 2>&1; then
+            cp android-apk/*.apk android_builds/ 2>/dev/null || true
+          fi
+          # Local release files (from this build) into the site releases folder
+          mkdir -p static/releases
+          cp la-maliva-vista-${{ github.ref_name }}.apk static/releases/ 2>/dev/null || true
+          cp La-Maliva-Vista-Setup-${{ github.ref_name }}.zip static/releases/ 2>/dev/null || true
+          cp android_builds/*.apk static/releases/ 2>/dev/null || true
+          cp win_bundle/*.exe static/releases/ 2>/dev/null || true
+          cp win_bundle/*.zip static/releases/ 2>/dev/null || true
+          cd ..
+          git config user.email 'noreply@codebuff.com'
+          git config user.name 'Codebuff'
+          git add static/releases/
+          git commit -m "Stage ${{ github.ref_name }} release bundles for the downloads page" --allow-empty
+          git push

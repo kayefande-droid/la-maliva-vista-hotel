@@ -4,6 +4,11 @@
          network (Wi-Fi or data), so login/API never connect. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- In-app updates: install the downloaded APK without leaving the app -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- POST_NOTIFICATIONS (Android 13+) so server announcements arrive on
+         the lock screen, not just in-app -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="lamaliva_app"
         android:name="${applicationName}"

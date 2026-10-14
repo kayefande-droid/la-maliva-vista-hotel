@@ -926,19 +926,41 @@
         }
         if (burger) burger.addEventListener('click', open);
         if (more) more.addEventListener('click', open);
+        if (burger) burger.addEventListener('click', open);
+        if (more) more.addEventListener('click', open);
         if (backdrop) backdrop.addEventListener('click', close);
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
         drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', close));
+
+        // Never let a restored/cached page come back scroll-locked: wipe the
+        // sticky overflow + overlay states whenever the shell is shown again
+        // (BFCache back-return, PWA focus regain, or plain tab switch). This
+        // is the "menu got stuck" rescue — without it a drawer left open in a
+        // cached snapshot freezes the whole page after the drawer is gone.
+        function resetStickyUi() {
+            document.body.style.overflow = '';
+            if (drawer && drawer.classList.contains('open')) close();
+            const chat = document.getElementById('chatbot-window');
+            if (chat) chat.style.display = 'none';
+            chatOpen = false;
+        }
+        window.addEventListener('pageshow', (e) => { if (e.persisted) resetStickyUi(); });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') resetStickyUi();
+        });
     })();
 
     /* ---------- Chatbot ---------- */
+    var chatOpen = false;  // real state, not display-detection (BFCache-safe)
     function toggleChat() {
         const box = document.getElementById('chatbot-window');
-        if (box.style.display === 'none' || box.style.display === '') {
+        if (!chatOpen) {
             box.style.display = 'flex';
+            chatOpen = true;
             document.getElementById('chatbot-input').focus();
         } else {
             box.style.display = 'none';
+            chatOpen = false;
         }
     }
     function addMessage(text, type) {

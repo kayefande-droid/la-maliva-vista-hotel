@@ -21,6 +21,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
@@ -30,7 +32,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.6';
+const String kAppVersion = '2.3.8';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -585,6 +587,10 @@ class NotificationFeed {
 
   List<FeedItem> get items => List.unmodifiable(_items);
 
+  /// Moment the inbox was last opened (null = never). Items after this are
+  /// still "new" and keep their highlight border until the next open.
+  DateTime get lastRead => _lastServerFetch ?? DateTime.fromMillisecondsSinceEpoch(0);
+
   Future<void> load() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
@@ -606,8 +612,11 @@ class NotificationFeed {
   }
 
   void _recount() {
-    // "Unread" = items from the last 48h window the feed was opened since.
-    final since = _lastServerFetch ?? DateTime.now().subtract(const Duration(hours: 48));
+    // "Unread" = items newer than the last time the inbox was opened.
+    // Highlight stays off once read; it only returns when a genuinely newer
+    // item (server announcement, local alert) arrives after that moment.
+    final since = _lastServerFetch ??
+        (_items.isNotEmpty ? _items.last.at : DateTime.now());
     unread.value = _items.where((i) => i.at.isAfter(since)).length;
   }
 
@@ -731,15 +740,58 @@ class UpdateService {
     return false;
   }
 
-  /// Opens the exact download for this platform from the website.
+  /// Downloads the new build INSIDE the app and launches the Android
+  /// installer on it automatically when the download finishes. Works from
+  /// any older version; if Android refuses a signature hop (debug-signed
+  /// app → release-signed 2.3.7+, a one-time OS rule), the user is walked
+  /// through the uninstall→install hop once — after that every future
+  /// update installs straight over the old one.
   Future<void> downloadLatest(BuildContext context) async {
-    final url = Platform.isWindows
-        ? '$kBaseUrl/downloads/windows'
-        : '$kBaseUrl/downloads/android';
-    final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Download started — install it when it finishes')));
+    if (Platform.isWindows) {
+      // Windows EXE installs are handled by the site page (open installer).
+      final ok = await launchUrl(Uri.parse('$kBaseUrl/downloads/windows'),
+          mode: LaunchMode.externalApplication);
+      if (ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Download started — run the installer when it finishes')));
+      }
+      return;
+    }
+
+    status.value = 'Downloading…';
+    try {
+      // Resolve the exact APK filename for the newest version, then fetch it.
+      final verRes = await Api.get('/api/version').timeout(const Duration(seconds: 12));
+      final v = (jsonDecode(verRes.body) as Map<String, dynamic>)['version'].toString();
+      final apkRes = await http
+          .get(Uri.parse('$kBaseUrl/static/releases/la-maliva-vista-$v.apk'))
+          .timeout(const Duration(seconds: 120));
+      if (apkRes.statusCode != 200 || apkRes.bodyBytes.isEmpty) {
+        throw 'download failed (${apkRes.statusCode})';
+      }
+      status.value = 'Preparing install…';
+
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/la-maliva-vista-$v.apk');
+      await file.writeAsBytes(apkRes.bodyBytes, flush: true);
+
+      status.value = '';
+      final opened = await OpenFilex.open(file.path);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(opened.type == ResultType.done
+                ? 'Installer opened — confirm to update to v$v'
+                : 'Downloaded. Tap the APK in your notifications to install.')));
+      }
+    } catch (e) {
+      status.value = '';
+      // Fallback: send the user to the site's download page.
+      final ok = await launchUrl(Uri.parse('$kBaseUrl/downloads/android'),
+          mode: LaunchMode.externalApplication);
+      if (ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Downloading from the website — install when it finishes')));
+      }
     }
   }
 }
@@ -1370,7 +1422,7 @@ class Features {
   Features({
     this.hotelName = 'LA-MALIVA VISTA HOTEL',
     this.hotelAddress = 'Opposite Fako Heart Entrance, GRA Bokwaongo, Buea, Cameroon',
-    this.mapsUrl = 'https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon',
+    this.mapsUrl = 'https://www.google.com/maps/search/?api=1&query=La%20Maliva%20Vista%20Hotel',
     this.paymentsActive = false,
     this.snackbarActive = false,
     this.version = kAppVersion,
@@ -1381,7 +1433,7 @@ class Features {
         hotelAddress: ((j['hotel'] ?? const {})['address'] ?? '').toString(),
         mapsUrl: ((j['hotel'] ?? const {})['maps_url'] as String?)?.isNotEmpty == true
             ? (j['hotel']['maps_url'] as String)
-            : 'https://www.google.com/maps/search/?api=1&query=Fako+Heart+Entrance+GRA+Bokwaongo+Buea+Cameroon',
+            : 'https://www.google.com/maps/search/?api=1&query=La%20Maliva%20Vista%20Hotel',
         paymentsActive: j['payments_active'] == true,
         snackbarActive: j['snackbar_active'] == true,
         version: (j['version'] ?? kAppVersion).toString(),
@@ -1922,6 +1974,7 @@ class _HomeShellState extends State<HomeShell> {
   final ValueNotifier<int> _tab = ValueNotifier<int>(0);
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   StreamSubscription<bool>? _netSub;
+  Timer? _announceTimer; // live staff/admin broadcasts while app is open
   String? _updateDismissed; // hides the update banner for this version until a new one ships
 
   @override
@@ -1936,6 +1989,14 @@ class _HomeShellState extends State<HomeShell> {
     ChangelogRepository.instance.load();
     // Silent update check (notifies only when a newer build exists)
     UpdateService.instance.check();
+    // Live announcement polling: hotel admin / staff can broadcast at any
+    // time (maintenance notice, server issue, offers) — while the app is
+    // simply OPEN, we pull the board every 90s so those messages arrive
+    // without the user having to open the inbox.
+    _announceTimer = Timer.periodic(const Duration(seconds: 90), (_) {
+      if (!mounted) return;
+      NotificationFeed.instance.refreshFromServer();
+    });
     // When internet returns: refresh everything + sync offline bookings
     _netSub = NetService.instance.onChange.listen((onlineNow) {
       if (!mounted) return;
@@ -1978,6 +2039,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void dispose() {
     _netSub?.cancel();
+    _announceTimer?.cancel(); // stop live-announcement polling with the shell
     super.dispose();
   }
 
@@ -3972,6 +4034,11 @@ class _NotificationsPageState extends State<NotificationsPage> {
     await NotificationFeed.instance.refreshFromServer();
     if (!mounted) return;
     setState(() => _loading = false);
+    // Opening the inbox IS the read action: the badge/highlight clears here
+    // and only lights up again when a new item lands afterwards.
+    NotificationFeed.instance.unread.value = 0;
+    await NotificationFeed.instance.markAllRead();
+    if (mounted) setState(() {});
   }
 
   @override
@@ -3993,6 +4060,8 @@ class _NotificationsPageState extends State<NotificationsPage> {
                       itemCount: items.length,
                       itemBuilder: (context, i) {
                         final n = items[i];
+                        final isNew = n.at
+                            .isBefore(NotificationFeed.instance.lastRead);
                         final icon = n.source == 'team'
                             ? Icons.verified_outlined
                             : n.source == 'admin'
@@ -4012,8 +4081,16 @@ class _NotificationsPageState extends State<NotificationsPage> {
                           margin: const EdgeInsets.only(bottom: 11),
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
-                              borderRadius: BorderRadius.circular(16)),
+                              color: isNew
+                                  ? Theme.of(context).cardColor  // read: plain
+                                  : Theme.of(context)
+                                      .cardColor,  // placeholder, see accent
+                              borderRadius: BorderRadius.circular(16),
+                              border: isNew
+                                  ? Border.all(color: Colors.transparent)
+                                  : Border.all(
+                                      color: AppColors.orange600
+                                          .withValues(alpha: 0.35))),
                           child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Container(
                               width: 40, height: 40,
