@@ -23,3 +23,13 @@ mobile_app/*.log
 # Release signing secrets (never commit)
 mobile_app/android/key.properties
 mobile_app/android/la-maliva-release.jks
+
+# PyInstaller build artifacts (never commit)
+/build/
+/dist/
+*.spec
+
+# Oversized v2.3.8 binary bundle — single 210 MB zip exceeds GitHub's
+# 100 MB per-file limit, so it can never be pushed (local use only).
+static/releases/La-Maliva-Vista-Setup-v2.3.8-windows.zip
+static/releases/la-maliva-vista-v2.3.8.apk

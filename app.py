@@ -144,7 +144,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.8"
+APP_VERSION = "2.3.9"
 BUILD_CHANNEL = "stable"
 
 
@@ -2639,6 +2639,16 @@ def api_version():
 # /api/changelog (cached offline), so notes reach users without a rebuild.
 # ---------------------------------------------------------------------------
 CHANGELOG = [
+    {
+        'version': '2.3.9',
+        'date': '2026-10-14',
+        'highlights': ['Safer desktop app', 'Windows never forgets you', 'Packaging fixed'],
+        'notes': [
+            'The Windows desktop app now keeps your database and record between restarts — no more losing bookings or accounts after you close it.',
+            'Rebuilt the website download bundles from scratch with all current app fixes, so the Android APK and Windows setup on the downloads page reflect what you just ship.',
+            'Cleaned up leftover staging chatter so the downloads page and the app always agree on what version is live.',
+        ],
+    },
     {
         'version': '2.3.8',
         'date': '2026-10-14',

@@ -32,7 +32,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.8';
+const String kAppVersion = '2.3.9';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
