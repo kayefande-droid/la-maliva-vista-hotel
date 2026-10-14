@@ -144,7 +144,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
 
 # --- CONFIGURATION ---
-APP_VERSION = "2.3.9"
+APP_VERSION = "2.3.11"
 BUILD_CHANNEL = "stable"
 
 
@@ -2591,7 +2591,7 @@ def sitemap_xml():
 # ===================== DOWNLOADS & VERSIONING =====================
 APP_RELEASES = {
     'android': {'file': 'la-maliva-vista-{v}.apk', 'label': 'Android APK', 'min_os': 'Android 8.0+', 'size': '~56 MB'},
-    'windows': {'file': 'La-Maliva-Vista-{v}-windows.zip', 'label': 'Windows App', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~16 MB'},
+    'windows': {'file': 'La-Maliva-Vista-{v}-windows.zip', 'label': 'Windows App', 'min_os': 'Windows 10/11 (64-bit)', 'size': '~38 MB'},
     'pwa': {'file': None, 'label': 'Progressive Web App', 'min_os': 'Any modern browser', 'size': '~2 MB'},
 }
 
@@ -2607,6 +2607,11 @@ def _release_meta(platform_key):
         meta['size_bytes'] = os.path.getsize(release_path) if meta['available'] else 0
     except OSError:
         meta['size_bytes'] = 0
+    if platform_key == 'windows':
+        exe_path = os.path.join(basedir, 'static', 'releases', f'La-Maliva-Vista-{APP_VERSION}.exe')
+        meta['exe_filename'] = os.path.basename(exe_path)
+        meta['exe_available'] = os.path.isfile(exe_path)
+        meta['exe_size_bytes'] = os.path.getsize(exe_path) if meta['exe_available'] else 0
     return meta
 
 
@@ -2625,11 +2630,18 @@ def downloads():
 @app.route('/api/version')
 def api_version():
     """Machine-readable version endpoint — download cards bind to this."""
+    releases = {k: _release_meta(k) for k in APP_RELEASES}
+    windows_exe_path = os.path.join(basedir, 'static', 'releases', f'La-Maliva-Vista-{APP_VERSION}.exe')
+    if 'windows' in releases:
+        releases['windows']['exe_available'] = os.path.isfile(windows_exe_path)
+        releases['windows']['exe_filename'] = os.path.basename(windows_exe_path)
+        releases['windows']['exe_size_bytes'] = (
+            os.path.getsize(windows_exe_path) if releases['windows']['exe_available'] else 0)
     return jsonify({
         'app': 'LA-MALIVA VISTA',
         'version': APP_VERSION,
         'channel': BUILD_CHANNEL,
-        'releases': {k: _release_meta(k) for k in APP_RELEASES},
+        'releases': releases,
     })
 
 
@@ -2640,10 +2652,11 @@ def api_version():
 # ---------------------------------------------------------------------------
 CHANGELOG = [
     {
-        'version': '2.3.9',
+        'version': '2.3.11',
         'date': '2026-10-14',
-        'highlights': ['Safer desktop app', 'Windows never forgets you', 'Packaging fixed'],
+        'highlights': ['Android upgrade step', 'Safer desktop app', 'Windows never forgets you'],
         'notes': [
+            'IMPORTANT for Android users still on v2.3.5 or v2.3.6: those builds were signed with a debug key, so Android cannot update them in place. Back up any data stored only on the phone, uninstall the old app, then download and install the latest release APK from the official downloads page.',
             'The Windows desktop app now keeps your database and record between restarts — no more losing bookings or accounts after you close it.',
             'Rebuilt the website download bundles from scratch with all current app fixes, so the Android APK and Windows setup on the downloads page reflect what you just ship.',
             'Cleaned up leftover staging chatter so the downloads page and the app always agree on what version is live.',
@@ -2770,8 +2783,24 @@ def apk_shortcut():
 
 @app.route('/exe')
 def exe_shortcut():
-    """Short direct link for the Windows build."""
+    """Short direct link for the native Windows Flutter application bundle."""
     return redirect(url_for('download_release', platform='windows'))
+
+
+@app.route('/downloads/windows/exe')
+def windows_exe_shortcut():
+    """Direct download link for the native Windows Flutter executable."""
+    version = APP_VERSION
+    filename = f'La-Maliva-Vista-{version}.exe'
+    release_path = os.path.join(basedir, 'static', 'releases', filename)
+    if not os.path.isfile(release_path):
+        flash(f'The Windows executable for v{version} is being packaged — check back shortly.', 'info')
+        return redirect(url_for('downloads'))
+    try:
+        _record_app_event('install', 'windows')
+    except Exception:
+        db.session.rollback()
+    return send_file(release_path, as_attachment=True, download_name=filename)
 
 
 @app.route('/downloads/<platform>')

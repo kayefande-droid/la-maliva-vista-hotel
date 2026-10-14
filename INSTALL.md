@@ -4,9 +4,8 @@ Short note about the native Windows build so the online release stays lean and s
 
 ## What you get
 
-- A **single .exe** you can unzip anywhere and run — no install wizard, no installer clutter.
-- Launched from the `static/releases/` folder on the website, or copied from the
-  release page at **https://onrender.com/cloud** (replace with the real URL).
+- A native Flutter Windows desktop app (the same app experience as Android), packaged with its required DLLs and `data/` runtime folder.
+- Download the full ZIP from the website or GitHub release; the direct `.exe` link is also available, but the EXE needs those adjacent runtime files in the extracted bundle to launch.
 
 ## Why it's kept small
 
@@ -14,18 +13,17 @@ The native Windows build must not be heavy — a big package is hard to download
 slow to update, and more likely to get flagged by SmartScreen or over the site's
 bandwidth. The build intentionally:
 
-- Bundles only what the app needs to run (Python runtime, templates, static assets,
-  instance data).
-- Does **not** bundle old release binaries, dev artifacts, or build/ dist/ folders.
-- Uses PyInstaller onefile mode with max compression so the .exe + zip stay lean.
+- Built with `flutter build windows --release` as the native Windows counterpart to the Android Flutter app.
+- Packages only the generated release runtime: the app EXE, Flutter engine and plugin DLLs, and `data/flutter_assets`.
+- Does **not** include previous release archives, repository source, or development build directories.
 
 ## What to do after downloading
 
-1. Download `La-Maliva-Vista-Setup-v2.3.9-windows.zip`.
+1. Download `La-Maliva-Vista-2.3.11-windows.zip`.
 2. Extract (right-click → Extract All, or 7-Zip / Windows Explorer).
-3. Run `La-Maliva-Vista-Server.exe`.
-4. If Windows SmartScreen warns, choose **More info → Run anyway** (the exe is
-   self-contained and unsigned in this build).
+3. Run `lamaliva_app.exe` from the extracted folder (leave its DLLs and `data/` folder beside it).
+4. If Windows SmartScreen warns, choose **More info → Run anyway** (the app is
+   unsigned in this build).
 
 ## Release-signed / online-safe release
 
@@ -48,10 +46,9 @@ For a clean online release:
 
 ## Keep the native Windows path healthy
 
-- Rebuild the exe from `app.py` when app or template changes land.
-- Re-zip it into `static/releases/` with the matching version name so the downloads
-  page picks it up as available.
-- Run a quick smoke test (launch exe, hit `/api/version`) before releasing.
+- Rebuild the app with `flutter build windows --release` when Flutter app changes land.
+- Place `La-Maliva-Vista-<version>.exe` and `La-Maliva-Vista-<version>-windows.zip` in `static/releases/`.
+- Smoke-test the app EXE from the extracted bundle and verify the direct download links on the website.
 
 ## Link to the running site
 

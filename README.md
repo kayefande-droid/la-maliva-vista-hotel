@@ -84,11 +84,17 @@ Get the latest builds (version matches the site banner) from the website's
 | Platform | File | Install |
 |---|---|---|
 | Android 8.0+ | `la-maliva-vista-<version>.apk` | Tap the APK, allow “install unknown apps” for your browser, install |
-| Windows 10/11 | `La-Maliva-Vista-<version>-windows.zip` | Unzip, run `lamaliva_app.exe` |
+| Windows 10/11 | `La-Maliva-Vista-<version>-windows.zip` | Unzip, run `lamaliva_app.exe` from the extracted folder |
 | Any browser | PWA | Open the site → “Install app” / Add to Home Screen |
+
+A direct link to the native Windows EXE is also available at `/downloads/windows/exe`; the full ZIP is recommended because the executable needs its adjacent Flutter runtime files.
 
 The apps self-check for updates against `/api/version` — when a new build is
 published here, users get a notification and a one-tap path to the new download.
+
+Android users still on 2.3.5 or 2.3.6 must back up data stored only on their phone,
+uninstall the debug-signed app, and install the current release APK; Android blocks
+an in-place update when the signing key changes.
 
 ## 🚀 Development
 

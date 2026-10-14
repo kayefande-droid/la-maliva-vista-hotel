@@ -32,7 +32,7 @@ const String kBaseUrl = String.fromEnvironment(
   'BASE_URL',
   defaultValue: 'https://la-maliva-vista-hotel.onrender.com',
 );
-const String kAppVersion = '2.3.9';
+const String kAppVersion = '2.3.11';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -581,6 +581,10 @@ class NotificationFeed {
   static final NotificationFeed instance = NotificationFeed._();
 
   static const _key = 'notif_feed_v1';
+  static const _upgradeTitle =
+      '[La-Maliva] Android v2.3.5/v2.3.6 upgrade required';
+  static const _upgradeBody =
+      'IMPORTANT: Android v2.3.5 and v2.3.6 used a debug signing key, so the release-signed app cannot update them in place. Back up data stored only on your phone, uninstall the old app, then install the latest APK from the official downloads page.';
   final ValueNotifier<int> unread = ValueNotifier<int>(0);
   final List<FeedItem> _items = [];
   DateTime? _lastServerFetch;
@@ -601,6 +605,14 @@ class NotificationFeed {
           ..addAll(((jsonDecode(raw) as List).cast<Map<String, dynamic>>())
               .map(FeedItem.fromMap));
       } catch (_) {}
+    }
+    if (!_items.any((item) => item.title == _upgradeTitle)) {
+      _items.insert(0, FeedItem(
+          title: _upgradeTitle,
+          body: _upgradeBody,
+          at: DateTime.now(),
+          source: 'admin'));
+      await _persist();
     }
     _recount();
   }
@@ -748,7 +760,7 @@ class UpdateService {
   /// update installs straight over the old one.
   Future<void> downloadLatest(BuildContext context) async {
     if (Platform.isWindows) {
-      // Windows EXE installs are handled by the site page (open installer).
+      // Download the complete native Flutter app bundle with its runtime DLLs.
       final ok = await launchUrl(Uri.parse('$kBaseUrl/downloads/windows'),
           mode: LaunchMode.externalApplication);
       if (ok && context.mounted) {
@@ -794,6 +806,33 @@ class UpdateService {
       }
     }
   }
+}
+
+class LegacyAndroidUpgradeNotice extends StatelessWidget {
+  const LegacyAndroidUpgradeNotice({super.key});
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: AppColors.gold.withValues(alpha: 0.28),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 14),
+          child: Row(children: [
+            Icon(Icons.info_outline, size: 17, color: AppColors.navy900),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text(
+                'Still on Android v2.3.5 or v2.3.6? Back up phone-only data, uninstall that debug-signed build, then install the latest APK.',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+            ),
+            TextButton(
+              onPressed: () => launchUrl(Uri.parse('$kBaseUrl/downloads/android'),
+                  mode: LaunchMode.externalApplication),
+              child: const Text('Get APK'),
+            ),
+          ]),
+        ),
+      );
 }
 
 extension UpdateFeedExtras on NotificationFeed {
@@ -2055,6 +2094,7 @@ class _HomeShellState extends State<HomeShell> {
     return LayoutBuilder(builder: (context, constraints) {
       final desktop = constraints.maxWidth >= 900; // Windows EXE: multi-panel
       final shell = Column(children: [
+        if (Platform.isAndroid) const LegacyAndroidUpgradeNotice(),
         // Proactive update banner — appears by itself when a newer version
         // exists (startup check already ran). One tap → straight to download.
         ValueListenableBuilder<String?>(

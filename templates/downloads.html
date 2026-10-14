@@ -162,12 +162,23 @@
                     </ul>
                     <a class="btn-lux {{ 'disabled' if not windows.available }}" style="text-align:center; {{ 'pointer-events:none; opacity:.55;' if not windows.available }}"
                        href="{{ url_for('download_release', platform='windows') }}" {% if windows.available %}download{% endif %}>
-                        <i class="bi bi-download"></i> Download for Windows
+                        <i class="bi bi-download"></i> Download Windows app bundle (ZIP)
                     </a>
                     {% if windows.available %}
-                    <div class="share-row" data-copy="{{ site_url }}/exe" title="Copy direct Windows link">
+                    <div class="share-row" data-copy="{{ site_url }}/exe" title="Copy direct Windows bundle link">
                         <i class="bi bi-link-45deg"></i>
                         <span class="share-url">{{ site_url }}/exe</span>
+                        <button type="button" class="copy-btn"><i class="bi bi-clipboard"></i> Copy</button>
+                    </div>
+                    {% endif %}
+                    {% if windows.exe_available %}
+                    <a class="btn-ghost-lux" style="text-align:center; margin-top:10px;"
+                       href="{{ url_for('windows_exe_shortcut') }}">
+                        <i class="bi bi-windows"></i> Direct EXE download
+                    </a>
+                    <div class="share-row" data-copy="{{ site_url }}/downloads/windows/exe" title="Copy direct EXE link">
+                        <i class="bi bi-link-45deg"></i>
+                        <span class="share-url">{{ site_url }}/downloads/windows/exe</span>
                         <button type="button" class="copy-btn"><i class="bi bi-clipboard"></i> Copy</button>
                     </div>
                     {% endif %}

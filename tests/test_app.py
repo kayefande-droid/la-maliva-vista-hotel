@@ -59,6 +59,49 @@ def test_home_loads(client):
     assert client.get("/").status_code == 200
 
 
+def test_version_exposes_native_windows_zip_and_direct_exe(client):
+    body = client.get("/api/version").get_json()
+    assert body["version"] == app_module.APP_VERSION
+    windows = body["releases"]["windows"]
+    assert windows["filename"] == f"La-Maliva-Vista-{app_module.APP_VERSION}-windows.zip"
+    assert windows["available"] is True
+    assert windows["exe_available"] is True
+    assert windows["exe_filename"] == f"La-Maliva-Vista-{app_module.APP_VERSION}.exe"
+    assert windows["exe_size_bytes"] > 0
+
+
+def test_downloads_page_has_native_exe_link(client):
+    response = client.get("/downloads")
+    assert response.status_code == 200
+    assert "/downloads/windows/exe" in response.get_data(as_text=True)
+
+
+def test_native_windows_exe_is_downloaded_directly(client, monkeypatch):
+    monkeypatch.setattr(app_module, "_record_app_event", lambda *args: None)
+    response = client.get("/downloads/windows/exe")
+    assert response.status_code == 200
+    assert response.headers["Content-Disposition"].endswith(
+        f"La-Maliva-Vista-{app_module.APP_VERSION}.exe")
+    assert response.data.startswith(b"MZ")
+
+
+def test_native_windows_zip_contains_flutter_runtime(client, monkeypatch):
+    import io
+    import zipfile
+
+    monkeypatch.setattr(app_module, "_record_app_event", lambda *args: None)
+    response = client.get("/downloads/windows")
+    assert response.status_code == 200
+    assert response.headers["Content-Disposition"].endswith(
+        f"La-Maliva-Vista-{app_module.APP_VERSION}-windows.zip")
+    with zipfile.ZipFile(io.BytesIO(response.data)) as bundle:
+        names = bundle.namelist()
+        assert bundle.testzip() is None
+        assert "lamaliva_app.exe" in names
+        assert "flutter_windows.dll" in names
+        assert any(name.startswith("data/flutter_assets/") for name in names)
+
+
 def test_signup_form_carries_csrf(client):
     html = client.get("/signup").get_data(as_text=True)
     assert "<form" in html and 'name="_csrf_token"' in html

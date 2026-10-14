@@ -35,48 +35,35 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          python-version: '3.12'
+          channel: stable
+          cache: true
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pyinstaller
-
-      # `instance/` (the local SQLite data folder) is gitignored, so it must be
-      # created on the runner or --add-data will abort the PyInstaller build.
-      - name: Create instance directory
-        shell: pwsh
-        run: New-Item -ItemType Directory -Force -Path instance | Out-Null
-
-      - name: Build server executable
-        run: >
-          pyinstaller --noconfirm --clean --onefile
-          --name La-Maliva-Vista-Server
-          --add-data "templates;templates"
-          --add-data "static;static"
-          --add-data "instance;instance"
-          --hidden-import email_validator
-          --hidden-import dns.resolver
-          app.py
-
-      - name: Zip bundle
+      - name: Build native Windows app
         shell: pwsh
         run: |
-          Compress-Archive -Path dist/La-Maliva-Vista-Server.exe -DestinationPath La-Maliva-Vista-Setup-${{ github.ref_name }}.zip -Force
+          $version = "${{ github.ref_name }}" -replace '^v', ''
+          Set-Location mobile_app
+          flutter pub get
+          flutter build windows --release
+          $bundle = Join-Path $PWD 'build/windows/x64/runner/Release'
+          $exe = Join-Path $bundle 'lamaliva_app.exe'
+          if (-not (Test-Path $exe)) { throw "Native Windows executable missing: $exe" }
+          $artifactDir = Join-Path $env:GITHUB_WORKSPACE 'windows-artifacts'
+          $packageDir = Join-Path $env:RUNNER_TEMP 'windows-package'
+          New-Item -ItemType Directory -Force -Path $artifactDir, $packageDir | Out-Null
+          Copy-Item (Join-Path $bundle '*') -Destination $packageDir -Recurse -Force
+          Copy-Item $exe (Join-Path $artifactDir "La-Maliva-Vista-$version.exe")
+          Compress-Archive -Path (Join-Path $packageDir '*') -DestinationPath (Join-Path $artifactDir "La-Maliva-Vista-$version-windows.zip") -CompressionLevel Optimal -Force
 
-      - name: Verify zip
-        run: |
-          powershell -NoLogo -NonInteractive -NoProfile -Command "Test-Path La-Maliva-Vista-Setup-${{ github.ref_name }}.zip"
-
-      - name: Archive windows build artifact
+      - name: Archive Windows release artifacts
         uses: actions/upload-artifact@v5
         with:
           name: windows-exe
-          path: La-Maliva-Vista-Setup-${{ github.ref_name }}.zip
+          path: windows-artifacts/*
+          if-no-files-found: error
 
   build-android-apk:
     needs: [tests]
@@ -112,65 +99,64 @@ jobs:
           EOF
 
       - name: Build APK
+        shell: bash
         run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
           cd mobile_app
           flutter pub get
           flutter build apk --release
           cp build/app/outputs/flutter-apk/app-release.apk \
-             ../la-maliva-vista-${{ github.ref_name }}.apk
-
-      - name: Stage release bundles on the website
-        run: |
-          cd launcher_build
-          unzip -o La-Maliva-Vista-Setup-${{ github.ref_name }}.zip -d win_bundle
-          mkdir -p ../static/releases
-          cp win_bundle/*.exe ../static/releases/
-          cp win_bundle/*.zip ../static/releases/
-          cp ../mobile_app/build/app/outputs/flutter-apk/app-release.apk ../static/releases/
-          cd ..
-          git config user.email 'noreply@codebuff.com'
-          git config user.name 'Codebuff'
-          git add static/releases/[?.apk] static/releases/[?._exe] static/releases/[?._zip]
-          git commit -m "Stage ${{ github.ref_name }} release bundles for the downloads page" --allow-empty
-          git push
+             "../la-maliva-vista-${version}.apk"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v5
         with:
           name: android-apk
-          path: la-maliva-vista-${{ github.ref_name }}.apk
+          path: la-maliva-vista-*.apk
+          if-no-files-found: error
 
   release:
     needs: [build-windows-exe, build-android-apk]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
-      - name: Download all artifacts
+      - name: Download release artifacts
         uses: actions/download-artifact@v5
+        with:
+          path: release-artifacts
+
+      - name: Publish GitHub release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          assets=(release-artifacts/android-apk/*.apk release-artifacts/windows-exe/*.exe release-artifacts/windows-exe/*.zip)
+          if [ "${#assets[@]}" -ne 3 ]; then
+            echo "Expected APK, Windows EXE, and Windows ZIP; found ${#assets[@]} assets" >&2
+            printf '%s\n' "${assets[@]}"
+            exit 1
+          fi
+          gh release upload "${GITHUB_REF_NAME}" "${assets[@]}" --clobber
 
       - name: Stage release bundles on the website
+        shell: bash
         run: |
-          echo "Bundling ${{ github.ref_name }} release app files for the downloads page"
-          mkdir -p win_bundle android_builds
-          # Windows EXE (from the build artifact) + install wrappers
-          if [ -d windows-exe ]; then
-            cp windows-exe/*.exe win_bundle/ 2>/dev/null || true
-            cp windows-exe/*.zip win_bundle/ 2>/dev/null || true
-          fi
-          # Android APK (from the build artifact)
-          if [ -d android-apk ] && ls android-apk/*.apk 1>/dev/null 2>&1; then
-            cp android-apk/*.apk android_builds/ 2>/dev/null || true
-          fi
-          # Local release files (from this build) into the site releases folder
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          git fetch origin main
+          git switch --create "release-stage-${GITHUB_RUN_ID}" origin/main
           mkdir -p static/releases
-          cp la-maliva-vista-${{ github.ref_name }}.apk static/releases/ 2>/dev/null || true
-          cp La-Maliva-Vista-Setup-${{ github.ref_name }}.zip static/releases/ 2>/dev/null || true
-          cp android_builds/*.apk static/releases/ 2>/dev/null || true
-          cp win_bundle/*.exe static/releases/ 2>/dev/null || true
-          cp win_bundle/*.zip static/releases/ 2>/dev/null || true
-          cd ..
+          cp "release-artifacts/android-apk/la-maliva-vista-${version}.apk" static/releases/
+          cp "release-artifacts/windows-exe/La-Maliva-Vista-${version}-windows.zip" static/releases/
           git config user.email 'noreply@codebuff.com'
           git config user.name 'Codebuff'
-          git add static/releases/
-          git commit -m "Stage ${{ github.ref_name }} release bundles for the downloads page" --allow-empty
-          git push
+          git add "static/releases/la-maliva-vista-${version}.apk" \
+                  "static/releases/La-Maliva-Vista-${version}-windows.zip"
+          if ! git diff --cached --quiet; then
+            git commit -m "Stage ${GITHUB_REF_NAME} release bundles for the downloads page"
+            git push origin "HEAD:refs/heads/main"
+          else
+            echo "Release bundles are already staged on main; nothing to push."
+          fi
