@@ -32,7 +32,6 @@ jobs:
     needs: [tests]
     runs-on: windows-latest
     if: ${{ !cancelled() && needs.tests.result == 'success' }}
-    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
 
