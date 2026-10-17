@@ -40,3 +40,4 @@ static/releases/*.apk
 static/releases/*.zip
 static/releases/*.exe
 !static/releases/.gitkeep
+.cursorj/
