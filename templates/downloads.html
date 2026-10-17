@@ -134,7 +134,7 @@
                     <ul class="dl-meta">
                         <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
                         <li><span class="k">Requires</span><span class="v">{{ android.min_os }}</span></li>
-                        <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(android.size_bytes / 1048576) if android.available else '~46' }} MB</span></li>
+                        <li><span class="k">Size</span><span class="v">{{ ('%.0f'|format(android.size_bytes / 1048576)) + ' MB' if android.size_bytes else android.size }}</span></li>
                         <li><span class="k">Status</span><span class="v ok">{{ 'Available now' if android.available else 'Packaging…' }}</span></li>
                     </ul>
                     <a class="btn-lux {{ 'disabled' if not android.available }}" style="text-align:center; {{ 'pointer-events:none; opacity:.55;' if not android.available }}"
@@ -157,7 +157,7 @@
                     <ul class="dl-meta">
                         <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
                         <li><span class="k">Requires</span><span class="v">{{ windows.min_os }}</span></li>
-                        <li><span class="k">Size</span><span class="v">{{ '%.0f'|format(windows.size_bytes / 1048576) if windows.available else '~12' }} MB</span></li>
+                        <li><span class="k">Size</span><span class="v">{{ ('%.0f'|format(windows.size_bytes / 1048576)) + ' MB' if windows.size_bytes else windows.size }}</span></li>
                         <li><span class="k">Status</span><span class="v ok">{{ 'Available now' if windows.available else 'Packaging…' }}</span></li>
                     </ul>
                     <a class="btn-lux {{ 'disabled' if not windows.available }}" style="text-align:center; {{ 'pointer-events:none; opacity:.55;' if not windows.available }}"

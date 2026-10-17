@@ -2596,6 +2596,15 @@ APP_RELEASES = {
 }
 
 
+GITHUB_OWNER_REPO = 'kayefande-droid/la-maliva-vista-hotel'
+RELEASE_TAG = 'v' + APP_VERSION  # keep in step with the GitHub Release tag
+
+
+def _github_asset_url(filename):
+    """Direct GitHub Release asset URL (serves downloads without git bloat)."""
+    return f'https://github.com/{GITHUB_OWNER_REPO}/releases/download/{RELEASE_TAG}/{filename}'
+
+
 def _release_meta(platform_key):
     meta = dict(APP_RELEASES[platform_key])
     meta['version'] = APP_VERSION
@@ -2603,6 +2612,10 @@ def _release_meta(platform_key):
     meta['filename'] = meta['file'].format(v=APP_VERSION) if meta['file'] else None
     release_path = os.path.join(basedir, 'static', 'releases', meta['filename'] or '')
     meta['available'] = os.path.exists(release_path)
+    # Binaries live on GitHub Releases (never in git — free-tier size limits),
+    # so a missing local file falls back to the Release asset, not a dead page.
+    meta['release_url'] = _github_asset_url(meta['filename']) if meta['filename'] else None
+    meta['available'] = meta['available'] or bool(meta['release_url'])
     try:
         meta['size_bytes'] = os.path.getsize(release_path) if meta['available'] else 0
     except OSError:
@@ -2612,6 +2625,8 @@ def _release_meta(platform_key):
         meta['exe_filename'] = os.path.basename(exe_path)
         meta['exe_available'] = os.path.isfile(exe_path)
         meta['exe_size_bytes'] = os.path.getsize(exe_path) if meta['exe_available'] else 0
+        meta['exe_release_url'] = _github_asset_url(meta['exe_filename'])
+        meta['exe_available'] = meta['exe_available'] or True  # Release asset is the fallback
     return meta
 
 
@@ -2793,14 +2808,15 @@ def windows_exe_shortcut():
     version = APP_VERSION
     filename = f'La-Maliva-Vista-{version}.exe'
     release_path = os.path.join(basedir, 'static', 'releases', filename)
-    if not os.path.isfile(release_path):
-        flash(f'The Windows executable for v{version} is being packaged — check back shortly.', 'info')
-        return redirect(url_for('downloads'))
     try:
         _record_app_event('install', 'windows')
     except Exception:
         db.session.rollback()
-    return send_file(release_path, as_attachment=True, download_name=filename)
+    if os.path.isfile(release_path):
+        return send_file(release_path, as_attachment=True, download_name=filename)
+    # No local bundle (binaries ship via GitHub Releases, not git) — redirect
+    # straight to the Release asset so the download still starts immediately.
+    return redirect(_github_asset_url(filename), code=302)
 
 
 @app.route('/downloads/<platform>')
@@ -2812,13 +2828,15 @@ def download_release(platform):
         return redirect(url_for('downloads'))
     meta = _release_meta(platform)
     release_path = os.path.join(basedir, 'static', 'releases', meta['filename'])
-    if meta['available']:
-        # Growth analytics: every served download counts as an install
-        try:
-            _record_app_event('install', platform)
-        except Exception:
-            db.session.rollback()
+    # Growth analytics: every served download counts as an install
+    try:
+        _record_app_event('install', platform)
+    except Exception:
+        db.session.rollback()
+    if os.path.isfile(release_path):
         return send_file(release_path, as_attachment=True, download_name=meta['filename'])
+    if meta.get('release_url'):
+        return redirect(meta['release_url'], code=302)
     flash(f"The {meta['label']} for v{APP_VERSION} is being packaged — check back shortly.", 'info')
     return redirect(url_for('downloads'))
 

@@ -33,3 +33,10 @@ mobile_app/android/la-maliva-release.jks
 # 100 MB per-file limit, so it can never be pushed (local use only).
 static/releases/La-Maliva-Vista-Setup-v2.3.8-windows.zip
 static/releases/la-maliva-vista-v2.3.8.apk
+# App binaries ship via GitHub Releases, never git: every committed APK/ZIP
+# (~55-70 MB each) is cloned on every Render deploy and blew past the
+# free-tier size limits. The site falls back to Release assets automatically.
+static/releases/*.apk
+static/releases/*.zip
+static/releases/*.exe
+!static/releases/.gitkeep
