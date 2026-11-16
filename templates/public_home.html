@@ -118,10 +118,10 @@
     <!-- ================= HERO ================= -->
     <header class="home-hero">
         <div class="hero-slides">
-            <div class="hero-slide active"><img src="/static/uploads/rooms/room_1520250497591.jpg" alt="La-Maliva Vista Hotel exterior"></div>
-            <div class="hero-slide"><img src="/static/uploads/rooms/room_1542314831.jpg" alt="Elegant hotel terrace"></div>
-            <div class="hero-slide"><img src="/static/uploads/rooms/room_1571003123894.jpg" alt="Luxury suite interior"></div>
-            <div class="hero-slide"><img src="/static/uploads/rooms/room_1611892440504.jpg" alt="Resort pool at dusk"></div>
+            <div class="hero-slide active"><img src="/static/img/cameroon/mount-cameroon-sunny.jpg" alt="Mount Cameroon rising above the Buea foothills"></div>
+            <div class="hero-slide"><img src="/static/img/cameroon/buea-from-fako.jpg" alt="Buea seen from the Fako highlands"></div>
+            <div class="hero-slide"><img src="/static/img/cameroon/mount-cameroon-sunset.jpg" alt="Sunset over Mount Cameroon"></div>
+            <div class="hero-slide"><img src="/static/img/cameroon/mount-cameroon-ndongo.jpg" alt="View of Mount Cameroon from Ndongo, Buea"></div>
         </div>
 
         <div class="hero-content">
@@ -204,7 +204,7 @@
                 <article class="room-card reveal" data-delay="{{ loop.index0 % 3 + 1 }}">
                     <div class="room-media">
                         <span class="room-badge">Room {{ room.room_number }}</span>
-                        <img src="{{ room.image_url if room.image_url else '/static/uploads/rooms/room_1520250497591.jpg' }}"
+                        <img src="{{ room.image_url if room.image_url else '/static/img/cameroon/mount-cameroon-landscape.jpg' }}"
                              alt="Room {{ room.room_number }} — {{ room.room_type }}" loading="lazy">
                     </div>
                     <div class="room-body">

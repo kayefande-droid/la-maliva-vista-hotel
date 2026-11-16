@@ -26,7 +26,7 @@
 
     <header class="page-hero">
         <div class="hero-bg">
-            <img src="/static/uploads/rooms/room_1571003123894.jpg" alt="Luxury suite">
+            <img src="/static/img/cameroon/mount-cameroon-savanna.jpg" alt="Mount Cameroon landscape">
         </div>
         <div class="container-lux">
             <span class="kicker">Accommodation</span>
@@ -42,7 +42,7 @@
                 <article class="room-card reveal" data-delay="{{ loop.index0 % 3 + 1 }}">
                     <div class="room-media">
                         <span class="room-badge">Room {{ room.room_number }}</span>
-                        <img src="{{ room.image_url if room.image_url else '/static/uploads/rooms/room_1520250497591.jpg' }}"
+                        <img src="{{ room.image_url if room.image_url else '/static/img/cameroon/mount-cameroon-landscape.jpg' }}"
                              alt="Room {{ room.room_number }} — {{ room.room_type }}" loading="lazy">
                     </div>
                     <div class="room-body">
