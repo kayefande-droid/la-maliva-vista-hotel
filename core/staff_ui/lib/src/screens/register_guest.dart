@@ -39,15 +39,36 @@ class _RegisterGuestScreenState extends State<RegisterGuestScreen> {
   Map<String, dynamic>? _receipt;
 
   static const _idOptions = <(String, String, String)>[
-    ('cni', 'Cameroon national ID (CNI)', '9 to 12 digits as printed on the card'),
-    ('birth_certificate', 'Birth certificate / kit number', 'Letters and digits'),
+    (
+      'cni',
+      'Cameroon national ID (CNI)',
+      '9 to 12 digits as printed on the card',
+    ),
+    (
+      'birth_certificate',
+      'Birth certificate / kit number',
+      'Letters and digits',
+    ),
     ('passport', 'Passport', 'One or two letters, then six to eight digits'),
-    ('residence_permit', 'Residence permit', 'Permit number, letters and digits'),
+    (
+      'residence_permit',
+      'Residence permit',
+      'Permit number, letters and digits',
+    ),
   ];
 
   @override
   void dispose() {
-    for (final c in [_first, _last, _phone, _email, _idNumber, _address, _notes, _rate]) {
+    for (final c in [
+      _first,
+      _last,
+      _phone,
+      _email,
+      _idNumber,
+      _address,
+      _notes,
+      _rate,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -64,7 +85,10 @@ class _RegisterGuestScreenState extends State<RegisterGuestScreen> {
       return;
     }
     if (_idNumber.text.trim().isEmpty) {
-      setState(() => _error = 'The identification number is required. Registration is final.');
+      setState(
+        () => _error =
+            'The identification number is required. Registration is final.',
+      );
       return;
     }
     setState(() {
@@ -107,225 +131,305 @@ class _RegisterGuestScreenState extends State<RegisterGuestScreen> {
   }
 
   Widget _form() {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(
-        LamalivaSpace.lg,
-        LamalivaSpace.lg,
-        LamalivaSpace.lg,
-        LamalivaSpace.xl,
-      ),
+    return Column(
       children: [
-        Panel(
-          title: 'Room',
-          child: FutureBuilder<List<dynamic>>(
-            future: _rooms,
-            builder: (context, snap) {
-              if (snap.connectionState != ConnectionState.done) {
-                return const LoadingPanel(rows: 2);
-              }
-              if (snap.hasError) {
-                return ErrorPanel(
-                  message: snap.error.toString(),
-                  onRetry: () => setState(() => _rooms = widget.api.rooms()),
-                );
-              }
-              final rooms = (snap.data ?? const []).where((raw) {
-                if (raw is! Map) return false;
-                final status = '${raw['status'] ?? ''}';
-                return status != 'maintenance' && status != 'occupied';
-              }).toList();
-              if (rooms.isEmpty) {
-                return const EmptyPanel(
-                  title: 'No free rooms',
-                  body: 'Every room is occupied or blocked. Check a guest out first.',
-                  icon: Icons.meeting_room_outlined,
-                );
-              }
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Wrap(
-                    spacing: LamalivaSpace.xs,
-                    runSpacing: LamalivaSpace.xs,
-                    children: [
-                      for (final raw in rooms)
-                        _RoomChip(
-                          room: raw as Map<String, dynamic>,
-                          selected: _roomId == raw['id'],
-                          onTap: () => setState(() => _roomId = raw['id'] as int?),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: LamalivaSpace.md),
-                  Row(
-                    children: [
-                      Expanded(child: _Stepper(
-                        label: 'Nights', value: _nights, min: 1, max: 365,
-                        onChanged: (v) => setState(() => _nights = v),
-                      )),
-                      const SizedBox(width: LamalivaSpace.sm),
-                      Expanded(child: _Stepper(
-                        label: 'Adults', value: _adults, min: 1, max: 12,
-                        onChanged: (v) => setState(() => _adults = v),
-                      )),
-                      const SizedBox(width: LamalivaSpace.sm),
-                      Expanded(child: _Stepper(
-                        label: 'Children', value: _children, min: 0, max: 12,
-                        onChanged: (v) => setState(() => _children = v),
-                      )),
-                    ],
-                  ),
-                  if (widget.api.isAdmin) ...[
-                    const SizedBox(height: LamalivaSpace.sm),
-                    TextField(
-                      controller: _rate,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Rate per night (admin override, optional)',
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: LamalivaSpace.md),
-        Panel(
-          title: 'Guest identification',
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(
+              LamalivaSpace.lg,
+              LamalivaSpace.lg,
+              LamalivaSpace.lg,
+              LamalivaSpace.lg,
+            ),
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _first,
-                      decoration: const InputDecoration(labelText: 'First name'),
-                    ),
-                  ),
-                  const SizedBox(width: LamalivaSpace.sm),
-                  Expanded(
-                    child: TextField(
-                      controller: _last,
-                      decoration: const InputDecoration(labelText: 'Last name'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: LamalivaSpace.sm),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _idType,
-                      decoration: const InputDecoration(labelText: 'Document'),
-                      items: [
-                        for (final (value, label, _) in _idOptions)
-                          DropdownMenuItem(value: value, child: Text(label)),
+              Panel(
+                title: 'Room',
+                child: FutureBuilder<List<dynamic>>(
+                  future: _rooms,
+                  builder: (context, snap) {
+                    if (snap.connectionState != ConnectionState.done) {
+                      return const LoadingPanel(rows: 2);
+                    }
+                    if (snap.hasError) {
+                      return ErrorPanel(
+                        message: snap.error.toString(),
+                        onRetry: () =>
+                            setState(() => _rooms = widget.api.rooms()),
+                      );
+                    }
+                    final rooms = (snap.data ?? const []).where((raw) {
+                      if (raw is! Map) return false;
+                      final status = '${raw['status'] ?? ''}';
+                      return status != 'maintenance' && status != 'occupied';
+                    }).toList();
+                    if (rooms.isEmpty) {
+                      return const EmptyPanel(
+                        title: 'No free rooms',
+                        body:
+                            'Every room is occupied or blocked. Check a guest out first.',
+                        icon: Icons.meeting_room_outlined,
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Wrap(
+                          spacing: LamalivaSpace.xs,
+                          runSpacing: LamalivaSpace.xs,
+                          children: [
+                            for (final raw in rooms)
+                              _RoomChip(
+                                room: raw as Map<String, dynamic>,
+                                selected: _roomId == raw['id'],
+                                onTap: () =>
+                                    setState(() => _roomId = raw['id'] as int?),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: LamalivaSpace.md),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _Stepper(
+                                label: 'Nights',
+                                value: _nights,
+                                min: 1,
+                                max: 365,
+                                onChanged: (v) => setState(() => _nights = v),
+                              ),
+                            ),
+                            const SizedBox(width: LamalivaSpace.sm),
+                            Expanded(
+                              child: _Stepper(
+                                label: 'Adults',
+                                value: _adults,
+                                min: 1,
+                                max: 12,
+                                onChanged: (v) => setState(() => _adults = v),
+                              ),
+                            ),
+                            const SizedBox(width: LamalivaSpace.sm),
+                            Expanded(
+                              child: _Stepper(
+                                label: 'Children',
+                                value: _children,
+                                min: 0,
+                                max: 12,
+                                onChanged: (v) => setState(() => _children = v),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (widget.api.isAdmin) ...[
+                          const SizedBox(height: LamalivaSpace.sm),
+                          TextField(
+                            controller: _rate,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText:
+                                  'Rate per night (admin override, optional)',
+                            ),
+                          ),
+                        ],
                       ],
-                      onChanged: (v) => setState(() => _idType = v ?? 'cni'),
-                    ),
-                  ),
-                  const SizedBox(width: LamalivaSpace.sm),
-                  Expanded(
-                    flex: 2,
-                    child: TextField(
-                      controller: _idNumber,
-                      decoration: InputDecoration(
-                        labelText: 'Original document number',
-                        helperText: _idOptions
-                            .firstWhere((o) => o.$1 == _idType,
-                                orElse: () => _idOptions.first)
-                            .$3,
-                      ),
-                      textCapitalization: TextCapitalization.characters,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: LamalivaSpace.sm),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _phone,
-                      keyboardType: TextInputType.phone,
-                      decoration: const InputDecoration(
-                        labelText: 'Phone',
-                        hintText: '+237 6XX XXX XXX',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: LamalivaSpace.sm),
-                  Expanded(
-                    child: TextField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(labelText: 'Email (optional)'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: LamalivaSpace.sm),
-              TextField(
-                controller: _address,
-                decoration: const InputDecoration(labelText: 'Address (optional)'),
-              ),
-              const SizedBox(height: LamalivaSpace.sm),
-              TextField(
-                controller: _notes,
-                maxLines: 2,
-                decoration: const InputDecoration(labelText: 'Notes (optional)'),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: LamalivaSpace.md),
-              Row(
-                children: [
-                  Icon(
-                    Icons.verified_user_outlined,
-                    size: 15,
-                    color: c(LamalivaColors.warning),
+              Panel(
+                title: 'Guest identification',
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _first,
+                            decoration: const InputDecoration(
+                              labelText: 'First name',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: LamalivaSpace.sm),
+                        Expanded(
+                          child: TextField(
+                            controller: _last,
+                            decoration: const InputDecoration(
+                              labelText: 'Last name',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: LamalivaSpace.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _idType,
+                            decoration: const InputDecoration(
+                              labelText: 'Document',
+                            ),
+                            items: [
+                              for (final (value, label, _) in _idOptions)
+                                DropdownMenuItem(
+                                  value: value,
+                                  child: Text(label),
+                                ),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => _idType = v ?? 'cni'),
+                          ),
+                        ),
+                        const SizedBox(width: LamalivaSpace.sm),
+                        Expanded(
+                          flex: 2,
+                          child: TextField(
+                            controller: _idNumber,
+                            decoration: InputDecoration(
+                              labelText: 'Original document number',
+                              helperText: _idOptions
+                                  .firstWhere(
+                                    (o) => o.$1 == _idType,
+                                    orElse: () => _idOptions.first,
+                                  )
+                                  .$3,
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: LamalivaSpace.sm),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _phone,
+                            keyboardType: TextInputType.phone,
+                            decoration: const InputDecoration(
+                              labelText: 'Phone',
+                              hintText: '+237 6XX XXX XXX',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: LamalivaSpace.sm),
+                        Expanded(
+                          child: TextField(
+                            controller: _email,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              labelText: 'Email (optional)',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: LamalivaSpace.sm),
+                    TextField(
+                      controller: _address,
+                      decoration: const InputDecoration(
+                        labelText: 'Address (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: LamalivaSpace.sm),
+                    TextField(
+                      controller: _notes,
+                      maxLines: 2,
+                      decoration: const InputDecoration(
+                        labelText: 'Notes (optional)',
+                      ),
+                    ),
+                    const SizedBox(height: LamalivaSpace.md),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.verified_user_outlined,
+                          size: 15,
+                          color: c(LamalivaColors.warning),
+                        ),
+                        const SizedBox(width: LamalivaSpace.xs),
+                        Expanded(
+                          child: Text(
+                            'This record is sealed when saved and cannot be edited afterwards. '
+                            'The identification number is only visible to an administrator.',
+                            style: T.micro,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (_error != null) ...[
+                const SizedBox(height: LamalivaSpace.md),
+                Container(
+                  padding: const EdgeInsets.all(LamalivaSpace.sm),
+                  decoration: BoxDecoration(
+                    color: c(LamalivaColors.dangerSoft).withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(LamalivaShape.card),
                   ),
-                  const SizedBox(width: LamalivaSpace.xs),
-                  Expanded(
-                    child: Text(
-                      'This record is sealed when saved and cannot be edited afterwards. '
-                      'The identification number is only visible to an administrator.',
-                      style: T.micro,
+                  child: Text(
+                    _error!,
+                    style: T.bodyMuted.copyWith(
+                      color: c(LamalivaColors.danger),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
-        if (_error != null) ...[
-          const SizedBox(height: LamalivaSpace.md),
-          Container(
-            padding: const EdgeInsets.all(LamalivaSpace.sm),
-            decoration: BoxDecoration(
-              color: c(LamalivaColors.dangerSoft).withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(LamalivaShape.card),
-            ),
-            child: Text(
-              _error!,
-              style: T.bodyMuted.copyWith(color: c(LamalivaColors.danger)),
-            ),
-          ),
-        ],
-        const SizedBox(height: LamalivaSpace.md),
-        PrimaryButton(
-          label: 'Register guest and occupy room',
-          busy: _busy,
-          onPressed: _busy ? null : _submit,
-        ),
+        _actionBar(),
       ],
     );
   }
 
+  /// The submit action stays on screen: on a 720p laptop the form is taller
+  /// than the window, and a save button below the fold gets missed.
+  Widget _actionBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: c(LamalivaColors.cream),
+        border: Border(
+          top: BorderSide(
+            color: c(LamalivaColors.line),
+            width: LamalivaShape.hairline,
+          ),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: LamalivaSpace.lg,
+        vertical: LamalivaSpace.sm,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'The room is marked occupied the moment you register.',
+              style: T.micro.copyWith(color: c(LamalivaColors.inkMuted)),
+            ),
+          ),
+          const SizedBox(width: LamalivaSpace.md),
+          SizedBox(
+            width: 320,
+            child: PrimaryButton(
+              label: 'Register guest and occupy room',
+              busy: _busy,
+              onPressed: _busy ? null : _submit,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _confirmation(Map<String, dynamic> receipt) {
-    final guest = (receipt['guest'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final guest =
+        (receipt['guest'] as Map?)?.cast<String, dynamic>() ?? const {};
     final reservation =
         (receipt['reservation'] as Map?)?.cast<String, dynamic>() ?? const {};
     final room = (reservation['room'] as Map?)?.cast<String, dynamic>();
@@ -427,7 +531,11 @@ class _RegisterGuestScreenState extends State<RegisterGuestScreen> {
 }
 
 class _RoomChip extends StatelessWidget {
-  const _RoomChip({required this.room, required this.selected, required this.onTap});
+  const _RoomChip({
+    required this.room,
+    required this.selected,
+    required this.onTap,
+  });
 
   final Map<String, dynamic> room;
   final bool selected;
@@ -451,7 +559,9 @@ class _RoomChip extends StatelessWidget {
             color: selected ? c(LamalivaColors.navy800) : Colors.white,
             borderRadius: BorderRadius.circular(LamalivaShape.card),
             border: Border.all(
-              color: selected ? c(LamalivaColors.navy800) : c(LamalivaColors.line),
+              color: selected
+                  ? c(LamalivaColors.navy800)
+                  : c(LamalivaColors.line),
               width: selected ? 1.5 : 1,
             ),
           ),
