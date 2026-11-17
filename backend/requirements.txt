@@ -1,0 +1,15 @@
+Flask==3.1.3
+Flask-SQLAlchemy==3.1.1
+Flask-Migrate==4.1.0
+SQLAlchemy==2.0.50
+alembic==1.17.2
+PyJWT==2.10.1
+argon2-cffi==25.1.0
+python-dotenv==1.2.1
+email-validator==2.2.0
+Werkzeug==3.1.6
+gunicorn==26.0.0
+# PostgreSQL driver (server side only; never shipped to a client app)
+psycopg[binary]==3.2.12
+# Tests
+pytest==8.4.2

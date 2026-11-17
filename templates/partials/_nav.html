@@ -13,12 +13,7 @@
       <a href="{{ url_for('stay') }}" class="{{ 'active' if active_nav == 'stay' }}">Rooms &amp; Suites</a>
       <a href="{{ url_for('about') }}" class="{{ 'active' if active_nav == 'about' }}">About</a>
       <a href="{{ url_for('contact') }}" class="{{ 'active' if active_nav == 'contact' }}">Contact</a>
-      <a href="{{ url_for('downloads') }}">Get the App</a>
-      {% if current_user.is_authenticated %}
-        <a href="{{ url_for('dashboard') }}" class="nav-book">My Dashboard</a>
-      {% else %}
-        <a href="{{ url_for('login') }}" class="nav-book">Reserve</a>
-      {% endif %}
+      <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." class="nav-book" target="_blank" rel="noopener">Reserve</a>
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="Open menu"><i class="bi bi-list"></i></button>
   </div>
@@ -31,13 +26,8 @@
   <a href="{{ url_for('stay') }}"><i class="bi bi-door-open"></i> Rooms &amp; Suites</a>
   <a href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a>
   <a href="{{ url_for('contact') }}"><i class="bi bi-envelope"></i> Contact</a>
-  <a href="{{ url_for('downloads') }}"><i class="bi bi-phone"></i> Get the App</a>
   <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> Guest Guide</a>
-  {% if current_user.is_authenticated %}
-    <a href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> My Dashboard</a>
-  {% else %}
-    <a href="{{ url_for('login') }}" style="color: var(--orange-400)"><i class="bi bi-calendar-check"></i> Reserve Now</a>
-  {% endif %}
+  <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." target="_blank" rel="noopener" style="color: var(--orange-400)"><i class="bi bi-whatsapp"></i> Reserve on WhatsApp</a>
 </aside>
 
 <script>

@@ -41,3 +41,12 @@ static/releases/*.zip
 static/releases/*.exe
 !static/releases/.gitkeep
 .cursorj/
+
+# Private staff-system local state
+backend/lamaliva_dev.db
+core/staff_ui/.dart_tool/
+core/staff_ui/build/
+windows_app/.dart_tool/
+windows_app/build/
+android_app/.dart_tool/
+android_app/build/

@@ -129,7 +129,7 @@
             <h1>Where paradise<br>feels like <em>home</em></h1>
             <p class="hero-tagline">An intimate luxury retreat above the clouds — warm Cameroonian hospitality, reimagined.</p>
             <div class="hero-cta">
-                <a href="{{ url_for('login') }}" class="btn-lux"><i class="bi bi-calendar-check"></i> Reserve Your Stay</a>
+                <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." class="btn-lux" target="_blank" rel="noopener"><i class="bi bi-calendar-check"></i> Reserve Your Stay</a>
                 <a href="{{ url_for('stay') }}" class="btn-ghost-lux"><i class="bi bi-door-open"></i> Explore Rooms</a>
             </div>
         </div>
@@ -220,11 +220,7 @@
                                 <span class="amt">{{ "{:,.0f}".format(room.price) }}</span>
                                 <span class="per">/ night</span>
                             </div>
-                            {% if current_user.is_authenticated %}
-                                <a href="{{ url_for('new_reservation', room_id=room.id) }}" class="btn-book-sm">Reserve</a>
-                            {% else %}
-                                <a href="{{ url_for('login') }}" class="btn-book-sm">Reserve</a>
-                            {% endif %}
+                            <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20Room%20{{ room.room_number }}%20({{ room.room_type }})." class="btn-book-sm" target="_blank" rel="noopener">Reserve</a>
                         </div>
                     </div>
                 </article>
@@ -274,7 +270,7 @@
                 </div>
                 <div class="quote-card reveal" data-delay="3">
                     <div class="stars">★★★★★</div>
-                    <p>"Booking took two minutes on the app and paying with MoMo was seamless. This is how modern hospitality should feel."</p>
+                    <p>"Booking over WhatsApp took two minutes and paying with MoMo at the desk was seamless. This is how hospitality should feel."</p>
                     <div class="who">Etienne M.<span>Business traveller, Limbe</span></div>
                 </div>
             </div>
@@ -287,10 +283,10 @@
             <div class="cta-inner reveal">
                 <span class="kicker center" style="color: var(--gold-400)">Your Suite Awaits</span>
                 <h2>Reserve your escape to paradise</h2>
-                <p>Rooms release quickly during the climbing season — secure your dates today, online in two minutes or through our app with offline access.</p>
+                <p>Rooms release quickly during the climbing season. Message the front desk on WhatsApp and we will hold your dates — payment is settled at the hotel.</p>
                 <div class="hero-cta">
-                    <a href="{{ url_for('login') }}" class="btn-lux"><i class="bi bi-calendar-check"></i> Book Now</a>
-                    <a href="{{ url_for('downloads') }}" class="btn-ghost-lux"><i class="bi bi-phone"></i> Get the App</a>
+                    <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." class="btn-lux" target="_blank" rel="noopener"><i class="bi bi-calendar-check"></i> Book Now</a>
+                    <a href="https://chat.whatsapp.com/EfYeauQJvsZ3tNzPiba6Cp?s=sh&amp;p=a&amp;iam=2" class="btn-ghost-lux" target="_blank" rel="noopener"><i class="bi bi-people-fill"></i> Join our WhatsApp group</a>
                 </div>
             </div>
         </div>

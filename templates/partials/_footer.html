@@ -37,10 +37,8 @@
       <div>
         <h5>Reservations</h5>
         <ul>
-          <li><a href="{{ url_for('login') }}">Book a Room</a></li>
-          <li><a href="{{ url_for('signup') }}">Create an Account</a></li>
-          <li><a href="{{ url_for('downloads') }}">Download the App</a></li>
-          <li><a href="{{ url_for('downloads') }}">Install PWA</a></li>
+          <li><a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." target="_blank" rel="noopener">Book a Room</a></li>
+          <li><a href="tel:+237679915967">Call the Front Desk</a></li>
         </ul>
 </div>
 
@@ -57,7 +55,6 @@
   <div class="foot-bar">
     <div class="container-lux">
       © {{ now().year if now is defined else 2026 }} La-Maliva Vista Hotel · Buea, Cameroon ·
-      <a href="{{ url_for('downloads') }}">Get the app</a>
     </div>
   </div>
 </footer>

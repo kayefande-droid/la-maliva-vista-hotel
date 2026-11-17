@@ -1,0 +1,6 @@
+name: lamaliva_design
+description: Shared design tokens for the La Maliva Vista staff apps (pure Dart).
+publish_to: 'none'
+
+environment:
+  sdk: ^3.12.0
