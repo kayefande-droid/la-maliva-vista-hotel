@@ -50,3 +50,6 @@ windows_app/.dart_tool/
 windows_app/build/
 android_app/.dart_tool/
 android_app/build/
+
+# Local database backups made by scripts/upgrade_occupancy.py
+backend/*.db.bak-*

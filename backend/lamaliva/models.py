@@ -38,6 +38,59 @@ ROOM_STATUSES = (
     ROOM_MAINTENANCE,
 )
 
+# --- Stay pricing -----------------------------------------------------
+PRICING_NIGHTLY = "nightly"
+PRICING_HOURLY = "hourly"
+PRICING_CUSTOM = "custom"
+PRICING_TYPES = (PRICING_NIGHTLY, PRICING_HOURLY, PRICING_CUSTOM)
+
+# Occupancy states are derived by the stay engine from the server clock; they
+# are never stored, so a client clock can never disagree with the backend.
+STAY_RESERVED = "reserved"
+STAY_ACTIVE = "active"
+STAY_CHECKOUT_APPROACHING = "checkout_approaching"
+STAY_CHECKOUT_DUE = "checkout_due"
+STAY_OVERDUE = "overdue"
+STAY_EXTENSION_PENDING = "extension_pending"
+STAY_CHECKED_OUT = "checked_out"
+STAY_STATES = (
+    STAY_RESERVED,
+    STAY_ACTIVE,
+    STAY_CHECKOUT_APPROACHING,
+    STAY_CHECKOUT_DUE,
+    STAY_OVERDUE,
+    STAY_EXTENSION_PENDING,
+    STAY_CHECKED_OUT,
+)
+
+# Payment states are kept separate from occupancy states: a guest can be in
+# the room with a balance owing and that is not an error.
+PAY_UNPAID = "unpaid"
+PAY_DEPOSIT = "deposit_paid"
+PAY_PARTIAL = "partially_paid"
+PAY_PAID = "fully_paid"
+PAY_REFUND_PENDING = "refund_pending"
+PAY_REFUNDED = "refunded"
+PAY_DISPUTED = "payment_disputed"
+PAY_STATES = (
+    PAY_UNPAID,
+    PAY_DEPOSIT,
+    PAY_PARTIAL,
+    PAY_PAID,
+    PAY_REFUND_PENDING,
+    PAY_REFUNDED,
+    PAY_DISPUTED,
+)
+
+PAYMENT_IN = "payment"
+PAYMENT_REFUND = "refund"
+PAYMENT_KINDS = (PAYMENT_IN, PAYMENT_REFUND)
+
+EXTENSION_PENDING = "pending"
+EXTENSION_APPROVED = "approved"
+EXTENSION_REJECTED = "rejected"
+EXTENSION_STATES = (EXTENSION_PENDING, EXTENSION_APPROVED, EXTENSION_REJECTED)
+
 RES_PENDING = "pending"
 RES_CONFIRMED = "confirmed"
 RES_CHECKED_IN = "checked_in"
@@ -275,6 +328,21 @@ class Reservation(TimestampMixin, db.Model):
     source = db.Column(db.String(32), nullable=False, default="reception")
     notes = db.Column(db.Text, nullable=True)
 
+    # --- The stay clock ---------------------------------------------
+    # `expected_checkout_at` is the authoritative expiry instant, computed by
+    # the server when the guest checks in and moved only by an approved
+    # extension. `original_checkout_at` preserves what was first agreed.
+    pricing_type = db.Column(db.String(12), nullable=False, default=PRICING_NIGHTLY)
+    stay_hours = db.Column(db.Integer, nullable=True)
+    expected_checkout_at = db.Column(db.DateTime, nullable=True, index=True)
+    original_checkout_at = db.Column(db.DateTime, nullable=True)
+    checkout_note = db.Column(db.String(400), nullable=True)
+    receipt_reference = db.Column(db.String(24), nullable=True)
+    outstanding_authorised_by = db.Column(
+        db.Integer, db.ForeignKey("staff.id"), nullable=True
+    )
+    housekeep_task_at = db.Column(db.DateTime, nullable=True)
+
     checked_in_at = db.Column(db.DateTime, nullable=True)
     checked_in_by = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
     checked_out_at = db.Column(db.DateTime, nullable=True)
@@ -285,9 +353,97 @@ class Reservation(TimestampMixin, db.Model):
 
     guest = db.relationship("Guest", back_populates="reservations")
     room = db.relationship("Room", back_populates="reservations")
+    payments = db.relationship(
+        "Payment",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+        order_by="Payment.created_at",
+    )
+    extensions = db.relationship(
+        "StayExtension",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+        order_by="StayExtension.created_at",
+    )
 
     def nights(self) -> int:
         return max((self.departure - self.arrival).days, 0)
+
+    @property
+    def is_in_house(self) -> bool:
+        return self.status == RES_CHECKED_IN
+
+
+class Payment(db.Model):
+    """Money received against a stay, or refunded to the guest.
+
+    Append-only: a mistake is corrected with a compensating refund, never by
+    editing history, so the cash drawer and the stay always reconcile.
+    """
+
+    __tablename__ = "payment"
+
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(
+        db.Integer, db.ForeignKey("reservation.id"), nullable=False, index=True
+    )
+    kind = db.Column(db.String(12), nullable=False, default=PAYMENT_IN)
+    amount = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    currency = db.Column(db.String(8), nullable=False, default="XAF")
+    method = db.Column(db.String(24), nullable=False, default="cash")
+    reference = db.Column(db.String(64), nullable=True)
+    notes = db.Column(db.String(300), nullable=True)
+    received_by = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+
+    reservation = db.relationship("Reservation", back_populates="payments")
+
+
+class StayExtension(db.Model):
+    """A request to keep the room longer than the agreed checkout.
+
+    The original stay is never overwritten: the reservation keeps
+    `original_checkout_at`, and every move of the expiry is one of these rows.
+    """
+
+    __tablename__ = "stay_extension"
+
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(
+        db.Integer, db.ForeignKey("reservation.id"), nullable=False, index=True
+    )
+    minutes = db.Column(db.Integer, nullable=False, default=0)
+    pricing_type = db.Column(db.String(12), nullable=False, default=PRICING_NIGHTLY)
+    additional_charge = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    original_checkout_at = db.Column(db.DateTime, nullable=False)
+    new_checkout_at = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(16), nullable=False, default=EXTENSION_PENDING, index=True)
+    note = db.Column(db.String(300), nullable=True)
+    conflict_note = db.Column(db.String(300), nullable=True)
+    requested_by = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    approved_by = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+    decided_at = db.Column(db.DateTime, nullable=True)
+
+    reservation = db.relationship("Reservation", back_populates="extensions")
+
+
+class StayAlert(db.Model):
+    """One row per (stay, threshold) so an alert is never raised twice."""
+
+    __tablename__ = "stay_alert"
+    __table_args__ = (
+        db.UniqueConstraint("reservation_id", "threshold_minutes", name="uq_stay_alert"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(
+        db.Integer, db.ForeignKey("reservation.id"), nullable=False, index=True
+    )
+    threshold_minutes = db.Column(db.Integer, nullable=False)
+    kind = db.Column(db.String(24), nullable=False, default="checkout")
+    expected_checkout_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
 
 
 class InventoryItem(TimestampMixin, db.Model):
@@ -372,6 +528,24 @@ class HotelSetting(TimestampMixin, db.Model):
     maps_url = db.Column(db.String(300), nullable=True)
     checkin_time = db.Column(db.String(8), nullable=False, default="14:00")
     checkout_time = db.Column(db.String(8), nullable=False, default="12:00")
+
+    # --- Accommodation and checkout policy --------------------------
+    # New policy values apply to stays created afterwards; an existing stay is
+    # only re-priced when an administrator explicitly re-times it.
+    timezone = db.Column(db.String(48), nullable=False, default="Africa/Douala")
+    nightly_enabled = db.Column(db.Boolean, nullable=False, default=True)
+    hourly_enabled = db.Column(db.Boolean, nullable=False, default=False)
+    hourly_rate_percent = db.Column(db.Integer, nullable=False, default=30)
+    grace_minutes = db.Column(db.Integer, nullable=False, default=30)
+    late_checkout_fee = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    early_checkin_fee = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    deposit_percent = db.Column(db.Integer, nullable=False, default=0)
+    payment_before_occupancy = db.Column(db.Boolean, nullable=False, default=False)
+    extension_approval_required = db.Column(db.Boolean, nullable=False, default=True)
+    checkout_alert_minutes = db.Column(
+        db.JSON, nullable=False, default=lambda: [1440, 360, 120, 30, 0, -60]
+    )
+    overdue_manager_alert = db.Column(db.Boolean, nullable=False, default=True)
 
 
 def row_count(model) -> int:
