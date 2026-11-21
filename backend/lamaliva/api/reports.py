@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request
 
 from ..extensions import db
 from ..models import (
+    EXTENSION_PENDING,
     RES_CHECKED_IN,
     RES_CHECKED_OUT,
     RES_CONFIRMED,
@@ -15,10 +16,40 @@ from ..models import (
     Room,
     RoomType,
     Staff,
+    StayExtension,
+    utcnow,
 )
 from ..security import json_error, require_auth, require_permission
+from ..stay import load_policy, stay_state
 
 bp = Blueprint("reports", __name__)
+
+
+def _stay_counts() -> dict:
+    """Live occupancy pressures, derived from the same engine the desk uses."""
+    policy = load_policy()
+    now = utcnow()
+    rows = db.session.scalars(
+        db.select(Reservation).where(Reservation.status == RES_CHECKED_IN)
+    ).all()
+    states = [stay_state(row, policy, now) for row in rows]
+    pending = db.session.scalar(
+        db.select(db.func.count())
+        .select_from(StayExtension)
+        .where(StayExtension.status == EXTENSION_PENDING)
+    ) or 0
+    return {
+        "in_house": len(states),
+        "overdue": sum(1 for state in states if state["is_overdue"]),
+        "due_within_2h": sum(
+            1
+            for state in states
+            if not state["is_overdue"]
+            and state["minutes_remaining"] is not None
+            and state["minutes_remaining"] <= 120
+        ),
+        "extension_pending": pending,
+    }
 
 
 def _range():
@@ -106,6 +137,7 @@ def overview():
                     "departures": departures_today,
                     "in_house": in_house,
                 },
+                "stays": _stay_counts(),
                 "alerts": {"low_stock_items": low_stock},
                 "inventory": {
                     "items": db.session.scalar(

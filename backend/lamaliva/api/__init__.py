@@ -20,6 +20,7 @@ from .notifications import bp as notifications_bp  # noqa: E402
 from .notifications import settings_bp  # noqa: E402
 from .reports import bp as reports_bp  # noqa: E402
 from .reservations import bp as reservations_bp  # noqa: E402
+from .stays import bp as stays_bp  # noqa: E402
 from .rooms import bp as rooms_bp  # noqa: E402
 from .staff import bp as staff_bp  # noqa: E402
 
@@ -30,6 +31,7 @@ api_bp.register_blueprint(guests_bp, url_prefix="/guests")
 api_bp.register_blueprint(rooms_bp, url_prefix="/rooms")
 api_bp.register_blueprint(staff_bp, url_prefix="/staff")
 api_bp.register_blueprint(reservations_bp, url_prefix="/reservations")
+api_bp.register_blueprint(stays_bp, url_prefix="/stays")
 api_bp.register_blueprint(inventory_bp, url_prefix="/inventory")
 api_bp.register_blueprint(reports_bp, url_prefix="/reports")
 api_bp.register_blueprint(audit_bp, url_prefix="/audit")

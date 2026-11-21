@@ -28,7 +28,17 @@ from ..models import (
     Room,
     utcnow,
 )
+from ..models import PRICING_HOURLY
 from ..security import audit, has_permission, json_error, require_auth, require_permission
+from ..stay import (
+    StayError,
+    checkout_stay,
+    compute_expected_checkout,
+    load_policy,
+    normalize_pricing,
+    quote_charge,
+    sync_alerts,
+)
 from ._util import body, iso, money, page_args, paginated
 
 bp = Blueprint("reservations", __name__)
@@ -327,12 +337,62 @@ def check_in(reservation_id: int):
     if row.room.status == ROOM_MAINTENANCE_BLOCKED:
         return json_error(409, "room_blocked", "That room is under maintenance.")
 
+    # The stay clock is set here, once, from the server clock in hotel time.
+    policy = load_policy()
+    data = body()
+    requested_pricing = str(data.get("pricing_type") or "").strip().lower()
+    if requested_pricing == PRICING_HOURLY and not policy.hourly_enabled:
+        return json_error(
+            409,
+            "hourly_unavailable",
+            "Hourly stays are switched off in the accommodation policy.",
+        )
+    pricing = normalize_pricing(data.get("pricing_type") or row.pricing_type, policy)
+    hours = data.get("stay_hours")
+    try:
+        hours = int(hours) if hours not in (None, "") else None
+    except (TypeError, ValueError):
+        return json_error(400, "invalid_stay_hours", "stay_hours must be a whole number.")
+    if pricing == PRICING_HOURLY and not hours:
+        return json_error(400, "invalid_stay_hours", "An hourly stay needs its hours.")
+
+    row.pricing_type = pricing
+    row.stay_hours = hours if pricing == PRICING_HOURLY else None
+    if row.expected_checkout_at is None:
+        row.expected_checkout_at = compute_expected_checkout(
+            arrival=row.arrival,
+            policy=policy,
+            pricing_type=pricing,
+            nights=row.nights(),
+            hours=row.stay_hours,
+        )
+        row.original_checkout_at = row.expected_checkout_at
+    if pricing == PRICING_HOURLY:
+        row.total_amount = quote_charge(
+            nightly_rate=float(row.rate_per_night or 0),
+            pricing_type=PRICING_HOURLY,
+            hours=row.stay_hours or 1,
+            hourly_rate_percent=policy.hourly_rate_percent,
+        )
+
     row.status = RES_CHECKED_IN
     row.checked_in_at = utcnow()
     row.checked_in_by = g.staff.id
     row.room.status = ROOM_OCCUPIED
+    sync_alerts(row, policy)
 
-    audit("reservation.checked_in", "reservation", row.id, after={"room": row.room.number})
+    audit(
+        "reservation.checked_in",
+        "reservation",
+        row.id,
+        after={
+            "room": row.room.number,
+            "expected_checkout_at": row.expected_checkout_at.isoformat()
+            if row.expected_checkout_at
+            else None,
+            "pricing_type": row.pricing_type,
+        },
+    )
     db.session.add(
         Notification(
             staff_id=None,
@@ -357,21 +417,42 @@ def check_out(reservation_id: int):
     if row.status != RES_CHECKED_IN:
         return json_error(409, "invalid_state", "Only an in-house guest can be checked out.")
 
-    row.status = RES_CHECKED_OUT
-    row.checked_out_at = utcnow()
-    row.checked_out_by = g.staff.id
-    if row.room is not None:
-        row.room.status = ROOM_CLEANING
-        row.room.housekeeping = "dirty"
+    policy = load_policy()
+    data = body()
+    try:
+        receipt = checkout_stay(
+            row,
+            staff_id=g.staff.id,
+            policy=policy,
+            note=data.get("note"),
+            # This legacy endpoint has no payment capture of its own, so the
+            # acting desk user is recorded as authorising any balance rather
+            # than pretending the stay was settled.
+            require_settlement=False,
+        )
+    except StayError as error:
+        return json_error(error.status, error.code, error.message)
 
     audit(
         "reservation.checked_out",
         "reservation",
         row.id,
-        after={"room": row.room.number if row.room else None},
+        after={
+            "room": row.room.number if row.room else None,
+            "receipt": row.receipt_reference,
+            "balance": receipt["money"]["balance"],
+        },
+    )
+    db.session.add(
+        Notification(
+            staff_id=None,
+            kind="operations",
+            title=f"Room {row.room.number if row.room else '-'} needs cleaning",
+            body=f"{row.guest.display_name if row.guest else 'Guest'} checked out.",
+        )
     )
     db.session.commit()
-    return jsonify({"data": serialize_reservation(row)})
+    return jsonify({"data": serialize_reservation(row), "receipt": receipt})
 
 
 @bp.post("/<int:reservation_id>/cancel")
@@ -485,8 +566,18 @@ def register_guest_into_room():
     )
     db.session.add(reservation)
 
+    # Registration puts the guest in the room immediately, so the clock starts
+    # now: the agreed checkout is the policy checkout time N nights from today.
+    policy = load_policy()
+    reservation.pricing_type = "nightly"
+    reservation.expected_checkout_at = compute_expected_checkout(
+        arrival=today, policy=policy, pricing_type="nightly", nights=nights
+    )
+    reservation.original_checkout_at = reservation.expected_checkout_at
+
     room.status = ROOM_OCCUPIED
     db.session.flush()
+    sync_alerts(reservation, policy)
 
     audit(
         "reservation.registered",

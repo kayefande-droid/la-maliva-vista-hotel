@@ -42,6 +42,9 @@ PERMISSIONS: dict[str, set[str]] = {
         "guest:read", "guest:write", "guest:restricted",
         "room:read", "room:write",
         "reservation:read", "reservation:write", "reservation:checkin",
+        # Approving an extension or authorising an outstanding balance moves
+        # money and room time, so it stays with management.
+        "reservation:approve",
         "inventory:read", "inventory:movement",
         "staff:read", "device:read", "audit:read",
         "report:read", "report:financial",
