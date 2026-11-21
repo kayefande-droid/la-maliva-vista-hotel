@@ -8,3 +8,8 @@ mount-cameroon-sunset.jpg | File:Mount Cameroon from douala Cameroon.jpg | autho
 mount-cameroon-sunny.jpg | File:Mount Cameroon on a sunny day 06.jpg | author: Adesolive | license: CC BY-SA 4.0 | source: https://commons.wikimedia.org/wiki/File%3AMount_Cameroon_on_a_sunny_day_06.jpg
 buea-waterfall.jpg | File:Mount Cameroon waterfall, Buea.jpg | author: Yeluma Ntali | license: CC BY-SA 4.0 | source: https://commons.wikimedia.org/wiki/File%3AMount_Cameroon_waterfall%2C_Buea.jpg
 mount-cameroon-rainforest.jpg | File:Tropical rain forest Mount Cameroon.jpg | author: Atabong Armstrong | license: CC BY-SA 4.0 | source: https://commons.wikimedia.org/wiki/File%3ATropical_rain_forest_Mount_Cameroon.jpg
+
+Resolution: the mountain photographs are downloaded at Wikimedia's 3840px size and kept as
+masters in static/img/cameroon/hires/; the site serves 1920px and 3840px WebP variants and a
+1920px JPEG fallback. "Buea from Fako.jpg" is only 1632px wide at source, so no larger
+version exists.
