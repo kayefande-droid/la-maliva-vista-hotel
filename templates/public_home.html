@@ -30,18 +30,22 @@
         .hero-slides { position: absolute; inset: 0; z-index: -2; }
         .hero-slide {
             position: absolute; inset: 0; opacity: 0;
-            transition: opacity 2.2s ease-in-out;
+            transition: opacity 1.5s cubic-bezier(.4, 0, .2, 1);
         }
         .hero-slide.active { opacity: 1; }
+        .hero-slide picture { display: block; width: 100%; height: 100%; }
         .hero-slide img {
             width: 100%; height: 100%; object-fit: cover;
-            transform: scale(1.08);
-            animation: kenburns 16s ease-in-out infinite alternate;
+            transform: scale(1.06);
+            animation: kenburns 20s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+            animation-play-state: paused;
+            will-change: transform;
+            backface-visibility: hidden;
         }
         .hero-slide.active img { animation-play-state: running; }
         @keyframes kenburns {
-            from { transform: scale(1.08) translate3d(0,0,0); }
-            to   { transform: scale(1.18) translate3d(-1.6%, -1.4%, 0); }
+            from { transform: scale(1.06) translate3d(0, 0, 0); }
+            to   { transform: scale(1.14) translate3d(-1.2%, -1%, 0); }
         }
         .home-hero::after {
             content: ""; position: absolute; inset: 0; z-index: -1;
@@ -83,6 +87,47 @@
         .strip-item { display: flex; align-items: center; gap: 12px; color: rgba(253,250,244,0.85); font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase; }
         .strip-item i { color: var(--orange-400); font-size: 1.1rem; }
 
+        /* Photograph label and selector, above the location strip */
+        .hero-caption { position: absolute; left: 0; right: 0; bottom: 86px; z-index: 2; }
+        .hero-caption .cap-inner {
+            max-width: 1180px; margin: 0 auto; padding: 0 24px;
+            display: flex; align-items: center; justify-content: space-between; gap: 20px;
+        }
+        .hero-caption .cap-text {
+            font-size: 0.64rem; letter-spacing: 0.34em; text-transform: uppercase;
+            color: rgba(253,250,244,0.82); text-shadow: 0 2px 14px rgba(10,22,40,0.7);
+            transition: opacity .3s ease;
+        }
+        .hero-caption .cap-text::before {
+            content: ""; display: inline-block; width: 22px; height: 1px;
+            background: var(--gold-400); vertical-align: middle; margin-right: 12px;
+        }
+        .hero-ticks { display: flex; align-items: center; gap: 2px; }
+        .hero-tick {
+            appearance: none; border: 0; background: none; padding: 10px 3px;
+            cursor: pointer; display: flex; align-items: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .hero-tick span {
+            display: block; width: 22px; height: 2px; border-radius: 2px;
+            background: rgba(253,250,244,0.38);
+            transition: background .4s ease, width .4s ease;
+        }
+        .hero-tick:hover span { background: rgba(253,250,244,0.68); }
+        .hero-tick[aria-current="true"] span { background: var(--gold-400); width: 30px; }
+        .hero-tick:focus-visible { outline: 2px solid var(--gold-400); outline-offset: 3px; border-radius: 2px; }
+        @media (max-width: 640px) {
+            .hero-caption { bottom: 124px; }
+            .hero-caption .cap-inner { padding: 0 18px; }
+            .hero-caption .cap-text { letter-spacing: 0.18em; font-size: 0.56rem; }
+            .hero-tick span { width: 16px; }
+            .hero-tick[aria-current="true"] span { width: 22px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .hero-slide { transition: opacity .3s linear; }
+            .hero-slide img, .hero-slide.active img { animation: none; transform: none; }
+        }
+
         /* ---------- Welcome intro ---------- */
         .intro-media { position: relative; }
         .intro-media img { width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); object-fit: cover; height: 520px; }
@@ -117,11 +162,35 @@
 
     <!-- ================= HERO ================= -->
     <header class="home-hero">
-        <div class="hero-slides">
-            <div class="hero-slide active"><img src="/static/img/cameroon/mount-cameroon-sunny.jpg" alt="Mount Cameroon rising above the Buea foothills"></div>
-            <div class="hero-slide"><img src="/static/img/cameroon/buea-from-fako.jpg" alt="Buea seen from the Fako highlands"></div>
-            <div class="hero-slide"><img src="/static/img/cameroon/mount-cameroon-sunset.jpg" alt="Sunset over Mount Cameroon"></div>
-            <div class="hero-slide"><img src="/static/img/cameroon/mount-cameroon-ndongo.jpg" alt="View of Mount Cameroon from Ndongo, Buea"></div>
+        <div id="heroSlides" class="hero-slides" style="background:#0a1628 url('/static/img/cameroon/webp/mount-cameroon-sunny-lqip.webp') center/cover no-repeat;">
+            <div class="hero-slide active">
+                <picture>
+                    <source srcset="/static/img/cameroon/webp/mount-cameroon-sunny.webp" type="image/webp">
+                    <img src="/static/img/cameroon/mount-cameroon-sunny.jpg" alt="Mount Cameroon rising above the Buea foothills"
+                         width="1920" height="1440" fetchpriority="high" decoding="async">
+                </picture>
+            </div>
+            <div class="hero-slide">
+                <picture>
+                    <source srcset="/static/img/cameroon/webp/buea-from-fako.webp" type="image/webp">
+                    <img src="/static/img/cameroon/buea-from-fako.jpg" alt="Buea seen from the Fako highlands"
+                         width="1632" height="848" loading="lazy" decoding="async">
+                </picture>
+            </div>
+            <div class="hero-slide">
+                <picture>
+                    <source srcset="/static/img/cameroon/webp/mount-cameroon-sunset.webp" type="image/webp">
+                    <img src="/static/img/cameroon/mount-cameroon-sunset.jpg" alt="Dusk falling over Mount Cameroon"
+                         width="1920" height="1440" loading="lazy" decoding="async">
+                </picture>
+            </div>
+            <div class="hero-slide">
+                <picture>
+                    <source srcset="/static/img/cameroon/webp/mount-cameroon-ndongo.webp" type="image/webp">
+                    <img src="/static/img/cameroon/mount-cameroon-ndongo.jpg" alt="Mount Cameroon seen from Ndongo, above Buea"
+                         width="1920" height="1280" loading="lazy" decoding="async">
+                </picture>
+            </div>
         </div>
 
         <div class="hero-content">
@@ -131,6 +200,18 @@
             <div class="hero-cta">
                 <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." class="btn-lux" target="_blank" rel="noopener"><i class="bi bi-calendar-check"></i> Reserve Your Stay</a>
                 <a href="{{ url_for('stay') }}" class="btn-ghost-lux"><i class="bi bi-door-open"></i> Explore Rooms</a>
+            </div>
+        </div>
+
+        <div class="hero-caption">
+            <div class="cap-inner">
+                <span class="cap-text" id="heroCaption" aria-hidden="true">Mount Cameroon rising above the Buea foothills</span>
+                <div class="hero-ticks" role="group" aria-label="Choose a photograph of Buea and Mount Cameroon">
+                    <button class="hero-tick" type="button" aria-current="true" aria-label="Photograph 1: Mount Cameroon rising above the Buea foothills"><span></span></button>
+                    <button class="hero-tick" type="button" aria-label="Photograph 2: Buea seen from the Fako highlands"><span></span></button>
+                    <button class="hero-tick" type="button" aria-label="Photograph 3: Dusk falling over Mount Cameroon"><span></span></button>
+                    <button class="hero-tick" type="button" aria-label="Photograph 4: Mount Cameroon seen from Ndongo, above Buea"><span></span></button>
+                </div>
             </div>
         </div>
 
@@ -296,16 +377,68 @@
 
     <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.min.js') }}"></script>
     <script>
-        // Hero slideshow (6s crossfade)
+        // Hero slideshow: cross-fade with a breathing zoom. Selectable by
+        // pointer or keyboard, paused while the tab is hidden, and still for
+        // visitors who ask for reduced motion.
         (function () {
-            var slides = document.querySelectorAll('.hero-slide');
-            var idx = 0;
+            var slides = Array.prototype.slice.call(document.querySelectorAll('.hero-slide'));
+            var ticks = Array.prototype.slice.call(document.querySelectorAll('.hero-tick'));
+            var caption = document.getElementById('heroCaption');
             if (slides.length < 2) return;
-            setInterval(function () {
-                slides[idx].classList.remove('active');
-                idx = (idx + 1) % slides.length;
-                slides[idx].classList.add('active');
-            }, 6000);
+
+            var labels = slides.map(function (slide) {
+                var img = slide.querySelector('img');
+                return img ? img.alt : '';
+            });
+            var calm = window.matchMedia('(prefers-reduced-motion: reduce)');
+            var index = 0;
+            var timer = null;
+
+            function show(next) {
+                slides[index].classList.remove('active');
+                if (ticks[index]) ticks[index].removeAttribute('aria-current');
+                index = (next + slides.length) % slides.length;
+                slides[index].classList.add('active');
+                if (ticks[index]) ticks[index].setAttribute('aria-current', 'true');
+                if (caption && labels[index]) {
+                    caption.style.opacity = '0';
+                    window.setTimeout(function () {
+                        caption.textContent = labels[index];
+                        caption.style.opacity = '1';
+                    }, 260);
+                }
+            }
+
+            function stop() {
+                if (timer) { window.clearInterval(timer); timer = null; }
+            }
+
+            function start() {
+                stop();
+                if (!calm.matches) timer = window.setInterval(function () { show(index + 1); }, 6500);
+            }
+
+            ticks.forEach(function (tick, i) {
+                tick.addEventListener('click', function () { show(i); start(); });
+            });
+
+            document.addEventListener('visibilitychange', function () {
+                if (document.hidden) { stop(); } else { start(); }
+            });
+
+            // Keep the photograph label clear of the location strip, whose
+            // height grows as its items wrap on narrow screens.
+            function placeCaption() {
+                var strip = document.querySelector('.hero-strip');
+                var label = document.querySelector('.hero-caption');
+                if (strip && label) label.style.bottom = (strip.offsetHeight + 18) + 'px';
+            }
+            placeCaption();
+            window.addEventListener('resize', placeCaption);
+            window.addEventListener('load', placeCaption);
+
+            if (calm.addEventListener) calm.addEventListener('change', start);
+            start();
         })();
 
         // Scroll reveal
