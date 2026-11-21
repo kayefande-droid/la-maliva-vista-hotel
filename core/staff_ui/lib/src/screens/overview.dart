@@ -132,6 +132,9 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 );
               }
               return Row(
+                // Start-aligned: the occupied cell carries a detail line, and
+                // centring the row pushed its label above its neighbours'.
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   for (var i = 0; i < cells.length; i++) ...[
                     if (i > 0)
@@ -279,7 +282,7 @@ class _OccupancyChart extends StatelessWidget {
                       children: [
                         Text(
                           '${rate.toStringAsFixed(rate % 1 == 0 ? 0 : 1)}%',
-                          style: T.figureSmall.copyWith(fontSize: 26),
+                          style: T.figureSmall.copyWith(fontSize: 30),
                         ),
                         Text('occupied', style: T.micro),
                       ],
@@ -433,11 +436,6 @@ class _StoragePanel extends StatelessWidget {
                   Text('items on the shelf', style: T.micro),
                 ],
               ),
-            ),
-            Icon(
-              Icons.inventory_2_outlined,
-              size: 22,
-              color: c(LamalivaColors.inkFaint),
             ),
           ],
         ),
