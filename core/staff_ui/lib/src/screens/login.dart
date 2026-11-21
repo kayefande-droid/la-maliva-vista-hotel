@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:lamaliva_design/lamaliva_design.dart';
@@ -7,40 +9,281 @@ import '../server_dialog.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
-/// A 24-second drift across the photograph. Sells the place without moving the
-/// interface, and holds still when reduced motion is requested.
-class _SlowZoom extends StatefulWidget {
-  const _SlowZoom({required this.child});
+/// One backdrop photograph and the place it shows.
+class _LandingSlide {
+  const _LandingSlide(this.asset, this.caption);
 
-  final Widget child;
-
-  @override
-  State<_SlowZoom> createState() => _SlowZoomState();
+  final String asset;
+  final String caption;
 }
 
-class _SlowZoomState extends State<_SlowZoom>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
+/// The property's own surroundings, at the highest resolution we hold them.
+const List<_LandingSlide> _landingSlides = <_LandingSlide>[
+  _LandingSlide(
+    'assets/img/fako-buea-vista.jpg',
+    'Buea from the Fako foothills',
+  ),
+  _LandingSlide(
+    'assets/img/mount-cameroon-dawn.jpg',
+    'Mount Cameroon at first light',
+  ),
+  _LandingSlide(
+    'assets/img/mount-cameroon-dusk.jpg',
+    'Dusk over the mountain',
+  ),
+  _LandingSlide(
+    'assets/img/mount-cameroon-ndongo.jpg',
+    'Ndongo, above Buea',
+  ),
+];
+
+/// A slow carousel behind the sign-in form: each photograph cross-fades while
+/// breathing on a gentle zoom, so the light changes without the interface
+/// moving. Jumping is possible from the ticks, the sequence pauses when the app
+/// leaves the foreground, and reduced-motion visitors get one still frame.
+class _PhotoCarousel extends StatefulWidget {
+  const _PhotoCarousel({required this.compact});
+
+  /// Compact panels are too short for the headline, so the caption takes the
+  /// empty bottom corner; wide panels put it opposite the logo instead.
+  final bool compact;
+
+  @override
+  State<_PhotoCarousel> createState() => _PhotoCarouselState();
+}
+
+class _PhotoCarouselState extends State<_PhotoCarousel>
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  static const Duration _hold = Duration(seconds: 9);
+  static const Duration _fade = Duration(milliseconds: 1800);
+
+  late final AnimationController _drift = AnimationController(
     vsync: this,
-    duration: const Duration(seconds: 24),
-  )..forward();
+    duration: const Duration(seconds: 16),
+  );
+
+  Timer? _timer;
+  int _index = 0;
+  bool _calm = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final calm = MediaQuery.disableAnimationsOf(context);
+    if (calm == _calm && (_calm || _timer != null)) return;
+    _calm = calm;
+    _sync();
+  }
+
+  void _sync() {
+    _timer?.cancel();
+    _timer = null;
+    if (_calm) {
+      _drift.stop();
+      if (_index != 0) setState(() => _index = 0);
+      return;
+    }
+    if (!_drift.isAnimating) _drift.repeat(reverse: true);
+    _timer = Timer.periodic(_hold, (_) => _advance());
+  }
+
+  void _advance() {
+    if (!mounted) return;
+    setState(() => _index = (_index + 1) % _landingSlides.length);
+  }
+
+  void _show(int index) {
+    if (index == _index) return;
+    setState(() => _index = index);
+    // A deliberate jump restarts the full dwell time on the chosen frame.
+    if (!_calm) _sync();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _sync();
+      return;
+    }
+    _timer?.cancel();
+    _timer = null;
+    _drift.stop();
+  }
 
   @override
   void dispose() {
-    _controller.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    _drift.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (MediaQuery.disableAnimationsOf(context)) return widget.child;
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, child) => Transform.scale(
-        scale: 1.0 + 0.055 * Curves.easeInOut.transform(_controller.value),
-        child: child,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        // Decode only as wide as this panel can show: a 1920px photo behind a
+        // 700px panel otherwise costs four times the texture memory.
+        final decodeWidth =
+            (constraints.maxWidth * dpr).round().clamp(480, 2400);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            ExcludeSemantics(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  for (var i = 0; i < _landingSlides.length; i++)
+                    AnimatedOpacity(
+                      opacity: i == _index ? 1 : 0,
+                      duration: _calm ? Duration.zero : _fade,
+                      curve: Curves.easeInOutCubic,
+                      child: AnimatedBuilder(
+                        animation: _drift,
+                        builder: (context, child) => Transform.scale(
+                          scale: _calm
+                              ? 1
+                              : 1.03 +
+                                  0.055 *
+                                      Curves.easeInOut.transform(_drift.value),
+                          child: child,
+                        ),
+                        child: Image.asset(
+                          _landingSlides[i].asset,
+                          fit: BoxFit.cover,
+                          alignment: Alignment.center,
+                          filterQuality: FilterQuality.high,
+                          cacheWidth: decodeWidth,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Semantics(
+              image: true,
+              label:
+                  'Photographs of Buea, the Fako foothills and Mount Cameroon',
+              child: const SizedBox.expand(),
+            ),
+            Positioned(
+              right: LamalivaSpace.lg,
+              bottom: LamalivaSpace.lg,
+              // A fixed column width: AnimatedSwitcher lays its children out in
+              // a loose Stack, and unconstrained text would overrun the panel.
+              child: SizedBox(
+                width: 208,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _caption(),
+                    const SizedBox(height: LamalivaSpace.xs),
+                    _ticks(),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _caption() {
+    return AnimatedSwitcher(
+      duration: _calm ? Duration.zero : const Duration(milliseconds: 700),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.22),
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
       ),
-      child: widget.child,
+      child: Column(
+        key: ValueKey<int>(_index),
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 208,
+            child: Text(
+              _landingSlides[_index].caption.toUpperCase(),
+              textAlign: TextAlign.end,
+              maxLines: 2,
+              style: TextStyle(
+                fontFamily: LamalivaType.uiFamily,
+                fontSize: 10.5,
+                height: 1.5,
+                letterSpacing: 1.6,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withValues(alpha: 0.94),
+                shadows: const [
+                  Shadow(blurRadius: 16, color: Color(0x99000000)),
+                  Shadow(blurRadius: 4, color: Color(0x66000000)),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Container(
+            width: 26,
+            height: 1.5,
+            color: c(LamalivaColors.orangeMid),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _ticks() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (var i = 0; i < _landingSlides.length; i++)
+          Semantics(
+            button: true,
+            selected: i == _index,
+            label: 'Photograph ${i + 1}: ${_landingSlides[i].caption}',
+            onTap: () => _show(i),
+            child: GestureDetector(
+              onTap: () => _show(i),
+              behavior: HitTestBehavior.opaque,
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: Center(
+                  child: AnimatedContainer(
+                    duration: _calm
+                        ? Duration.zero
+                        : const Duration(milliseconds: 420),
+                    curve: Curves.easeOutCubic,
+                    width: i == _index ? 17 : 6,
+                    height: 2,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(
+                        alpha: i == _index ? 0.95 : 0.4,
+                      ),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -131,9 +374,18 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _wide(BoxConstraints constraints) {
+    // Under roughly 600px of photograph the headline and the caption fight for
+    // the same corner, so the image keeps only its label.
+    final photoWidth = constraints.maxWidth * 0.56;
     return Row(
       children: [
-        Expanded(flex: 56, child: _photoPanel(constraints.maxHeight)),
+        Expanded(
+          flex: 56,
+          child: _photoPanel(
+            constraints.maxHeight,
+            showHeadline: photoWidth >= 600,
+          ),
+        ),
         Expanded(
           flex: 44,
           child: Center(
@@ -173,19 +425,16 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _photoPanel(double height, {bool compact = false}) {
+  Widget _photoPanel(
+    double height, {
+    bool compact = false,
+    bool showHeadline = true,
+  }) {
     return ClipRect(
       child: Stack(
         fit: StackFit.expand,
         children: [
-          const _SlowZoom(
-            child: Image(
-              image: AssetImage('assets/img/buea-sunset.jpg'),
-              fit: BoxFit.cover,
-              filterQuality: FilterQuality.high,
-              alignment: Alignment.center,
-            ),
-          ),
+          _PhotoCarousel(compact: compact),
           DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -234,7 +483,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ],
                 ),
-                if (!compact)
+                if (!compact && showHeadline)
                   Reveal(
                     delay: const Duration(milliseconds: 120),
                     child: Column(
@@ -258,25 +507,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         color: c(LamalivaColors.orangeMid),
                       ),
                       const SizedBox(height: LamalivaSpace.sm),
-                      Text(
-                        'Buea  ·  Mount Cameroon',
-                        style: TextStyle(
-                          fontFamily: LamalivaType.uiFamily,
-                          fontSize: 12.5,
-                          letterSpacing: 0.2,
-                          color: Colors.white.withValues(alpha: 0.82),
-                        ),
-                      ),
                     ],
-                    ),
-                  ),
-                if (compact)
-                  Text(
-                    'Buea  ·  Mount Cameroon',
-                    style: TextStyle(
-                      fontFamily: LamalivaType.uiFamily,
-                      fontSize: 12,
-                      color: Colors.white.withValues(alpha: 0.85),
                     ),
                   ),
               ],
