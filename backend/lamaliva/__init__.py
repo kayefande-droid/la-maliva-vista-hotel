@@ -70,7 +70,49 @@ def create_app(config_name: str | None = None) -> Flask:
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
 
+    _ensure_schema(app)
     return app
+
+
+def _ensure_schema(app: Flask) -> None:
+    """Additive, idempotent schema guard for hosts without a shell.
+
+    `db.create_all()` opens new tables but never alters an existing one, so a
+    deployment would otherwise fail on the first shop sale. Disable with
+    LAMALIVA_AUTO_SCHEMA=0 and run scripts/upgrade_occupancy.py instead.
+    """
+    if app.config.get("TESTING"):
+        return
+    flag = os.environ.get("LAMALIVA_AUTO_SCHEMA", "1").strip().lower()
+    if flag in {"0", "false", "no", "off"}:
+        return
+
+    from sqlalchemy import inspect, text
+
+    with app.app_context():
+        try:
+            db.create_all()
+            inspector = inspect(db.engine)
+            if inspector.has_table("inventory_item"):
+                columns = {
+                    column["name"]
+                    for column in inspector.get_columns("inventory_item")
+                }
+                if "sale_price" not in columns:
+                    db.session.execute(
+                        text(
+                            "ALTER TABLE inventory_item "
+                            "ADD COLUMN sale_price NUMERIC(12, 2) "
+                            "NOT NULL DEFAULT 0"
+                        )
+                    )
+                    db.session.commit()
+        except Exception:  # pragma: no cover - depends on the host
+            db.session.rollback()
+            log.exception(
+                "Schema guard could not add the newest tables; "
+                "run scripts/upgrade_occupancy.py"
+            )
 
 
 def _register_errors(app: Flask) -> None:
