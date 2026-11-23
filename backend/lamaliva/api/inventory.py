@@ -1,6 +1,7 @@
 """Inventory: items, stock movements and low-stock notifications."""
 from __future__ import annotations
 
+import math
 import secrets
 
 from flask import Blueprint, g, jsonify, request
@@ -20,19 +21,49 @@ from ._util import body, iso, money, page_args, paginated
 bp = Blueprint("inventory", __name__)
 
 
+class NumberError(ValueError):
+    """A stock figure that is missing, not a number, or out of range."""
+
+
+def number(raw, *, minimum: float = 0.0, maximum: float | None = None) -> float:
+    """A stock or money figure rounded to two places, or [NumberError].
+
+    Charges, counts and prices are the numbers that end up in the hotel's
+    books: NaN, infinity and negatives are refused here rather than written
+    into a ledger that can only be corrected with a compensating entry.
+    """
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        raise NumberError("must be a number") from None
+    if not math.isfinite(value) or value < minimum:
+        raise NumberError(f"must be at least {minimum:g}")
+    if maximum is not None and value > maximum:
+        raise NumberError(f"must be at most {maximum:g}")
+    return round(value, 2)
+
+
 def serialize_item(item: InventoryItem) -> dict:
+    quantity = float(item.quantity or 0)
+    cost = float(item.unit_cost or 0)
+    price = float(item.sale_price or 0)
     return {
         "id": item.id,
         "sku": item.sku,
         "name": item.name,
         "category": item.category,
         "unit": item.unit,
-        "quantity": float(item.quantity or 0),
+        "quantity": quantity,
         "reorder_level": float(item.reorder_level or 0),
         "unit_cost": money(item.unit_cost),
         "sale_price": money(item.sale_price),
         "location": item.location,
         "low_stock": item.is_low,
+        "in_stock": quantity > 0,
+        "sellable": quantity > 0 and price > 0,
+        # What the shelf cost the hotel and what it would take if it sold out.
+        "stock_value": round(quantity * cost, 2),
+        "retail_value": round(quantity * price, 2),
         "updated_at": iso(item.updated_at),
     }
 
@@ -105,15 +136,23 @@ def create_item():
     if db.session.scalar(db.select(InventoryItem).where(InventoryItem.sku == sku)) is not None:
         return json_error(409, "duplicate_sku", f"SKU {sku} already exists.")
 
+    try:
+        quantity = number(data.get("quantity") or 0)
+        reorder_level = number(data.get("reorder_level") or 0)
+        unit_cost = number(data.get("unit_cost") or 0)
+        sale_price = number(data.get("sale_price") or 0)
+    except NumberError as error:
+        return json_error(400, "invalid_number", f"Stock figures {error}.")
+
     item = InventoryItem(
         sku=sku[:32],
         name=name[:120],
         category=str(data.get("category") or "general")[:48],
         unit=str(data.get("unit") or "unit")[:24],
-        quantity=data.get("quantity") or 0,
-        reorder_level=data.get("reorder_level") or 0,
-        unit_cost=data.get("unit_cost") or 0,
-        sale_price=data.get("sale_price") or 0,
+        quantity=quantity,
+        reorder_level=reorder_level,
+        unit_cost=unit_cost,
+        sale_price=sale_price,
         location=(data.get("location") or None),
     )
     db.session.add(item)
@@ -135,20 +174,60 @@ def add_movement(item_id: int):
     kind = str(data.get("kind") or "").lower()
     if kind not in (MOVEMENT_IN, MOVEMENT_OUT, MOVEMENT_ADJUST):
         return json_error(400, "invalid_kind", "kind must be in, out or adjust.")
+
+    # Replaying a queued movement must not count the stock twice.
+    reference = str(data.get("reference") or "").strip()[:64] or None
+    if reference:
+        existing = db.session.scalar(
+            db.select(StockMovement).where(
+                StockMovement.item_id == item.id,
+                StockMovement.reference == reference,
+            )
+        )
+        if existing is not None:
+            return jsonify(
+                {
+                    "data": {
+                        "item": serialize_item(item),
+                        "movement_id": existing.id,
+                        "replayed": True,
+                    }
+                }
+            )
+
     try:
-        quantity = float(data.get("quantity") or 0)
-    except (TypeError, ValueError):
-        return json_error(400, "invalid_quantity", "quantity must be a number.")
+        quantity = number(data.get("quantity") or 0)
+    except NumberError as error:
+        return json_error(400, "invalid_quantity", f"quantity {error}.")
     if quantity <= 0:
         return json_error(400, "invalid_quantity", "quantity must be greater than zero.")
 
+    reason = str(data.get("reason") or "").strip()[:200] or None
+    if kind == MOVEMENT_ADJUST and not reason:
+        # A stock take rewrites the shelf; the count and who counted it are the
+        # only record of why the number moved, so it must say something.
+        return json_error(
+            400,
+            "reason_required",
+            "A stock take needs a reason, for example 'monthly count'.",
+        )
+
     before = float(item.quantity or 0)
     if kind == MOVEMENT_IN:
-        item.quantity = before + quantity
+        item.quantity = round(before + quantity, 2)
+        # Restocking with the invoice price keeps the item's cost current; the
+        # old stock is folded in at its own cost so the margin stays honest.
+        if "unit_cost" in data and data.get("unit_cost") not in (None, ""):
+            try:
+                paid = number(data.get("unit_cost") or 0)
+            except NumberError as error:
+                return json_error(400, "invalid_unit_cost", f"unit_cost {error}.")
+            old_cost = float(item.unit_cost or 0) * before
+            item.unit_cost = round((old_cost + paid * quantity) / (before + quantity), 2)
     elif kind == MOVEMENT_OUT:
         if quantity > before:
             return json_error(409, "insufficient_stock", f"Only {before:g} {item.unit} in stock.")
-        item.quantity = before - quantity
+        item.quantity = round(before - quantity, 2)
     else:  # adjust = absolute set, used for stock counts
         item.quantity = quantity
 
@@ -156,8 +235,8 @@ def add_movement(item_id: int):
         item_id=item.id,
         kind=kind,
         quantity=quantity,
-        reason=str(data.get("reason") or "")[:200] or None,
-        reference=str(data.get("reference") or "")[:64] or None,
+        reason=reason,
+        reference=reference,
         staff_id=g.staff.id,
     )
     db.session.add(movement)
@@ -174,7 +253,15 @@ def add_movement(item_id: int):
     )
     db.session.commit()
     return (
-        jsonify({"data": {"item": serialize_item(item), "movement_id": movement.id}}),
+        jsonify(
+            {
+                "data": {
+                    "item": serialize_item(item),
+                    "movement_id": movement.id,
+                    "quantity_before": before,
+                }
+            }
+        ),
         201,
     )
 
@@ -219,22 +306,35 @@ def update_item(item_id: int):
     if item is None:
         return json_error(404, "item_not_found", "No such inventory item.")
     data = body()
-    before = {"name": item.name, "reorder_level": float(item.reorder_level or 0)}
+    before = {
+        "name": item.name,
+        "reorder_level": float(item.reorder_level or 0),
+        "unit_cost": float(item.unit_cost or 0),
+        "sale_price": float(item.sale_price or 0),
+    }
     for field in ("name", "category", "unit", "location"):
         if field in data:
-            setattr(item, field, data[field])
-    if "reorder_level" in data:
-        item.reorder_level = data["reorder_level"]
-    if "unit_cost" in data:
-        item.unit_cost = data["unit_cost"]
-    if "sale_price" in data:
-        item.sale_price = data["sale_price"]
+            value = str(data[field] or "").strip()
+            if field in ("name", "unit") and not value:
+                return json_error(400, "missing_value", f"{field} cannot be empty.")
+            setattr(item, field, value[:120] if field == "name" else value[:80])
+    for field in ("reorder_level", "unit_cost", "sale_price"):
+        if field in data:
+            try:
+                setattr(item, field, number(data[field] or 0))
+            except NumberError as error:
+                return json_error(400, "invalid_number", f"{field} {error}.")
     audit(
         "inventory.item_updated",
         "inventory_item",
         item.id,
         before=before,
-        after={"name": item.name, "reorder_level": float(item.reorder_level or 0)},
+        after={
+            "name": item.name,
+            "reorder_level": float(item.reorder_level or 0),
+            "unit_cost": float(item.unit_cost or 0),
+            "sale_price": float(item.sale_price or 0),
+        },
     )
     db.session.commit()
     return jsonify({"data": serialize_item(item)})

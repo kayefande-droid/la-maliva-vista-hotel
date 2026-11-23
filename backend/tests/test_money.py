@@ -156,3 +156,79 @@ def test_the_money_report_counts_till_and_rooms_by_day_week_and_month(
     assert len(data["weekly"]) >= 1
     assert len(data["monthly"]) >= 1
     assert data["this_month"]["shop"] >= 6000
+
+
+def test_a_stock_take_needs_a_reason_and_sets_the_shelf(app, client, auth):
+    headers, _ = auth()
+    item_id = _item(app, quantity=20)
+
+    refused = client.post(
+        f"/api/v1/inventory/items/{item_id}/movements",
+        headers=headers,
+        json={"kind": "adjust", "quantity": 17},
+    )
+    assert refused.status_code == 400
+    assert refused.get_json()["type"].endswith("reason_required")
+
+    counted = client.post(
+        f"/api/v1/inventory/items/{item_id}/movements",
+        headers=headers,
+        json={"kind": "adjust", "quantity": 17, "reason": "monthly count"},
+    )
+    assert counted.status_code == 201, counted.get_json()
+    assert counted.get_json()["data"]["item"]["quantity"] == 17
+
+
+def test_restock_with_an_invoice_price_updates_the_weighted_cost(app, client, auth):
+    headers, _ = auth()
+    item_id = _item(app, quantity=10)
+
+    response = client.post(
+        f"/api/v1/inventory/items/{item_id}/movements",
+        headers=headers,
+        json={"kind": "in", "quantity": 10, "unit_cost": 1100, "reason": "delivery"},
+    )
+    assert response.status_code == 201, response.get_json()
+    item = response.get_json()["data"]["item"]
+    assert item["quantity"] == 20
+    # Ten bottles at 900 plus ten at 1,100 average to 1,000.
+    assert item["unit_cost"] == 1000
+    assert item["stock_value"] == 20000
+
+
+def test_a_sale_refuses_an_unknown_payment_method(app, client, auth):
+    headers, _ = auth()
+    item_id = _item(app)
+
+    response = client.post(
+        "/api/v1/shop/sales",
+        headers=headers,
+        json={"item_id": item_id, "quantity": 1, "method": "bitcoin"},
+    )
+    assert response.status_code == 400
+    assert response.get_json()["type"].endswith("invalid_method")
+
+
+def test_the_money_report_shows_the_drawer_by_method(app, client, auth):
+    headers, _ = auth()
+    item_id = _item(app)
+    client.post(
+        "/api/v1/shop/sales",
+        headers=headers,
+        json={"item_id": item_id, "quantity": 2, "method": "cash"},
+    )
+    client.post(
+        "/api/v1/shop/sales",
+        headers=headers,
+        json={"item_id": item_id, "quantity": 1, "method": "momo"},
+    )
+
+    today = hotel_today()
+    response = client.get(
+        f"/api/v1/reports/money?from={today.isoformat()}&to={today.isoformat()}",
+        headers=headers,
+    )
+    assert response.status_code == 200, response.get_json()
+    by_method = response.get_json()["data"]["today"]["by_method"]
+    assert by_method["cash"]["total"] == 3000
+    assert by_method["momo"]["shop"] == 1500

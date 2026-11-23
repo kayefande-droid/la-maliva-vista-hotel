@@ -314,3 +314,71 @@ def test_health_endpoint_reports_database(client):
     assert response.status_code == 200
     body = response.get_json()
     assert body["database"] == "ok"
+
+
+def test_marking_a_room_clean_returns_it_to_available(auth, client):
+    """Housekeeping finishing is not a room state; the room is simply free."""
+    headers, _ = auth()
+    room = _room(client, headers, number="205")
+    guest = _guest(client, headers)
+    created = client.post(
+        "/api/v1/reservations",
+        headers=headers,
+        json={
+            "guest_id": guest["id"],
+            "room_id": room["id"],
+            "arrival": TODAY.isoformat(),
+            "departure": (TODAY + timedelta(days=1)).isoformat(),
+            "rate_per_night": 25000,
+        },
+    ).get_json()["data"]
+    client.post(f"/api/v1/reservations/{created['id']}/check-in", headers=headers)
+    client.post(f"/api/v1/reservations/{created['id']}/check-out", headers=headers)
+
+    cleaned = client.post(f"/api/v1/rooms/{room['id']}/clean", headers=headers)
+    assert cleaned.status_code == 200, cleaned.get_json()
+    data = cleaned.get_json()["data"]
+    assert data["status"] == "available"
+    assert data["housekeeping"] == "clean"
+    assert "usage" in data
+
+
+def test_room_purchases_join_the_room_bill(app, auth, client):
+    headers, _ = auth()
+    room = _room(client, headers, number="206")
+    guest = _guest(client, headers, first="Ebenezer", last="Fon")
+    created = client.post(
+        "/api/v1/reservations",
+        headers=headers,
+        json={
+            "guest_id": guest["id"],
+            "room_id": room["id"],
+            "arrival": TODAY.isoformat(),
+            "departure": (TODAY + timedelta(days=2)).isoformat(),
+            "rate_per_night": 20000,
+        },
+    ).get_json()["data"]
+    client.post(f"/api/v1/reservations/{created['id']}/check-in", headers=headers)
+
+    added = client.post(
+        f"/api/v1/stays/{created['id']}/charges",
+        headers=headers,
+        json={
+            "category": "lunch",
+            "description": "Grilled fish",
+            "quantity": 2,
+            "unit_price": 3500,
+        },
+    )
+    assert added.status_code == 201, added.get_json()
+    stay = added.get_json()["data"]
+    assert stay["charges"][0]["total"] == 7000
+    assert stay["money"]["extra_charges"] == 7000
+    assert stay["money"]["total_charges"] == 47000  # 2 nights + lunch
+
+    bad = client.post(
+        f"/api/v1/stays/{created['id']}/charges",
+        headers=headers,
+        json={"category": "caviar", "description": "Nope", "quantity": 1, "unit_price": 1},
+    )
+    assert bad.status_code == 400

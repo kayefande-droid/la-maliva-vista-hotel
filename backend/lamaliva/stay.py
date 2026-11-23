@@ -277,7 +277,11 @@ def payment_totals(reservation: Reservation) -> dict:
     net_paid = round(paid - refunded, 2)
     room_charge = round(float(reservation.total_amount or 0), 2)
     extension_charges = approved_extension_charges(reservation)
-    total_charges = round(room_charge + extension_charges, 2)
+    # Meals and drinks taken during the stay belong on the same bill.
+    extras_charges = round(
+        sum(float(row.total or 0) for row in reservation.charges), 2
+    )
+    total_charges = round(room_charge + extension_charges + extras_charges, 2)
     balance = round(total_charges - net_paid, 2)
     if net_paid <= 0:
         state = PAY_UNPAID
@@ -291,6 +295,7 @@ def payment_totals(reservation: Reservation) -> dict:
         "currency": reservation.currency,
         "room_charge": room_charge,
         "extension_charges": extension_charges,
+        "extra_charges": extras_charges,
         "total_charges": total_charges,
         "paid": paid,
         "refunded": refunded,
@@ -431,6 +436,19 @@ def serialize_stay(
         }
         if reservation.room
         else None,
+        "charges": [
+            {
+                "id": row.id,
+                "category": row.category,
+                "description": row.description,
+                "quantity": float(row.quantity or 0),
+                "unit_price": float(row.unit_price or 0),
+                "total": float(row.total or 0),
+                "note": row.note,
+                "created_at": row.created_at.isoformat() if row.created_at else None,
+            }
+            for row in reservation.charges
+        ],
         "pricing": {
             "type": reservation.pricing_type,
             "stay_hours": reservation.stay_hours,

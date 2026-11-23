@@ -21,9 +21,13 @@ class MoneyScreen extends StatefulWidget {
 
 class _MoneyScreenState extends State<MoneyScreen> {
   late Future<Map<String, dynamic>> _data = widget.api.moneyReport();
+  late Future<List<dynamic>> _entries = widget.api.moneyEntries();
   int _grain = 0; // 0 = day, 1 = week, 2 = month
 
-  void _reload() => setState(() => _data = widget.api.moneyReport());
+  void _reload() => setState(() {
+    _data = widget.api.moneyReport();
+    _entries = widget.api.moneyEntries();
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +98,7 @@ class _MoneyScreenState extends State<MoneyScreen> {
               Text(formatMoney(today['total']), style: T.figure),
               const SizedBox(height: LamalivaSpace.xs),
               Text(
-                'Rooms ${formatMoney(today['rooms'])}   ·   '
+                'Rooms ${formatMoney(today['rooms'])}   Â·   '
                 'Shop ${formatMoney(today['shop'])}',
                 style: T.bodyMuted,
               ),
@@ -171,6 +175,46 @@ class _MoneyScreenState extends State<MoneyScreen> {
         ),
       ),
       const SizedBox(height: LamalivaSpace.md),
+      const SizedBox(height: LamalivaSpace.md),
+      Reveal(
+        delay: const Duration(milliseconds: 90),
+        child: Panel(
+          title: 'Where the money came from',
+          child: FutureBuilder<List<dynamic>>(
+            future: _entries,
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) {
+                return const LoadingPanel(rows: 4);
+              }
+              if (snap.hasError) {
+                return ErrorPanel(
+                  message: snap.error.toString(),
+                  onRetry: _reload,
+                );
+              }
+              final rows = snap.data ?? const [];
+              if (rows.isEmpty) {
+                return const EmptyPanel(
+                  title: 'No money received yet',
+                  body:
+                      'Every room payment and shop sale will be listed here: '
+                      'the room, the guest, the nights, or the bottles and plates.',
+                  icon: Icons.receipt_long_outlined,
+                );
+              }
+              return Column(
+                children: [
+                  for (var k = 0; k < rows.length; k++) ...[
+                    if (k > 0)
+                      Divider(color: c(LamalivaColors.line), height: 1),
+                    _LedgerRow(entry: (rows[k] as Map).cast<String, dynamic>()),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+      ),
       Reveal(
         delay: const Duration(milliseconds: 110),
         child: Text(
@@ -275,7 +319,7 @@ class _MoneyRow extends StatelessWidget {
         'November',
         'December',
       ];
-      return month == null ? '—' : '${names[month.month - 1]} ${month.year}';
+      return month == null ? 'â€”' : '${names[month.month - 1]} ${month.year}';
     }
     return formatDate(row['date'] as String?);
   }
@@ -371,6 +415,89 @@ class _Key extends StatelessWidget {
         const SizedBox(width: 4),
         Text(label, style: T.micro),
       ],
+    );
+  }
+}
+
+/// One line of the ledger, in the words the desk uses: room 12, Eto'o paid
+/// 40,000 for two nights; or three Malta at 1,500 from the shop.
+class _LedgerRow extends StatelessWidget {
+  const _LedgerRow({required this.entry});
+
+  final Map<String, dynamic> entry;
+
+  String _method(String? method) {
+    switch (method) {
+      case 'momo':
+        return 'Mobile Money';
+      case 'transfer':
+        return 'bank transfer';
+      case 'card':
+        return 'card';
+      default:
+        return 'cash';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isRoom = entry['kind'] == 'room';
+    final amount = (entry['amount'] as num?)?.toDouble() ?? 0;
+    final refund = amount < 0;
+    final title = isRoom
+        ? 'Room ${entry['room'] ?? '—'} · ${entry['guest'] ?? 'Guest'}'
+        : '${entry['item'] ?? 'Shop sale'}';
+    final detail = isRoom
+        ? '${entry['nights'] ?? 0} night${(entry['nights'] ?? 0) == 1 ? '' : 's'} '
+              '(${formatDate(entry['arrival'] as String?)} to '
+              '${formatDate(entry['departure'] as String?)}) · '
+              '${refund ? 'refund' : 'paid'} by ${_method(entry['method'] as String?)}'
+        : '${entry['quantity'] ?? 0} × ${formatMoney(entry['unit_price'] ?? 0)} · '
+              '${_method(entry['method'] as String?)}';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: LamalivaSpace.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: c(LamalivaColors.creamDeep),
+              borderRadius: BorderRadius.circular(LamalivaShape.card),
+            ),
+            child: Icon(
+              isRoom ? Icons.bed_outlined : Icons.local_cafe_outlined,
+              size: 17,
+              color: c(LamalivaColors.navy800),
+            ),
+          ),
+          const SizedBox(width: LamalivaSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: T.body.copyWith(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(detail, style: T.micro),
+              ],
+            ),
+          ),
+          const SizedBox(width: LamalivaSpace.sm),
+          Text(
+            formatMoney(amount),
+            style: T.numeral.copyWith(
+              fontWeight: FontWeight.w700,
+              color: refund
+                  ? c(LamalivaColors.danger)
+                  : c(LamalivaColors.navy800),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

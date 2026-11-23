@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="La-Maliva">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a1628">
+    {% include "_seo.html" %}
+    <title>Our Story — La-Maliva Vista Hotel, Buea</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/css/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/luxury.css') }}">
+    <style>
+        .story-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 54px; align-items: center; }
+        .story-grid .story-media img { width: 100%; height: 460px; object-fit: cover; border-radius: var(--radius-md); display: block; }
+        .story-copy p { margin: 0 0 16px; color: var(--ink-soft); line-height: 1.8; }
+        .values-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .value-card { background: #fff; border: 1px solid var(--line-soft); border-radius: var(--radius-md); padding: 30px 26px; }
+        .value-card i { font-size: 26px; color: var(--orange-500); }
+        .value-card h3 { font-family: 'Cormorant Garamond', serif; font-size: 26px; margin: 14px 0 8px; }
+        .value-card p { margin: 0; color: var(--ink-soft); line-height: 1.7; font-size: 15px; }
+        @media (max-width: 991.98px) {
+            .story-grid { grid-template-columns: 1fr; gap: 30px; }
+            .story-grid .story-media img { height: 320px; }
+            .values-grid { grid-template-columns: 1fr 1fr; }
+        }
+        @media (max-width: 575.98px) {
+            .story-grid .story-media img { height: 240px; }
+            .values-grid { grid-template-columns: 1fr; }
+            .value-card { padding: 24px 20px; }
+        }
+    </style>
+</head>
+<body>
+    {% include 'partials/_preloader.html' %}
+    {% set active_nav = 'about' %}
+    {% include 'partials/_nav.html' %}
+
+    <header class="page-hero">
+        <div class="hero-bg">
+            <img src="/static/img/cameroon/buea-from-fako.jpg" alt="Buea on the slopes of Mount Cameroon">
+        </div>
+        <div class="container-lux">
+            <span class="kicker">Our Story</span>
+            <h1>A quiet perch above Buea</h1>
+            <p>La-Maliva Vista began with a simple idea: a guest house that feels like a home in the hills — warm, unhurried, and honest about what it offers.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container-lux">
+            <div class="story-grid">
+                <div class="story-media reveal">
+                    <img src="/static/img/cameroon/mount-cameroon-savanna.jpg" alt="The savanna and volcanic slopes near Buea" loading="lazy">
+                </div>
+                <div class="story-copy reveal" data-delay="1">
+                    <span class="kicker">Where we are</span>
+                    <h2 style="font-family:'Cormorant Garamond',serif; font-size:42px; line-height:1.15; margin:10px 0 18px;">The mountain on one side, the town on the other.</h2>
+                    <p>We sit on the cool slopes of Mount Cameroon, a short drive from Buea town and the road up to the mountain. Mornings here are mist and birdsong; afternoons open into a wide view over the rooftops.</p>
+                    <p>Fifteen rooms, a small kitchen that cooks what the market gives us, and a team drawn from the neighbourhood. Nothing is outsourced to a distant brand — the care is ours.</p>
+                    <a href="{{ url_for('stay') }}" class="btn-lux"><i class="bi bi-door-open"></i> See the rooms</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section tinted">
+        <div class="container-lux">
+            <div style="max-width:640px; margin-bottom:36px;" class="reveal">
+                <span class="kicker">What we hold to</span>
+                <h2 style="font-family:'Cormorant Garamond',serif; font-size:40px; margin:10px 0 14px;">Small hotel, clear promises.</h2>
+                <p style="color:var(--ink-soft); line-height:1.8; margin:0;">Breakfast is included, the price you are quoted is the price you pay, and the people who welcome you are the people who live here.</p>
+            </div>
+            <div class="values-grid">
+                <article class="value-card reveal">
+                    <i class="bi bi-sunrise"></i>
+                    <h3>Slow mornings</h3>
+                    <p>Breakfast is served when you wake, not when a timetable says so. Fresh fruit, eggs, bread and coffee from the highlands.</p>
+                </article>
+                <article class="value-card reveal" data-delay="1">
+                    <i class="bi bi-people"></i>
+                    <h3>Real hospitality</h3>
+                    <p>Our team is local. Ask about the trails, the market, or the best spot for a sunset and you will get a straight answer.</p>
+                </article>
+                <article class="value-card reveal" data-delay="2">
+                    <i class="bi bi-shield-check"></i>
+                    <h3>Honest books</h3>
+                    <p>Every payment is recorded the moment it is taken. Your bill at check-out matches what you were told at check-in.</p>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <div class="cta-band">
+        <div class="container-lux">
+            <div class="cta-inner reveal">
+                <span class="kicker center" style="color: var(--gold-400)">Come and see</span>
+                <h2>The view is better in person.</h2>
+                <p>Reserve a room, or write to us first — we answer every message ourselves.</p>
+                <div class="hero-cta">
+                    <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." class="btn-lux" target="_blank" rel="noopener"><i class="bi bi-calendar-check"></i> Reserve Your Stay</a>
+                    <a href="{{ url_for('contact') }}" class="btn-ghost-lux"><i class="bi bi-envelope"></i> Contact Us</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% include 'partials/_footer.html' %}
+
+    <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        (function () {
+            var els = document.querySelectorAll('.reveal');
+            if (!('IntersectionObserver' in window)) {
+                els.forEach(function (el) { el.classList.add('in'); });
+                return;
+            }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            els.forEach(function (el) { io.observe(el); });
+        })();
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>

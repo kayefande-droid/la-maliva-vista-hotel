@@ -27,7 +27,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
 
   Future<(List<dynamic>, Map<int, Map<String, dynamic>>)> _load() async {
     final results = await Future.wait([
-      widget.api.rooms(),
+      widget.api.rooms(byUsage: true),
       widget.api.stayMonitor(),
     ]);
     final stays =
@@ -257,6 +257,25 @@ class _RoomRow extends StatefulWidget {
 
 class _RoomRowState extends State<_RoomRow> {
   bool _hover = false;
+  bool _cleaning = false;
+
+  /// Housekeeping's one tap: the room is done and goes back to available.
+  Future<void> _markCleaned() async {
+    if (_cleaning) return;
+    setState(() => _cleaning = true);
+    try {
+      await widget.api.markRoomCleaned(widget.room['id'] as int);
+      widget.onChanged();
+    } on ApiException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.message)));
+      }
+    } finally {
+      if (mounted) setState(() => _cleaning = false);
+    }
+  }
 
   Future<void> _open() async {
     final stay = widget.stay;
@@ -336,6 +355,30 @@ class _RoomRowState extends State<_RoomRow> {
                     ),
                   ),
                 ),
+                if (status == 'cleaning')
+                  SizedBox(
+                    width: 148,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: _cleaning ? null : _markCleaned,
+                        icon: _cleaning
+                            ? const SizedBox(
+                                width: 13,
+                                height: 13,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.check_circle_outline, size: 16),
+                        label: const Text('Mark cleaned'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: c(LamalivaColors.navy800),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ),
+                      ),
+                    ),
+                  ),
                 SizedBox(
                   width: 132,
                   child: Align(

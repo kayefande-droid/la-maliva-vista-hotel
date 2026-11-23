@@ -86,6 +86,20 @@ PAYMENT_IN = "payment"
 PAYMENT_REFUND = "refund"
 PAYMENT_KINDS = (PAYMENT_IN, PAYMENT_REFUND)
 
+# Things taken during a stay and billed to the room.
+CHARGE_BREAKFAST = "breakfast"
+CHARGE_LUNCH = "lunch"
+CHARGE_SUPPER = "supper"
+CHARGE_DRINK = "drink"
+CHARGE_OTHER = "other"
+CHARGE_CATEGORIES = (
+    CHARGE_BREAKFAST,
+    CHARGE_LUNCH,
+    CHARGE_SUPPER,
+    CHARGE_DRINK,
+    CHARGE_OTHER,
+)
+
 EXTENSION_PENDING = "pending"
 EXTENSION_APPROVED = "approved"
 EXTENSION_REJECTED = "rejected"
@@ -359,6 +373,12 @@ class Reservation(TimestampMixin, db.Model):
         cascade="all, delete-orphan",
         order_by="Payment.created_at",
     )
+    charges = db.relationship(
+        "StayCharge",
+        back_populates="reservation",
+        cascade="all, delete-orphan",
+        order_by="StayCharge.created_at",
+    )
     extensions = db.relationship(
         "StayExtension",
         back_populates="reservation",
@@ -397,6 +417,33 @@ class Payment(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
 
     reservation = db.relationship("Reservation", back_populates="payments")
+
+
+class StayCharge(db.Model):
+    """Something the guest took during the stay, billed to their room.
+
+    Breakfast, lunch, supper or a drink from the bar: the desk records what
+    was taken and how many at the price on the menu. The charge joins the
+    room bill, so check-out collects it instead of the hotel losing it.
+    Append-only, like payments; a mistake is corrected with a credit charge.
+    """
+
+    __tablename__ = "stay_charge"
+
+    id = db.Column(db.Integer, primary_key=True)
+    reservation_id = db.Column(
+        db.Integer, db.ForeignKey("reservation.id"), nullable=False, index=True
+    )
+    category = db.Column(db.String(20), nullable=False, default=CHARGE_OTHER)
+    description = db.Column(db.String(120), nullable=False)
+    quantity = db.Column(db.Numeric(12, 2), nullable=False, default=1)
+    unit_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    note = db.Column(db.String(200), nullable=True)
+    created_by = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+
+    reservation = db.relationship("Reservation", back_populates="charges")
 
 
 class StayExtension(db.Model):

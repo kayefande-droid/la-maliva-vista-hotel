@@ -1,17 +1,56 @@
 """Rooms and room types."""
 from __future__ import annotations
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from ..extensions import db
-from ..models import ROOM_STATUSES, Room, RoomType
+from ..models import (
+    RES_CANCELLED,
+    ROOM_AVAILABLE,
+    ROOM_OCCUPIED,
+    ROOM_STATUSES,
+    Reservation,
+    Room,
+    RoomType,
+)
 from ..security import audit, json_error, require_auth, require_permission
 from ._util import body, iso, money, page_args, paginated
 
 bp = Blueprint("rooms", __name__)
 
 
-def serialize_room(room: Room) -> dict:
+def _usage() -> dict[int, dict]:
+    """How hard each room has worked: stays on record and nights sold.
+
+    Cancelled bookings never happened, so they are left out; the ranking is
+    what the hotel actually used, not what was pencilled in.
+    """
+    rows = db.session.execute(
+        db.select(
+            Reservation.room_id,
+            db.func.count(Reservation.id),
+            db.func.coalesce(
+                db.func.sum(
+                    db.func.julianday(Reservation.departure)
+                    - db.func.julianday(Reservation.arrival)
+                ),
+                0,
+            ),
+        )
+        .where(
+            Reservation.room_id.is_not(None),
+            Reservation.status != RES_CANCELLED,
+        )
+        .group_by(Reservation.room_id)
+    ).all()
+    return {
+        room_id: {"stays": int(stays or 0), "nights": int(round(nights or 0))}
+        for room_id, stays, nights in rows
+    }
+
+
+def serialize_room(room: Room, usage: dict | None = None) -> dict:
+    used = (usage or {}).get(room.id, {"stays": 0, "nights": 0})
     return {
         "id": room.id,
         "number": room.number,
@@ -21,6 +60,7 @@ def serialize_room(room: Room) -> dict:
         "maintenance_note": room.maintenance_note,
         "notes": room.notes,
         "active": room.active,
+        "usage": used,
         "room_type": {
             "id": room.room_type.id,
             "name": room.room_type.name,
@@ -37,6 +77,7 @@ def serialize_room(room: Room) -> dict:
 @bp.get("")
 @require_auth
 def list_rooms():
+    usage = _usage()
     limit, offset = page_args()
     query = db.select(Room).where(Room.active.is_(True))
 
@@ -50,8 +91,60 @@ def list_rooms():
     total = db.session.scalar(
         db.select(db.func.count()).select_from(query.subquery())
     )
-    rows = db.session.scalars(query.order_by(Room.number).limit(limit).offset(offset)).all()
-    return paginated([serialize_room(room) for room in rows], total or 0, limit, offset)
+    rows = db.session.scalars(query.order_by(Room.number)).all()
+
+    # Staff asked for the rooms that earn most to come first: rank by nights
+    # sold, then stays, then room number, so the list is stable between shifts.
+    sort = (request.args.get("sort") or "").strip().lower()
+    if sort in ("usage", "popular", "most-booked"):
+        rows = sorted(
+            rows,
+            key=lambda room: (
+                -int(usage.get(room.id, {}).get("nights", 0)),
+                -int(usage.get(room.id, {}).get("stays", 0)),
+                room.number,
+            ),
+        )
+        rows = rows[offset: offset + limit]
+    else:
+        rows = rows[offset: offset + limit]
+
+    return paginated(
+        [serialize_room(room, usage) for room in rows], total or 0, limit, offset
+    )
+
+
+@bp.post("/<int:room_id>/clean")
+@require_auth
+@require_permission("room:clean")
+def mark_cleaned(room_id: int):
+    """Housekeeping finished: the room goes back into the free pool.
+
+    Cleaning is a task, not a room state a guest sees. Once it is done the
+    room is available again exactly like the rooms nobody has touched.
+    """
+    room = db.session.get(Room, room_id)
+    if room is None:
+        return json_error(404, "room_not_found", "No such room.")
+    if room.status == ROOM_OCCUPIED:
+        return json_error(
+            409,
+            "room_occupied",
+            "A guest is still in this room; check them out before marking it clean.",
+        )
+
+    before = {"status": room.status, "housekeeping": room.housekeeping}
+    room.status = ROOM_AVAILABLE
+    room.housekeeping = "clean"
+    audit(
+        "room.cleaned",
+        "room",
+        room.id,
+        before=before,
+        after={"status": room.status, "housekeeping": room.housekeeping},
+    )
+    db.session.commit()
+    return jsonify({"data": serialize_room(room, _usage())})
 
 
 def request_status():
@@ -77,7 +170,7 @@ def get_room(room_id: int):
     room = db.session.get(Room, room_id)
     if room is None:
         return json_error(404, "room_not_found", "No such room.")
-    return jsonify({"data": serialize_room(room)})
+    return jsonify({"data": serialize_room(room, _usage())})
 
 
 @bp.post("")
@@ -143,7 +236,7 @@ def update_room(room_id: int):
         after={"status": room.status, "housekeeping": room.housekeeping, "notes": room.notes},
     )
     db.session.commit()
-    return jsonify({"data": serialize_room(room)})
+    return jsonify({"data": serialize_room(room, _usage())})
 
 
 @bp.get("/types")

@@ -197,7 +197,7 @@ h1, h2, h3, .display {
 .section.navy .section-head p { color: rgba(253,250,244,0.72); }
 
 /* ---------- Room cards ---------- */
-.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 28px; }
+.rooms-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 28px; }
 .room-card {
     background: var(--glass-card);
     border: 1px solid var(--line-soft);
@@ -321,6 +321,46 @@ h1, h2, h3, .display {
 .foot-bar { border-top: 1px solid var(--line-dark); padding: 22px 0; text-align: center; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(253,250,244,0.4); }
 .foot-bar a { color: rgba(253,250,244,0.6); text-decoration: none; }
 .foot-bar a:hover { color: var(--orange-400); }
+
+/* ---------- Phones & small tablets ---------- */
+@media (max-width: 767.98px) {
+    .container-lux { padding: 0 20px; }
+    .section { padding: 60px 0; }
+    .section-head { margin: 0 auto 34px; }
+    .section-head h2 { font-size: clamp(1.7rem, 7vw, 2.2rem); }
+    .lead { font-size: 0.96rem; line-height: 1.7; }
+
+    .page-hero { padding: 116px 0 46px; min-height: 44vh; }
+    .page-hero h1 { font-size: clamp(2.1rem, 8vw, 2.8rem); margin: 12px 0 10px; }
+    .page-hero p { font-size: 0.94rem; line-height: 1.75; }
+
+    .rooms-grid { grid-template-columns: 1fr; gap: 22px; }
+    .room-media { height: 208px; }
+    .room-body { padding: 20px 18px 22px; }
+    .room-foot { flex-wrap: wrap; gap: 14px; }
+    .room-foot .btn-book-sm { flex: 1 1 100%; justify-content: center; }
+
+    .amen-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+    .amen-tile { padding: 22px 14px; }
+    .amen-tile i { font-size: 1.6rem; }
+    .amen-tile h4 { font-size: 1.02rem; }
+    .amen-tile p { font-size: 0.78rem; }
+
+    .split-media .float-card { left: 12px; bottom: -18px; padding: 14px 18px; }
+    .cta-inner { padding: 40px 22px; }
+
+    .btn-lux, .btn-ghost-lux { width: 100%; justify-content: center; }
+
+    .lux-footer { padding: 52px 0 0; }
+    .lux-footer .foot-grid { gap: 30px; padding-bottom: 34px; }
+    .lux-footer .socials a { width: 38px; height: 38px; }
+    .foot-bar { font-size: 0.64rem; letter-spacing: 0.1em; padding: 18px 16px; }
+}
+
+@media (max-width: 400px) {
+    .container-lux { padding: 0 16px; }
+    .amen-grid { grid-template-columns: 1fr; }
+}
 
 /* ---------- Scroll reveal ---------- */
 .reveal { opacity: 0; transform: translateY(34px); transition: opacity 0.85s var(--ease), transform 0.85s var(--ease); }

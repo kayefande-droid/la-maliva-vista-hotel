@@ -2331,7 +2331,9 @@ def contact():
     return render_template('contact.html', hotel=hotel)
 
 @app.route('/about')
-def about(): return render_template('about.html')
+def about():
+    """Public story page, in the same luxury language as the rest of the site."""
+    return render_template('public_about.html')
 
 @app.route('/todays_arrivals')
 @login_required

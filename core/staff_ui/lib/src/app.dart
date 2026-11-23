@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import 'api.dart';
+import 'guidance.dart';
 import 'invoice.dart';
 import 'offline.dart';
 import 'screens/admin.dart';
@@ -46,6 +47,7 @@ class _StaffAppState extends State<StaffApp> {
   void initState() {
     super.initState();
     _api = _createApi(widget.apiBaseUrl);
+    AppSettings.load();
     _restoreServer();
   }
 
@@ -169,6 +171,13 @@ const _destinations = <_Destination>[
     managersOnly: true,
   ),
   _Destination(
+    'Help',
+    Icons.menu_book_outlined,
+    Icons.menu_book,
+    'How to use the app',
+    'Short, plain instructions for your role. Switch the guide off in Admin.',
+  ),
+  _Destination(
     'Admin',
     Icons.admin_panel_settings_outlined,
     Icons.admin_panel_settings,
@@ -245,9 +254,16 @@ class _SessionShellState extends State<SessionShell> {
       .where((d) => !d.managersOnly || widget.api.canSeeMoney)
       .toList();
 
+  /// Signing out of an administrator account and back in as a receptionist
+  /// leaves the old index pointing past the shorter list; keep it in range.
+  int get _indexInRange {
+    final count = _items.length;
+    return count == 0 ? 0 : _index.clamp(0, count - 1);
+  }
+
   Widget _screen() {
-    final key = ValueKey('${_index}_$_refresh');
-    final label = _items[_index].label;
+    final key = ValueKey('${_indexInRange}_$_refresh');
+    final label = _items[_indexInRange].label;
     switch (label) {
       case 'Rooms':
         return RoomsScreen(key: key, api: widget.api);
@@ -263,6 +279,12 @@ class _SessionShellState extends State<SessionShell> {
         return MoneyScreen(key: key, api: widget.api);
       case 'Admin':
         return AdminScreen(key: key, api: widget.api);
+      case 'Help':
+        return HelpScreen(
+          key: key,
+          role: widget.api.staffRole,
+          name: widget.api.staffName,
+        );
       default:
         return OverviewScreen(key: key, api: widget.api);
     }
@@ -296,7 +318,7 @@ class _SessionShellState extends State<SessionShell> {
   }
 
   Widget _content({required bool wide}) {
-    final destination = _items[_index];
+    final destination = _items[_indexInRange];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

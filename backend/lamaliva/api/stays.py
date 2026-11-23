@@ -13,6 +13,7 @@ from flask import Blueprint, g, jsonify, request
 
 from ..extensions import db
 from ..models import (
+    CHARGE_CATEGORIES,
     EXTENSION_APPROVED,
     EXTENSION_PENDING,
     PRICING_HOURLY,
@@ -21,6 +22,7 @@ from ..models import (
     Notification,
     Reservation,
     StayAlert,
+    StayCharge,
     StayExtension,
     utcnow,
 )
@@ -227,6 +229,85 @@ def add_payment(reservation_id: int):
     db.session.commit()
     stay = serialize_stay(row, policy)
     return jsonify({"data": {"payment": stay["money"], "stay": stay}}), 201
+
+
+@bp.post("/<int:reservation_id>/charges")
+@require_auth
+@require_permission("reservation:checkin")
+def add_charge(reservation_id: int):
+    """Put a meal or a drink on an in-house guest's room bill.
+
+    Breakfast, lunch, supper, a drink or something else, with how many and
+    the menu price. The charge is append-only and joins the bill, so
+    check-out asks for it instead of the hotel absorbing it.
+    """
+    row = _reservation_or_404(reservation_id)
+    if row.status != RES_CHECKED_IN:
+        return json_error(
+            409,
+            "not_in_house",
+            "Meals and drinks are charged to a guest who is checked in.",
+        )
+
+    data = body()
+    category = str(data.get("category") or "other").strip().lower()
+    if category not in CHARGE_CATEGORIES:
+        return json_error(
+            400,
+            "invalid_category",
+            f"category must be one of {', '.join(CHARGE_CATEGORIES)}.",
+        )
+    description = str(data.get("description") or "").strip()
+    if not description:
+        return json_error(
+            400, "missing_description", "Say what was taken, for example 'Omelette'."
+        )
+    try:
+        quantity = float(data.get("quantity") or 1)
+        unit_price = float(data.get("unit_price") or 0)
+    except (TypeError, ValueError):
+        return json_error(400, "invalid_number", "quantity and unit_price must be numbers.")
+    if not (0 < quantity <= 1000) or not (0 <= unit_price <= 10_000_000):
+        return json_error(
+            400,
+            "invalid_number",
+            "Give a quantity above zero and a price of zero or more.",
+        )
+
+    charge = StayCharge(
+        reservation_id=row.id,
+        category=category,
+        description=description[:120],
+        quantity=round(quantity, 2),
+        unit_price=round(unit_price, 2),
+        total=round(quantity * unit_price, 2),
+        note=(str(data.get("note") or "")[:200] or None),
+        created_by=g.staff.id,
+    )
+    db.session.add(charge)
+    db.session.flush()
+    audit(
+        "stay.charge_added",
+        "reservation",
+        row.id,
+        after={
+            "category": category,
+            "description": charge.description,
+            "quantity": float(charge.quantity),
+            "total": float(charge.total),
+        },
+    )
+    db.session.commit()
+    return jsonify({"data": serialize_stay(row, load_policy())}), 201
+
+
+@bp.get("/<int:reservation_id>/charges")
+@require_auth
+@require_permission("reservation:read")
+def list_charges(reservation_id: int):
+    row = _reservation_or_404(reservation_id)
+    stay = serialize_stay(row, load_policy())
+    return jsonify({"data": stay["charges"], "money": stay["money"]})
 
 
 @bp.post("/<int:reservation_id>/extensions")

@@ -15,9 +15,12 @@ from ..extensions import db
 from ..models import InventoryItem, ShopSale, StockMovement, utcnow
 from ..security import audit, json_error, require_auth, require_permission
 from ._util import body, iso, money, page_args, paginated
-from .inventory import _low_stock_notification
+from .inventory import NumberError, _low_stock_notification, number
 
 bp = Blueprint("shop", __name__)
+
+# How the till takes money. Anything else is a typo, not a new method.
+PAYMENT_METHODS = ("cash", "momo", "transfer", "card")
 
 
 def serialize_sale(sale: ShopSale) -> dict:
@@ -45,20 +48,20 @@ def record_sale():
         return json_error(404, "item_not_found", "No such stock item.")
 
     try:
-        quantity = float(data.get("quantity") or 0)
-    except (TypeError, ValueError):
-        return json_error(400, "invalid_quantity", "quantity must be a number.")
+        quantity = number(data.get("quantity") or 0)
+    except NumberError as error:
+        return json_error(400, "invalid_quantity", f"quantity {error}.")
     if quantity <= 0:
         return json_error(400, "invalid_quantity", "quantity must be greater than zero.")
 
     try:
-        unit_price = float(
+        unit_price = number(
             data.get("unit_price")
             if data.get("unit_price") not in (None, "")
             else (item.sale_price or 0)
         )
-    except (TypeError, ValueError):
-        return json_error(400, "invalid_price", "unit_price must be a number.")
+    except NumberError as error:
+        return json_error(400, "invalid_price", f"unit_price {error}.")
     if unit_price <= 0:
         return json_error(
             400,
@@ -81,12 +84,26 @@ def record_sale():
             db.select(ShopSale).where(ShopSale.reference == reference)
         )
         if existing is not None:
+            if existing.item_id != item.id or abs(
+                float(existing.quantity) - quantity
+            ) > 0.001:
+                return json_error(
+                    409,
+                    "duplicate_reference",
+                    "That sale reference is already used by another sale.",
+                )
             return jsonify({"data": serialize_sale(existing)})
 
-    method = str(data.get("method") or "cash")[:24]
+    method = str(data.get("method") or "cash").strip().lower()[:24]
+    if method not in PAYMENT_METHODS:
+        return json_error(
+            400,
+            "invalid_method",
+            f"method must be one of {', '.join(PAYMENT_METHODS)}.",
+        )
     total = round(quantity * unit_price, 2)
     before = float(item.quantity or 0)
-    item.quantity = before - quantity
+    item.quantity = round(before - quantity, 2)
 
     sale = ShopSale(
         item_id=item.id,
@@ -158,6 +175,22 @@ def list_sales():
         db.select(db.func.count()).select_from(base.subquery())
     ) or 0
 
+    # The drawer, by how the money arrived: a cash-up needs more than one total.
+    method_rows = db.session.execute(
+        db.select(
+            ShopSale.method,
+            db.func.coalesce(db.func.sum(ShopSale.total), 0),
+            db.func.count(ShopSale.id),
+        )
+        .where(ShopSale.created_at >= start, ShopSale.created_at < end)
+        .group_by(ShopSale.method)
+        .order_by(ShopSale.method)
+    ).all()
+    by_method = {
+        str(method or "cash"): {"revenue": money(total), "sales": int(rows)}
+        for method, total, rows in method_rows
+    }
+
     limit, offset = page_args()
     rows = db.session.scalars(
         base.order_by(ShopSale.created_at.desc()).limit(limit).offset(offset)
@@ -175,6 +208,7 @@ def list_sales():
                 "currency": "XAF",
                 "sales": count,
                 "revenue": money(revenue),
+                "by_method": by_method,
                 "range": {"from": since.isoformat(), "to": until.isoformat()},
             },
         }

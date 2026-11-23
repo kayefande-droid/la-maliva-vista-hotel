@@ -40,7 +40,7 @@ PERMISSIONS: dict[str, set[str]] = {
     "admin": {"*"},
     "manager": {
         "guest:read", "guest:write", "guest:restricted",
-        "room:read", "room:write",
+        "room:read", "room:write", "room:clean",
         "reservation:read", "reservation:write", "reservation:checkin",
         # Approving an extension or authorising an outstanding balance moves
         # money and room time, so it stays with management.
@@ -52,13 +52,13 @@ PERMISSIONS: dict[str, set[str]] = {
     },
     "receptionist": {
         "guest:read", "guest:write",
-        "room:read",
+        "room:read", "room:clean",
         "reservation:read", "reservation:write", "reservation:checkin",
         "inventory:read", "inventory:movement",
         "report:read", "notification:read", "settings:read",
     },
     "housekeeping": {
-        "guest:read", "room:read", "room:write", "reservation:read",
+        "guest:read", "room:read", "room:write", "room:clean", "reservation:read",
         "inventory:read", "inventory:movement", "notification:read",
     },
     "inventory": {

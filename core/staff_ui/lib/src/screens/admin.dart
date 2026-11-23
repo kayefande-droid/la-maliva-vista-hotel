@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import '../api.dart';
+import '../guidance.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -21,10 +22,12 @@ class AdminScreen extends StatefulWidget {
 class _AdminScreenState extends State<AdminScreen> {
   late Future<List<dynamic>> _staff = widget.api.staffAccounts();
   late Future<List<dynamic>> _types = widget.api.roomTypes();
+  late Future<List<dynamic>> _audit = widget.api.auditLog();
 
   void _reload() => setState(() {
     _staff = widget.api.staffAccounts();
     _types = widget.api.roomTypes();
+    _audit = widget.api.auditLog();
   });
 
   void _toast(String message) {
@@ -123,8 +126,182 @@ class _AdminScreenState extends State<AdminScreen> {
             },
           ),
         ),
+        const SizedBox(height: LamalivaSpace.md),
+        Panel(
+          title: 'Guidance for the team',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Instructions appear at the top of screens and in Help. Only an '
+                'administrator can hide them; staff keep their own language.',
+                style: T.bodyMuted,
+              ),
+              const SizedBox(height: LamalivaSpace.sm),
+              ValueListenableBuilder<bool>(
+                valueListenable: AppSettings.guidance,
+                builder: (context, on, _) => SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text('Show in-app guidance', style: T.body),
+                  subtitle: Text(
+                    on
+                        ? 'Staff see how-to cards while they work.'
+                        : 'Hidden on this device until you switch it back on.',
+                    style: T.micro,
+                  ),
+                  value: on,
+                  onChanged: (value) => AppSettings.setGuidance(value),
+                ),
+              ),
+              Divider(color: c(LamalivaColors.line), height: 1),
+              const SizedBox(height: LamalivaSpace.sm),
+              Text('App language', style: T.body),
+              const SizedBox(height: LamalivaSpace.xs),
+              ValueListenableBuilder<String>(
+                valueListenable: AppSettings.language,
+                builder: (context, code, _) => Row(
+                  children: [
+                    for (final choice in const [
+                      ('en', 'English'),
+                      ('fr', 'Fran\u00e7ais'),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.only(right: LamalivaSpace.xs),
+                        child: ChoiceChip(
+                          label: Text(choice.$2),
+                          selected: code == choice.$1,
+                          onSelected: (_) => AppSettings.setLanguage(choice.$1),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Text(
+                'English and French are the working languages of the hotel; '
+                'guidance switches too. Names, money and records never change.',
+                style: T.micro,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: LamalivaSpace.md),
+        Panel(
+          title: 'Activity log',
+          child: FutureBuilder<List<dynamic>>(
+            future: _audit,
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) {
+                return const LoadingPanel(rows: 3);
+              }
+              if (snap.hasError) {
+                return ErrorPanel(
+                  message: snap.error.toString(),
+                  onRetry: _reload,
+                );
+              }
+              final rows = snap.data ?? const [];
+              if (rows.isEmpty) {
+                return const EmptyPanel(
+                  title: 'Nothing recorded yet',
+                  body:
+                      'Payments, check-ins, stock moves and resets appear here.',
+                  icon: Icons.history_outlined,
+                );
+              }
+              return Column(
+                children: [
+                  for (var i = 0; i < rows.length && i < 40; i++) ...[
+                    if (i > 0)
+                      Divider(color: c(LamalivaColors.line), height: 1),
+                    _AuditRow(row: (rows[i] as Map).cast<String, dynamic>()),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: LamalivaSpace.md),
+        Panel(
+          title: 'This device',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Clear this phone or computer: saved server address, cached '
+                'screens and any work waiting to be sent. The hotel records on '
+                'the server are not touched.',
+                style: T.bodyMuted,
+              ),
+              const SizedBox(height: LamalivaSpace.sm),
+              GhostButton(
+                label: 'Reset this device',
+                icon: Icons.restart_alt,
+                onPressed: _resetDevice,
+              ),
+            ],
+          ),
+        ),
       ],
     );
+  }
+
+  /// Two deliberate confirmations, the second typed, so a tired hand cannot
+  /// wipe the device by accident.
+  Future<void> _resetDevice() async {
+    final first = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Reset this device?'),
+        content: const Text(
+          'Saved server address, cached rooms and any payments waiting to be '
+          'sent will be removed from this device. Hotel records on the server '
+          'stay exactly as they are.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Keep everything'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (first != true || !mounted) return;
+
+    final typing = TextEditingController();
+    final second = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Type RESET to confirm'),
+        content: TextField(
+          controller: typing,
+          autofocus: true,
+          textCapitalization: TextCapitalization.characters,
+          decoration: const InputDecoration(hintText: 'RESET'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(
+              context,
+              typing.text.trim().toUpperCase() == 'RESET',
+            ),
+            child: const Text('Reset now'),
+          ),
+        ],
+      ),
+    );
+    typing.dispose();
+    if (second != true || !mounted) return;
+
+    await AppSettings.resetDevice();
+    _toast('This device has been reset. Hotel records were not changed.');
   }
 
   Future<void> _createStaff() async {
@@ -371,6 +548,54 @@ class _RateRow extends StatelessWidget {
             icon: Icons.edit_outlined,
             onPressed: onEdit,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AuditRow extends StatelessWidget {
+  const _AuditRow({required this.row});
+
+  final Map<String, dynamic> row;
+
+  String get _human {
+    final action = '${row['action'] ?? ''}';
+    final parts = action.split('.');
+    if (parts.length == 2) {
+      final what = parts[0].replaceAll('_', ' ');
+      final how = parts[1].replaceAll('_', ' ');
+      return '${what[0].toUpperCase()}${what.substring(1)} - $how';
+    }
+    return action.replaceAll('_', ' ');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final at = '${row['created_at'] ?? ''}';
+    final when = at.length >= 16
+        ? at.substring(0, 16).replaceFirst('T', ' ')
+        : at;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_human, style: T.bodyMuted),
+                Text(
+                  '${row['actor_name'] ?? 'System'} - ${row['entity'] ?? ''}'
+                  '${row['entity_id'] == null ? '' : ' #${row['entity_id']}'}',
+                  style: T.micro,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: LamalivaSpace.sm),
+          Text(when, style: T.micro),
         ],
       ),
     );

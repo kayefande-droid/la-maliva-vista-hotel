@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import '../api.dart';
+import '../guidance.dart';
 import '../stay_sheets.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -78,6 +79,8 @@ class _OverviewScreenState extends State<OverviewScreen> {
                 ),
               ),
               const SizedBox(height: LamalivaSpace.md),
+              GuidanceCard(role: widget.api.staffRole),
+              const SizedBox(height: LamalivaSpace.sm),
               if (loading)
                 const Panel(child: LoadingPanel(rows: 4))
               else if (snap.hasError)

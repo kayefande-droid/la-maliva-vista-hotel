@@ -33,6 +33,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Future<void> _move(Map<String, dynamic> item, String kind) async {
     final quantity = TextEditingController();
     final reason = TextEditingController();
+    final unitCost = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -49,7 +50,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              '${item['name']} — ${item['quantity']} ${item['unit']} on hand',
+              '${item['name']} - ${item['quantity']} ${item['unit']} on hand',
               style: T.bodyMuted,
             ),
             const SizedBox(height: LamalivaSpace.md),
@@ -62,9 +63,28 @@ class _InventoryScreenState extends State<InventoryScreen> {
               ),
             ),
             const SizedBox(height: LamalivaSpace.sm),
+            if (kind == 'in') ...[
+              TextField(
+                controller: unitCost,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Cost of one (optional)',
+                  helperText:
+                      'Giving the cost keeps the average cost of the shelf right.',
+                ),
+              ),
+              const SizedBox(height: LamalivaSpace.sm),
+            ],
             TextField(
               controller: reason,
-              decoration: const InputDecoration(labelText: 'Reason (optional)'),
+              decoration: InputDecoration(
+                labelText: kind == 'stock_take'
+                    ? 'Why are you counting? (required)'
+                    : 'Reason (optional)',
+                hintText: kind == 'stock_take'
+                    ? 'End of month count'
+                    : 'Delivery, breakage, transfer',
+              ),
             ),
             const SizedBox(height: LamalivaSpace.sm),
             Text(
@@ -92,15 +112,25 @@ class _InventoryScreenState extends State<InventoryScreen> {
       _toast('Enter a quantity greater than zero.');
       return;
     }
+    if (kind == 'stock_take' && reason.text.trim().isEmpty) {
+      _toast('Say why you counted, so the change can be explained later.');
+      return;
+    }
+    final cost = num.tryParse(unitCost.text.trim());
     try {
       await widget.api.recordMovement(
         item['id'] as int,
         kind: kind,
         quantity: amount,
         reason: reason.text,
+        unitCost: kind == 'in' && cost != null && cost >= 0 ? cost : null,
       );
       _reload();
-      _toast(kind == 'in' ? 'Stock added.' : 'Stock taken out.');
+      _toast(switch (kind) {
+        'in' => 'Stock added at the new cost.',
+        'stock_take' => 'Count saved; the shelf now shows what you counted.',
+        _ => 'Stock taken out.',
+      });
     } on ApiException catch (e) {
       _toast(e.message);
     }
@@ -229,6 +259,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
                                 _move(rows[i] as Map<String, dynamic>, 'in'),
                             onTake: () =>
                                 _move(rows[i] as Map<String, dynamic>, 'out'),
+                            onStockTake: () => _move(
+                              rows[i] as Map<String, dynamic>,
+                              'stock_take',
+                            ),
                             onEdit: widget.api.isAdmin
                                 ? () =>
                                       _editItem(rows[i] as Map<String, dynamic>)
@@ -412,12 +446,14 @@ class _ItemRow extends StatelessWidget {
     required this.item,
     required this.onAdd,
     required this.onTake,
+    required this.onStockTake,
     this.onEdit,
   });
 
   final Map<String, dynamic> item;
   final VoidCallback onAdd;
   final VoidCallback onTake;
+  final VoidCallback onStockTake;
   final VoidCallback? onEdit;
 
   @override
@@ -497,6 +533,11 @@ class _ItemRow extends StatelessWidget {
               tooltip: 'Take stock',
               onPressed: onTake,
               icon: const Icon(Icons.remove_circle_outline, size: 20),
+            ),
+            IconButton(
+              tooltip: 'Stock take (physical count)',
+              onPressed: onStockTake,
+              icon: const Icon(Icons.fact_check_outlined, size: 20),
             ),
             if (onEdit != null)
               IconButton(

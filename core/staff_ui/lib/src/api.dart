@@ -216,12 +216,60 @@ class LamalivaApi {
     }
   }
 
-  Future<List<dynamic>> rooms({String? status}) async {
-    final query = status == null || status.isEmpty ? '' : '?status=$status';
+  Future<List<dynamic>> rooms({String? status, bool byUsage = false}) async {
+    final params = <String>[
+      if (status != null && status.isNotEmpty) 'status=$status',
+      if (byUsage) 'sort=usage',
+    ];
+    final query = params.isEmpty ? '' : '?${params.join('&')}';
     return _cachedList(
       'rooms$query',
       () async => _list(await _request('GET', '/rooms$query')),
     );
+  }
+
+  /// Housekeeping finished: the room returns to the free pool.
+  Future<Map<String, dynamic>> markRoomCleaned(int roomId) async {
+    final res = await _request('POST', '/rooms/$roomId/clean');
+    return (res['data'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
+  /// Meals and drinks taken by an in-house guest, billed to their room.
+  Future<Map<String, dynamic>> addStayCharge(
+    int reservationId, {
+    required String category,
+    required String description,
+    required num quantity,
+    required num unitPrice,
+    String? note,
+  }) async {
+    final res = await _request(
+      'POST',
+      '/stays/$reservationId/charges',
+      body: {
+        'category': category,
+        'description': description,
+        'quantity': quantity,
+        'unit_price': unitPrice,
+        if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
+      },
+    );
+    return (res['data'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
+  /// The payments and sales behind a money figure, in plain detail.
+  Future<List<dynamic>> moneyEntries({int days = 30}) async {
+    final today = DateTime.now();
+    String iso(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final from = iso(today.subtract(Duration(days: days - 1)));
+    final res = await _request(
+      'GET',
+      '/reports/money/entries?from=$from&to=${iso(today)}',
+    );
+    return _list(res);
   }
 
   Future<List<dynamic>> reservations({String? status}) async {
@@ -514,6 +562,8 @@ class LamalivaApi {
     required String kind,
     required num quantity,
     String? reason,
+    num? unitCost,
+    String? reference,
   }) async {
     final res = await _request(
       'POST',
@@ -521,7 +571,10 @@ class LamalivaApi {
       body: {
         'kind': kind,
         'quantity': quantity,
+        if (unitCost != null) 'unit_cost': unitCost,
         if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+        if (reference != null && reference.trim().isNotEmpty)
+          'reference': reference.trim(),
       },
     );
     return (res['data'] as Map?)?.cast<String, dynamic>() ?? const {};
@@ -562,6 +615,10 @@ class LamalivaApi {
     final res = await _request('PATCH', '/inventory/items/$id', body: changes);
     return (res['data'] as Map?)?.cast<String, dynamic>() ?? const {};
   }
+
+  /// Recent work by the team: who did what, in the order it happened.
+  Future<List<dynamic>> auditLog({int limit = 40}) async =>
+      _list(await _request('GET', '/audit?limit=$limit'));
 
   Future<List<dynamic>> staffAccounts() async =>
       _list(await _request('GET', '/staff'));

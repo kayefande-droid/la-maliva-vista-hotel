@@ -13,6 +13,7 @@ from ..models import (
     RES_CHECKED_IN,
     RES_CHECKED_OUT,
     RES_CONFIRMED,
+    Guest,
     InventoryItem,
     Payment,
     Reservation,
@@ -271,6 +272,51 @@ def _money_day(value) -> dict:
     }
 
 
+def _method_breakdown(since: date, until: date) -> dict[str, dict]:
+    """Money received in a period, split by how it arrived (cash, MoMo...).
+
+    A cash-up compares the drawer against the cash line, and a manager needs
+    MoMo and transfer totals separately rather than one lump sum.
+    """
+    start, _ = _utc_bounds(since)
+    _, end = _utc_bounds(until)
+
+    rows = db.session.execute(
+        db.select(
+            Payment.method,
+            Payment.kind,
+            db.func.coalesce(db.func.sum(Payment.amount), 0),
+        )
+        .where(Payment.created_at >= start, Payment.created_at < end)
+        .group_by(Payment.method, Payment.kind)
+    ).all()
+    methods: dict[str, dict] = {}
+    for method, kind, total in rows:
+        entry = methods.setdefault(
+            str(method or "cash"), {"rooms": 0.0, "shop": 0.0, "total": 0.0}
+        )
+        signed = float(total or 0) if kind == PAYMENT_IN else -float(total or 0)
+        entry["rooms"] = round(entry["rooms"] + signed, 2)
+
+    sales = db.session.execute(
+        db.select(
+            ShopSale.method,
+            db.func.coalesce(db.func.sum(ShopSale.total), 0),
+        )
+        .where(ShopSale.created_at >= start, ShopSale.created_at < end)
+        .group_by(ShopSale.method)
+    ).all()
+    for method, total in sales:
+        entry = methods.setdefault(
+            str(method or "cash"), {"rooms": 0.0, "shop": 0.0, "total": 0.0}
+        )
+        entry["shop"] = round(entry["shop"] + float(total or 0), 2)
+
+    for entry in methods.values():
+        entry["total"] = round(entry["rooms"] + entry["shop"], 2)
+    return dict(sorted(methods.items()))
+
+
 def _bucket_rows(since: date, until: date) -> list[dict]:
     return [_money_day(cursor.isoformat()) for cursor in _dates(since, until)]
 
@@ -324,11 +370,17 @@ def money():
             "data": {
                 "currency": "XAF",
                 "range": {"from": since.isoformat(), "to": until.isoformat()},
-                "today": next(
-                    (row for row in daily if row["date"] == today.isoformat()),
-                    _zero_day(today.isoformat()),
-                ),
-                "this_month": _period_total(start_of_month, today),
+                "today": {
+                    **next(
+                        (row for row in daily if row["date"] == today.isoformat()),
+                        _zero_day(today.isoformat()),
+                    ),
+                    "by_method": _method_breakdown(today, today),
+                },
+                "this_month": {
+                    **_period_total(start_of_month, today),
+                    "by_method": _method_breakdown(start_of_month, today),
+                },
                 "daily": daily,
                 "weekly": list(weeks.values()),
                 "monthly": list(months.values()),
@@ -408,5 +460,95 @@ def staff_activity():
                 {"username": username, "role": role, "reservations_created": count}
                 for username, role, count in rows
             ]
+        }
+    )
+
+
+@bp.get("/money/entries")
+@require_auth
+@require_permission("report:financial")
+def money_entries():
+    """Every payment and till sale behind the money figure, in plain detail.
+
+    Management should not have to guess where a day's takings came from: a
+    room payment names the room, the guest's first two names, the nights
+    booked and what was handed over; a shop sale names what left the shelf and
+    how many. Refunds are negative, so the list adds up to the report.
+    """
+    since, until = _range()
+    if since is None:
+        return json_error(400, "invalid_range", "from/to must be ISO dates.")
+    start, end = _utc_bounds(since)
+    _, end = _utc_bounds(until)
+
+    limit = max(1, min(int(request.args.get("limit", 200) or 200), 500))
+
+    entries: list[dict] = []
+    room_rows = db.session.execute(
+        db.select(Payment, Reservation, Room, Guest)
+        .join(Reservation, Payment.reservation_id == Reservation.id)
+        .outerjoin(Room, Reservation.room_id == Room.id)
+        .join(Guest, Reservation.guest_id == Guest.id)
+        .where(Payment.created_at >= start, Payment.created_at < end)
+        .order_by(Payment.created_at.desc())
+        .limit(limit)
+    ).all()
+    for payment, reservation, room, guest in room_rows:
+        signed = float(payment.amount) * (1 if payment.kind == PAYMENT_IN else -1)
+        # The desk knows a guest by the first two names, not a full legal name.
+        short_name = " ".join(
+            f"{guest.first_name} {guest.last_name}".split()[:2]
+        )
+        entries.append(
+            {
+                "kind": "room",
+                "at": iso(payment.created_at),
+                "amount": round(signed, 2),
+                "method": payment.method,
+                "reference": payment.reference,
+                "room": room.number if room else None,
+                "guest": short_name,
+                "guest_first_name": guest.first_name,
+                "guest_last_name": guest.last_name,
+                "nights": (reservation.departure - reservation.arrival).days,
+                "arrival": reservation.arrival.isoformat(),
+                "departure": reservation.departure.isoformat(),
+                "stay_reference": reservation.reference,
+                "payment_kind": payment.kind,
+                "note": payment.notes,
+            }
+        )
+
+    sale_rows = db.session.scalars(
+        db.select(ShopSale)
+        .where(ShopSale.created_at >= start, ShopSale.created_at < end)
+        .order_by(ShopSale.created_at.desc())
+        .limit(limit)
+    ).all()
+    for sale in sale_rows:
+        entries.append(
+            {
+                "kind": "shop",
+                "at": iso(sale.created_at),
+                "amount": round(float(sale.total or 0), 2),
+                "method": sale.method,
+                "reference": sale.reference,
+                "item": sale.item_name,
+                "quantity": float(sale.quantity or 0),
+                "unit_price": float(sale.unit_price or 0),
+            }
+        )
+
+    entries.sort(key=lambda row: row["at"] or "", reverse=True)
+    entries = entries[:limit]
+    return jsonify(
+        {
+            "data": entries,
+            "meta": {
+                "from": since.isoformat(),
+                "to": until.isoformat(),
+                "count": len(entries),
+            },
+            "totals": {"currency": "XAF", "amount": round(sum(e["amount"] for e in entries), 2)},
         }
     )

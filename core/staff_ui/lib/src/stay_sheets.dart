@@ -502,6 +502,32 @@ class _StayDetailSheetState extends State<_StayDetailSheet> {
     });
   }
 
+  /// A meal or a drink taken by the guest: recorded against the room bill.
+  Future<void> _addCharge() async {
+    final draft = await _present<_ChargeDraft>(
+      context,
+      (wide) => _ChargeForm(wide: wide, stay: _stay),
+    );
+    if (draft == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final res = await widget.api.addStayCharge(
+        _idValue,
+        category: draft.category,
+        description: draft.description,
+        quantity: draft.quantity,
+        unitPrice: draft.unitPrice,
+      );
+      _apply(_map(res));
+      _toast(
+        '${draft.description} added to room ${_room['number'] ?? ''}. '
+        'It is now on the bill.',
+      );
+    } on ApiException catch (error) {
+      _fail(error.message);
+    }
+  }
+
   Future<void> _addPayment() async {
     final draft = await _present<_PaymentDraft>(
       context,
@@ -913,6 +939,11 @@ class _StayDetailSheetState extends State<_StayDetailSheet> {
             label: 'Approved extensions',
             value: formatMoney(_money['extension_charges']),
           ),
+        if (((_money['extra_charges'] as num?) ?? 0) > 0)
+          _SummaryRow(
+            label: 'Meals and drinks',
+            value: formatMoney(_money['extra_charges']),
+          ),
         _SummaryRow(
           label: 'Total charges',
           value: formatMoney(_money['total_charges']),
@@ -925,6 +956,25 @@ class _StayDetailSheetState extends State<_StayDetailSheet> {
           emphasise: true,
           tone: balance > 0 ? LamalivaColors.danger : LamalivaColors.success,
         ),
+        const SizedBox(height: LamalivaSpace.md),
+        _SectionLabel('Bought by this room'),
+        if ((_stay['charges'] as List?)?.isEmpty ?? true)
+          Text(
+            'No breakfast, lunch, supper or drink has been added yet.',
+            style: T.micro,
+          )
+        else
+          for (final row in (_stay['charges'] as List))
+            _ChargeLine(row: (row as Map).cast<String, dynamic>()),
+        if (!checkedOut && _reservation['status'] == 'checked_in')
+          Padding(
+            padding: const EdgeInsets.only(top: LamalivaSpace.sm),
+            child: GhostButton(
+              label: 'Add breakfast, food or drink',
+              icon: Icons.add,
+              onPressed: _busy ? null : _addCharge,
+            ),
+          ),
         if (pending.isNotEmpty) ...[
           const SizedBox(height: LamalivaSpace.md),
           Container(
@@ -2238,5 +2288,207 @@ String _methodLabel(String method) {
       return 'Cash';
     default:
       return StatusPill.labelFor(method);
+  }
+}
+
+class _ChargeDraft {
+  _ChargeDraft({
+    required this.category,
+    required this.description,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  final String category;
+  final String description;
+  final double quantity;
+  final double unitPrice;
+}
+
+class _ChargeLine extends StatelessWidget {
+  const _ChargeLine({required this.row});
+
+  final Map<String, dynamic> row;
+
+  static const _names = {
+    'breakfast': 'Breakfast',
+    'lunch': 'Lunch',
+    'supper': 'Supper',
+    'drink': 'Drink',
+    'other': 'Other',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final qty = (row['quantity'] as num?)?.toDouble() ?? 0;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '${_names[row['category']] ?? 'Item'} - ${row['description'] ?? ''}',
+              style: T.bodyMuted,
+            ),
+          ),
+          SizedBox(
+            width: 64,
+            child: Text(
+              'x${qty.toStringAsFixed(qty == qty.roundToDouble() ? 0 : 1)}',
+              style: T.micro,
+            ),
+          ),
+          Text(formatMoney(row['total']), style: T.numeral),
+        ],
+      ),
+    );
+  }
+}
+
+/// Add a meal or drink to an in-house guest's bill.
+class _ChargeForm extends StatefulWidget {
+  const _ChargeForm({required this.wide, required this.stay});
+
+  final bool wide;
+  final Map<String, dynamic> stay;
+
+  @override
+  State<_ChargeForm> createState() => _ChargeFormState();
+}
+
+class _ChargeFormState extends State<_ChargeForm> {
+  static const _choices = [
+    ('breakfast', 'Breakfast', Icons.free_breakfast_outlined),
+    ('lunch', 'Lunch', Icons.lunch_dining_outlined),
+    ('supper', 'Supper', Icons.dinner_dining_outlined),
+    ('drink', 'Drink', Icons.local_bar_outlined),
+    ('other', 'Other', Icons.room_service_outlined),
+  ];
+
+  String _category = 'breakfast';
+  final _what = TextEditingController();
+  final _qty = TextEditingController(text: '1');
+  final _price = TextEditingController();
+  String? _error;
+
+  @override
+  void dispose() {
+    _what.dispose();
+    _qty.dispose();
+    _price.dispose();
+    super.dispose();
+  }
+
+  double get _total =>
+      (double.tryParse(_qty.text.trim()) ?? 0) *
+      (double.tryParse(_price.text.trim()) ?? 0);
+
+  void _submit() {
+    final name = _what.text.trim();
+    final qty = double.tryParse(_qty.text.trim());
+    final price = double.tryParse(_price.text.trim());
+    if (name.isEmpty) {
+      setState(() => _error = 'Write what was taken, for example Omelette.');
+      return;
+    }
+    if (qty == null || qty <= 0) {
+      setState(() => _error = 'How many? Give a number above zero.');
+      return;
+    }
+    if (price == null || price < 0) {
+      setState(() => _error = 'Give the menu price for one.');
+      return;
+    }
+    Navigator.of(context).pop(
+      _ChargeDraft(
+        category: _category,
+        description: name,
+        quantity: qty,
+        unitPrice: price,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final currency = '${_map(widget.stay['money'])['currency'] ?? 'XAF'}';
+    return _SheetFrame(
+      wide: widget.wide,
+      children: [
+        _SheetHeader(
+          eyebrow: 'Room ${_map(widget.stay['room'])['number'] ?? ''}',
+          title: 'Add room purchase',
+          subtitle:
+              'Breakfast, lunch, supper or a drink. It joins the bill and is '
+              'collected at check-out.',
+        ),
+        const SizedBox(height: LamalivaSpace.md),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Wrap(
+              spacing: LamalivaSpace.xs,
+              runSpacing: LamalivaSpace.xs,
+              children: [
+                for (final choice in _choices)
+                  ChoiceChip(
+                    label: Text(choice.$2),
+                    avatar: Icon(choice.$3, size: 15),
+                    selected: _category == choice.$1,
+                    onSelected: (_) => setState(() => _category = choice.$1),
+                  ),
+              ],
+            ),
+            const SizedBox(height: LamalivaSpace.sm),
+            TextField(
+              controller: _what,
+              decoration: const InputDecoration(
+                labelText: 'What was taken',
+                hintText: 'Omelette, Malta, grilled fish',
+              ),
+            ),
+            const SizedBox(height: LamalivaSpace.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _qty,
+                    keyboardType: _moneyKeyboard,
+                    decoration: const InputDecoration(labelText: 'How many'),
+                  ),
+                ),
+                const SizedBox(width: LamalivaSpace.sm),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: _price,
+                    keyboardType: _moneyKeyboard,
+                    decoration: InputDecoration(
+                      labelText: 'Price for one',
+                      suffixText: currency,
+                    ),
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: LamalivaSpace.sm),
+            Text(
+              'Total to add: ${formatMoney(_total)}',
+              style: T.numeral.copyWith(fontWeight: FontWeight.w700),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: LamalivaSpace.xs),
+              Text(
+                _error ?? '',
+                style: T.micro.copyWith(color: c(LamalivaColors.danger)),
+              ),
+            ],
+            const SizedBox(height: LamalivaSpace.md),
+            PrimaryButton(label: 'Add to room bill', onPressed: _submit),
+          ],
+        ),
+      ],
+    );
   }
 }
