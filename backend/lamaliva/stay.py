@@ -695,6 +695,15 @@ def record_payment(
     amount = round(float(amount or 0), 2)
     if amount <= 0:
         raise StayError(400, "invalid_amount", "A payment must be greater than zero.")
+    reference = str(reference).strip()[:64] if reference else None
+    if reference:
+        # A queue replayed from an offline device must never double-charge:
+        # the same reference on the same stay is the same payment.
+        existing = Payment.query.filter_by(
+            reservation_id=reservation.id, reference=reference
+        ).first()
+        if existing is not None:
+            return existing
     if kind == PAYMENT_REFUND:
         paid = payment_totals(reservation)["net_paid"]
         if amount > paid + 0.001:
@@ -710,7 +719,7 @@ def record_payment(
         amount=amount,
         currency=reservation.currency,
         method=str(method or "cash")[:24],
-        reference=(str(reference)[:64] if reference else None),
+        reference=reference,
         notes=(str(notes)[:300] if notes else None),
         received_by=received_by,
     )

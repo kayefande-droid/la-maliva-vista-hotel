@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import '../api.dart';
+import '../stay_sheets.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -20,21 +21,30 @@ class OverviewScreen extends StatefulWidget {
 }
 
 class _OverviewScreenState extends State<OverviewScreen> {
-  late Future<(Map<String, dynamic>, List<dynamic>)> _data = _load();
+  late Future<(Map<String, dynamic>, List<dynamic>, Map<String, dynamic>)>
+  _data = _load();
 
-  Future<(Map<String, dynamic>, List<dynamic>)> _load() async {
+  Future<(Map<String, dynamic>, List<dynamic>, Map<String, dynamic>)>
+  _load() async {
     final results = await Future.wait([
       widget.api.overview(),
       widget.api.arrivals(),
+      widget.api.stayMonitor(),
     ]);
-    return (results[0] as Map<String, dynamic>, results[1] as List<dynamic>);
+    return (
+      results[0] as Map<String, dynamic>,
+      results[1] as List<dynamic>,
+      results[2] as Map<String, dynamic>,
+    );
   }
 
   void _reload() => setState(() => _data = _load());
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<(Map<String, dynamic>, List<dynamic>)>(
+    return FutureBuilder<
+      (Map<String, dynamic>, List<dynamic>, Map<String, dynamic>)
+    >(
       future: _data,
       builder: (context, snap) {
         final loading = snap.connectionState != ConnectionState.done;
@@ -69,7 +79,7 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   ),
                 )
               else
-                ..._body(snap.data!.$1, snap.data!.$2),
+                ..._body(snap.data!.$1, snap.data!.$2, snap.data!.$3),
             ],
           ),
         );
@@ -77,10 +87,17 @@ class _OverviewScreenState extends State<OverviewScreen> {
     );
   }
 
-  List<Widget> _body(Map<String, dynamic> overview, List<dynamic> arrivals) {
-    final rooms = (overview['rooms'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final today = (overview['today'] as Map?)?.cast<String, dynamic>() ?? const {};
-    final store = (overview['inventory'] as Map?)?.cast<String, dynamic>() ?? const {};
+  List<Widget> _body(
+    Map<String, dynamic> overview,
+    List<dynamic> arrivals,
+    Map<String, dynamic> monitor,
+  ) {
+    final rooms =
+        (overview['rooms'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final today =
+        (overview['today'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final store =
+        (overview['inventory'] as Map?)?.cast<String, dynamic>() ?? const {};
 
     final total = (rooms['total'] as num?)?.toInt() ?? 0;
     final occupied = (rooms['occupied'] as num?)?.toInt() ?? 0;
@@ -119,15 +136,19 @@ class _OverviewScreenState extends State<OverviewScreen> {
               if (box.maxWidth < 620) {
                 return Column(
                   children: [
-                    Row(children: [
-                      Expanded(child: cells[0]),
-                      Expanded(child: cells[1]),
-                    ]),
+                    Row(
+                      children: [
+                        Expanded(child: cells[0]),
+                        Expanded(child: cells[1]),
+                      ],
+                    ),
                     const SizedBox(height: LamalivaSpace.lg),
-                    Row(children: [
-                      Expanded(child: cells[2]),
-                      Expanded(child: cells[3]),
-                    ]),
+                    Row(
+                      children: [
+                        Expanded(child: cells[2]),
+                        Expanded(child: cells[3]),
+                      ],
+                    ),
                   ],
                 );
               }
@@ -152,6 +173,15 @@ class _OverviewScreenState extends State<OverviewScreen> {
               );
             },
           ),
+        ),
+      ),
+      const SizedBox(height: LamalivaSpace.md),
+      Reveal(
+        delay: const Duration(milliseconds: 90),
+        child: StaysMonitorPanel(
+          api: widget.api,
+          monitor: monitor,
+          onChanged: _reload,
         ),
       ),
       const SizedBox(height: LamalivaSpace.md),
@@ -194,8 +224,11 @@ class _OverviewScreenState extends State<OverviewScreen> {
                   : Column(
                       children: [
                         for (var i = 0; i < arrivals.length; i++) ...[
-                          if (i > 0) Divider(color: c(LamalivaColors.line), height: 1),
-                          _ArrivalRow(item: arrivals[i] as Map<String, dynamic>),
+                          if (i > 0)
+                            Divider(color: c(LamalivaColors.line), height: 1),
+                          _ArrivalRow(
+                            item: arrivals[i] as Map<String, dynamic>,
+                          ),
                         ],
                       ],
                     ),
@@ -275,7 +308,10 @@ class _OccupancyChart extends StatelessWidget {
                 width: donutSize,
                 height: donutSize,
                 child: CustomPaint(
-                  painter: _DonutPainter(segments: segments, progress: progress),
+                  painter: _DonutPainter(
+                    segments: segments,
+                    progress: progress,
+                  ),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -445,7 +481,10 @@ class _StoragePanel extends StatelessWidget {
         Row(
           children: [
             Expanded(child: Text('Stock value', style: T.bodyMuted)),
-            Text(formatMoney(value), style: T.numeral.copyWith(fontWeight: FontWeight.w600)),
+            Text(
+              formatMoney(value),
+              style: T.numeral.copyWith(fontWeight: FontWeight.w600),
+            ),
           ],
         ),
         const SizedBox(height: LamalivaSpace.xs),
@@ -456,7 +495,9 @@ class _StoragePanel extends StatelessWidget {
               '$low',
               style: T.numeral.copyWith(
                 fontWeight: FontWeight.w700,
-                color: low > 0 ? c(LamalivaColors.danger) : c(LamalivaColors.success),
+                color: low > 0
+                    ? c(LamalivaColors.danger)
+                    : c(LamalivaColors.success),
               ),
             ),
           ],
@@ -489,11 +530,27 @@ class _Greeting extends StatelessWidget {
   String get _todayLabel {
     final now = DateTime.now();
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     const days = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
     ];
     return '${days[now.weekday - 1]} ${now.day} ${months[now.month - 1]}';
   }

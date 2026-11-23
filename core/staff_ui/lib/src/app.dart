@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import 'api.dart';
+import 'invoice.dart';
+import 'offline.dart';
 import 'screens/admin.dart';
 import 'screens/guests.dart';
 import 'screens/inventory.dart';
@@ -44,10 +48,10 @@ class _StaffAppState extends State<StaffApp> {
   }
 
   LamalivaApi _createApi(String baseUrl) => LamalivaApi(
-        baseUrl: baseUrl,
-        deviceName: widget.deviceName,
-        platform: widget.platform,
-      );
+    baseUrl: baseUrl,
+    deviceName: widget.deviceName,
+    platform: widget.platform,
+  );
 
   /// A server address chosen earlier on this device wins over the build default.
   Future<void> _restoreServer() async {
@@ -168,6 +172,54 @@ class SessionShell extends StatefulWidget {
 class _SessionShellState extends State<SessionShell> {
   int _index = 0;
   int _refresh = 0;
+  Timer? _probe;
+  bool _syncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    OfflineVault.loadCount();
+    InvoicePrinter.discover();
+    // While the server is missing, keep asking; when it answers, the banner
+    // offers the passkey so the desk can push the held work.
+    _probe = Timer.periodic(const Duration(seconds: 15), (_) => _checkServer());
+  }
+
+  @override
+  void dispose() {
+    _probe?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _checkServer() async {
+    if (!mounted) return;
+    if (NetworkStatus.reachable.value) {
+      await OfflineVault.loadCount();
+      return;
+    }
+    final back = await widget.api.probe();
+    if (!mounted) return;
+    if (back) await OfflineVault.loadCount();
+    setState(() {});
+  }
+
+  Future<void> _syncHeld() async {
+    if (_syncing) return;
+    setState(() => _syncing = true);
+    await pushHeldActions(
+      context,
+      api: widget.api,
+      describe: (sent) => sent == 1
+          ? 'Held action pushed to the server.'
+          : '$sent held actions pushed to the server.',
+    );
+    if (!mounted) return;
+    setState(() {
+      _syncing = false;
+      // Reload the screen so a synced checkout or payment appears.
+      _refresh++;
+    });
+  }
 
   List<_Destination> get _items => widget.api.isAdmin
       ? _destinations
@@ -223,6 +275,18 @@ class _SessionShellState extends State<SessionShell> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        ValueListenableBuilder<bool>(
+          valueListenable: NetworkStatus.reachable,
+          builder: (context, online, _) => ValueListenableBuilder<int>(
+            valueListenable: OfflineVault.pending,
+            builder: (context, held, _) => ConnectivityBanner(
+              online: online,
+              held: held,
+              syncing: _syncing,
+              onSync: _syncHeld,
+            ),
+          ),
+        ),
         Padding(
           padding: EdgeInsets.fromLTRB(
             wide ? LamalivaSpace.xl : LamalivaSpace.lg,
@@ -384,9 +448,7 @@ class _SessionShellState extends State<SessionShell> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _index == i
-                              ? items[i].selectedIcon
-                              : items[i].icon,
+                          _index == i ? items[i].selectedIcon : items[i].icon,
                           size: 20,
                           color: _index == i
                               ? c(LamalivaColors.orangeStart)
@@ -489,7 +551,9 @@ class _Rail extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: LamalivaType.uiFamily,
                             fontSize: 11.5,
-                            color: c(LamalivaColors.sky300).withValues(alpha: 0.9),
+                            color: c(
+                              LamalivaColors.sky300,
+                            ).withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -620,8 +684,8 @@ class _RailItemState extends State<_RailItem> {
               color: selected
                   ? Colors.white.withValues(alpha: 0.09)
                   : _hover
-                      ? Colors.white.withValues(alpha: 0.05)
-                      : Colors.transparent,
+                  ? Colors.white.withValues(alpha: 0.05)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(LamalivaShape.input),
             ),
             child: Row(
@@ -637,7 +701,9 @@ class _RailItemState extends State<_RailItem> {
                   ),
                 ),
                 Icon(
-                  selected ? widget.destination.selectedIcon : widget.destination.icon,
+                  selected
+                      ? widget.destination.selectedIcon
+                      : widget.destination.icon,
                   size: 18,
                   color: selected
                       ? Colors.white

@@ -23,13 +23,15 @@ class _AdminScreenState extends State<AdminScreen> {
   late Future<List<dynamic>> _types = widget.api.roomTypes();
 
   void _reload() => setState(() {
-        _staff = widget.api.staffAccounts();
-        _types = widget.api.roomTypes();
-      });
+    _staff = widget.api.staffAccounts();
+    _types = widget.api.roomTypes();
+  });
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -56,20 +58,25 @@ class _AdminScreenState extends State<AdminScreen> {
                 return const LoadingPanel(rows: 3);
               }
               if (snap.hasError) {
-                return ErrorPanel(message: snap.error.toString(), onRetry: _reload);
+                return ErrorPanel(
+                  message: snap.error.toString(),
+                  onRetry: _reload,
+                );
               }
               final rows = snap.data ?? const [];
               if (rows.isEmpty) {
                 return const EmptyPanel(
                   title: 'No staff accounts',
-                  body: 'Create the first account; the person must change the password at first sign-in.',
+                  body:
+                      'Create the first account; the person must change the password at first sign-in.',
                   icon: Icons.badge_outlined,
                 );
               }
               return Column(
                 children: [
                   for (var i = 0; i < rows.length; i++) ...[
-                    if (i > 0) Divider(color: c(LamalivaColors.line), height: 1),
+                    if (i > 0)
+                      Divider(color: c(LamalivaColors.line), height: 1),
                     _StaffRow(row: rows[i] as Map<String, dynamic>),
                   ],
                 ],
@@ -87,20 +94,25 @@ class _AdminScreenState extends State<AdminScreen> {
                 return const LoadingPanel(rows: 2);
               }
               if (snap.hasError) {
-                return ErrorPanel(message: snap.error.toString(), onRetry: _reload);
+                return ErrorPanel(
+                  message: snap.error.toString(),
+                  onRetry: _reload,
+                );
               }
               final rows = snap.data ?? const [];
               if (rows.isEmpty) {
                 return const EmptyPanel(
                   title: 'No room types',
-                  body: 'Room types carry the nightly rate that registration charges.',
+                  body:
+                      'Room types carry the nightly rate that registration charges.',
                   icon: Icons.sell_outlined,
                 );
               }
               return Column(
                 children: [
                   for (var i = 0; i < rows.length; i++) ...[
-                    if (i > 0) Divider(color: c(LamalivaColors.line), height: 1),
+                    if (i > 0)
+                      Divider(color: c(LamalivaColors.line), height: 1),
                     _RateRow(
                       row: rows[i] as Map<String, dynamic>,
                       onEdit: () => _editRate(rows[i] as Map<String, dynamic>),
@@ -137,7 +149,10 @@ class _AdminScreenState extends State<AdminScreen> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(LamalivaShape.panel),
           ),
-          title: Text('New staff account', style: T.screenTitle.copyWith(fontSize: 22)),
+          title: Text(
+            'New staff account',
+            style: T.screenTitle.copyWith(fontSize: 22),
+          ),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -154,7 +169,9 @@ class _AdminScreenState extends State<AdminScreen> {
                 const SizedBox(height: LamalivaSpace.sm),
                 TextField(
                   controller: email,
-                  decoration: const InputDecoration(labelText: 'Email (optional)'),
+                  decoration: const InputDecoration(
+                    labelText: 'Email (optional)',
+                  ),
                 ),
                 const SizedBox(height: LamalivaSpace.sm),
                 DropdownButtonFormField<String>(
@@ -199,7 +216,8 @@ class _AdminScreenState extends State<AdminScreen> {
         email: email.text,
         password: password.text,
       );
-      final generated = ((res['meta'] as Map?)?['generated_password'])?.toString();
+      final generated = ((res['meta'] as Map?)?['generated_password'])
+          ?.toString();
       _reload();
       _toast(
         generated == null
@@ -220,8 +238,10 @@ class _AdminScreenState extends State<AdminScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LamalivaShape.panel),
         ),
-        title: Text('${row['name']} nightly rate',
-            style: T.screenTitle.copyWith(fontSize: 22)),
+        title: Text(
+          '${row['name']} nightly rate',
+          style: T.screenTitle.copyWith(fontSize: 22),
+        ),
         content: TextField(
           controller: rate,
           autofocus: true,
@@ -276,11 +296,12 @@ class _StaffRow extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                '${row['full_name'] ?? row['username'] ?? '?'}'
-                    .characters
-                    .first
+                '${row['full_name'] ?? row['username'] ?? '?'}'.characters.first
                     .toUpperCase(),
-                style: T.numeral.copyWith(color: Colors.white, fontWeight: FontWeight.w700),
+                style: T.numeral.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ),
@@ -293,7 +314,10 @@ class _StaffRow extends StatelessWidget {
                   '${row['full_name'] ?? row['username']}',
                   style: T.body.copyWith(fontWeight: FontWeight.w600),
                 ),
-                Text('@${row['username']}  ·  ${row['email'] ?? 'no email'}', style: T.micro),
+                Text(
+                  '@${row['username']}  ·  ${row['email'] ?? 'no email'}',
+                  style: T.micro,
+                ),
               ],
             ),
           ),
@@ -325,7 +349,10 @@ class _RateRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${row['name']}', style: T.body.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  '${row['name']}',
+                  style: T.body.copyWith(fontWeight: FontWeight.w600),
+                ),
                 Text(
                   'Sleeps ${row['capacity'] ?? '—'}'
                   '${row['size_sqm'] == null ? '' : '  ·  ${row['size_sqm']} m²'}',
@@ -339,7 +366,11 @@ class _RateRow extends StatelessWidget {
             style: T.numeral.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(width: LamalivaSpace.xs),
-          GhostButton(label: 'Edit rate', icon: Icons.edit_outlined, onPressed: onEdit),
+          GhostButton(
+            label: 'Edit rate',
+            icon: Icons.edit_outlined,
+            onPressed: onEdit,
+          ),
         ],
       ),
     );

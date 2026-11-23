@@ -20,8 +20,9 @@ class ServerDialog extends StatefulWidget {
 }
 
 class _ServerDialogState extends State<ServerDialog> {
-  late final TextEditingController _url =
-      TextEditingController(text: widget.api.baseUrl);
+  late final TextEditingController _url = TextEditingController(
+    text: widget.api.baseUrl,
+  );
   final _username = TextEditingController();
   final _password = TextEditingController();
   bool _busy = false;
@@ -70,7 +71,10 @@ class _ServerDialogState extends State<ServerDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(LamalivaShape.panel),
       ),
-      title: Text('Server address', style: T.screenTitle.copyWith(fontSize: 22)),
+      title: Text(
+        'Server address',
+        style: T.screenTitle.copyWith(fontSize: 22),
+      ),
       content: SizedBox(
         width: 420,
         child: Column(
@@ -97,7 +101,9 @@ class _ServerDialogState extends State<ServerDialog> {
             TextField(
               controller: _username,
               autocorrect: false,
-              decoration: const InputDecoration(labelText: 'Administrator username'),
+              decoration: const InputDecoration(
+                labelText: 'Administrator username',
+              ),
             ),
             const SizedBox(height: LamalivaSpace.sm),
             TextField(
@@ -108,7 +114,9 @@ class _ServerDialogState extends State<ServerDialog> {
                 suffixIcon: IconButton(
                   tooltip: _obscure ? 'Show password' : 'Hide password',
                   icon: Icon(
-                    _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                    _obscure
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
                     size: 18,
                   ),
                   onPressed: () => setState(() => _obscure = !_obscure),

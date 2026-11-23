@@ -209,6 +209,26 @@ def test_payments_are_append_only_and_refunds_cannot_exceed_them(app, client, au
     assert _code(too_much) == "refund_exceeds_paid"
 
 
+def test_a_replayed_offline_payment_is_recorded_only_once(app, client, auth, world):
+    headers, _ = auth()
+    reservation_id = _checked_in(client, headers, world)
+    body = {"amount": 4_000, "method": "cash", "reference": "APP-OFFLINE-1"}
+
+    first = client.post(
+        f"/api/v1/stays/{reservation_id}/payments", headers=headers, json=body
+    )
+    assert first.status_code == 201, first.get_json()
+    replay = client.post(
+        f"/api/v1/stays/{reservation_id}/payments", headers=headers, json=body
+    )
+    assert replay.status_code == 201, replay.get_json()
+    assert replay.get_json()["data"]["payment"]["paid"] == 4_000
+
+    with app.app_context():
+        rows = db.session.get(Reservation, reservation_id).payments
+        assert len([row for row in rows if row.reference == "APP-OFFLINE-1"]) == 1
+
+
 def test_extension_waits_for_approval_then_moves_only_the_expiry(app, client, auth, world):
     headers, _ = auth()
     reservation_id = _checked_in(client, headers, world)

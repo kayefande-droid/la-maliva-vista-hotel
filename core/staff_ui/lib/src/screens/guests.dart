@@ -99,8 +99,8 @@ class _GuestsScreenState extends State<GuestsScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) =>
                         constraints.maxWidth >= 720
-                            ? _table(rows)
-                            : _cards(rows),
+                        ? _table(rows)
+                        : _cards(rows),
                   ),
                 ),
             ],

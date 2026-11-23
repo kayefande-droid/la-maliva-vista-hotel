@@ -57,7 +57,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               controller: quantity,
               autofocus: true,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(labelText: 'Quantity (${item['unit']})'),
+              decoration: InputDecoration(
+                labelText: 'Quantity (${item['unit']})',
+              ),
             ),
             const SizedBox(height: LamalivaSpace.sm),
             TextField(
@@ -106,7 +108,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
 
   void _toast(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -123,7 +127,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               .toLowerCase()
               .contains(_query);
         }).toList();
-        final lowStock = all.where((raw) => raw is Map && raw['low_stock'] == true).length;
+        final lowStock = all
+            .where((raw) => raw is Map && raw['low_stock'] == true)
+            .length;
 
         return RefreshIndicator(
           color: c(LamalivaColors.orangeMid),
@@ -163,7 +169,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         vertical: 7,
                       ),
                       decoration: BoxDecoration(
-                        color: c(LamalivaColors.warningSoft).withValues(alpha: 0.6),
+                        color: c(
+                          LamalivaColors.warningSoft,
+                        ).withValues(alpha: 0.6),
                         borderRadius: BorderRadius.circular(LamalivaShape.pill),
                       ),
                       child: Text(
@@ -195,7 +203,9 @@ class _InventoryScreenState extends State<InventoryScreen> {
               else if (rows.isEmpty)
                 Panel(
                   child: EmptyPanel(
-                    title: all.isEmpty ? 'No stock recorded' : 'Nothing matches',
+                    title: all.isEmpty
+                        ? 'No stock recorded'
+                        : 'Nothing matches',
                     body: all.isEmpty
                         ? 'An administrator creates the items; anyone on shift can then move stock in and out.'
                         : 'Try another item name or category.',
@@ -208,16 +218,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
                   child: Column(
                     children: [
                       for (var i = 0; i < rows.length; i++) ...[
-                        if (i > 0) Divider(color: c(LamalivaColors.line), height: 1),
+                        if (i > 0)
+                          Divider(color: c(LamalivaColors.line), height: 1),
                         Reveal(
                           delay: Duration(milliseconds: (i * 22).clamp(0, 260)),
                           offset: 8,
                           child: _ItemRow(
                             item: rows[i] as Map<String, dynamic>,
-                            onAdd: () => _move(rows[i] as Map<String, dynamic>, 'in'),
-                            onTake: () => _move(rows[i] as Map<String, dynamic>, 'out'),
+                            onAdd: () =>
+                                _move(rows[i] as Map<String, dynamic>, 'in'),
+                            onTake: () =>
+                                _move(rows[i] as Map<String, dynamic>, 'out'),
                             onEdit: widget.api.isAdmin
-                                ? () => _editItem(rows[i] as Map<String, dynamic>)
+                                ? () =>
+                                      _editItem(rows[i] as Map<String, dynamic>)
                                 : null,
                           ),
                         ),
@@ -245,19 +259,30 @@ class _InventoryScreenState extends State<InventoryScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LamalivaShape.panel),
         ),
-        title: Text('New stock item', style: T.screenTitle.copyWith(fontSize: 22)),
+        title: Text(
+          'New stock item',
+          style: T.screenTitle.copyWith(fontSize: 22),
+        ),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: name, decoration: const InputDecoration(labelText: 'Name')),
+              TextField(
+                controller: name,
+                decoration: const InputDecoration(labelText: 'Name'),
+              ),
               const SizedBox(height: LamalivaSpace.sm),
-              TextField(controller: unit, decoration: const InputDecoration(labelText: 'Unit')),
+              TextField(
+                controller: unit,
+                decoration: const InputDecoration(labelText: 'Unit'),
+              ),
               const SizedBox(height: LamalivaSpace.sm),
               TextField(
                 controller: quantity,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Opening quantity'),
+                decoration: const InputDecoration(
+                  labelText: 'Opening quantity',
+                ),
               ),
               const SizedBox(height: LamalivaSpace.sm),
               TextField(
@@ -316,7 +341,10 @@ class _InventoryScreenState extends State<InventoryScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(LamalivaShape.panel),
         ),
-        title: Text('${item['name']}', style: T.screenTitle.copyWith(fontSize: 22)),
+        title: Text(
+          '${item['name']}',
+          style: T.screenTitle.copyWith(fontSize: 22),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -395,7 +423,9 @@ class _ItemRow extends StatelessWidget {
               child: Icon(
                 Icons.inventory_2_outlined,
                 size: 18,
-                color: low ? c(LamalivaColors.danger) : c(LamalivaColors.inkMuted),
+                color: low
+                    ? c(LamalivaColors.danger)
+                    : c(LamalivaColors.inkMuted),
               ),
             ),
             const SizedBox(width: LamalivaSpace.sm),
@@ -424,7 +454,9 @@ class _ItemRow extends StatelessWidget {
                   '${item['quantity']} ${item['unit']}',
                   style: T.numeral.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: low ? c(LamalivaColors.danger) : c(LamalivaColors.navy800),
+                    color: low
+                        ? c(LamalivaColors.danger)
+                        : c(LamalivaColors.navy800),
                   ),
                 ),
                 Text(formatMoney(item['unit_cost']), style: T.micro),

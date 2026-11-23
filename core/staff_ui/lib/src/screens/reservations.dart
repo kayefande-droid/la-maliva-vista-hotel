@@ -32,8 +32,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         final statuses = <String>{
           for (final r in all)
             if (r is Map && r['status'] != null) r['status'].toString(),
-        }.toList()
-          ..sort();
+        }.toList()..sort();
         final rows = all.where((raw) {
           if (raw is! Map) return false;
           return _status == null || raw['status']?.toString() == _status;
@@ -84,8 +83,8 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) =>
                         constraints.maxWidth >= 760
-                            ? _table(rows)
-                            : _cards(rows),
+                        ? _table(rows)
+                        : _cards(rows),
                   ),
                 ),
             ],

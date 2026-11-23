@@ -241,8 +241,9 @@ class _PrimaryButtonState extends State<PrimaryButton> {
                   boxShadow: enabled && _hover
                       ? [
                           BoxShadow(
-                            color: c(LamalivaColors.orangeEnd)
-                                .withValues(alpha: 0.32),
+                            color: c(
+                              LamalivaColors.orangeEnd,
+                            ).withValues(alpha: 0.32),
                             blurRadius: 18,
                             offset: const Offset(0, 6),
                           ),

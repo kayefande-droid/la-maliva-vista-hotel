@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import '../api.dart';
+import '../stay_sheets.dart';
 import '../theme.dart';
 import '../widgets.dart';
 
@@ -17,10 +18,31 @@ class RoomsScreen extends StatefulWidget {
 }
 
 class _RoomsScreenState extends State<RoomsScreen> {
-  late Future<List<dynamic>> _rooms = widget.api.rooms();
+  /// The board joins the rooms to the stays holding them, so an occupied room
+  /// shows who is in it and when they are due out — not just a blue pill.
+  late Future<(List<dynamic>, Map<int, Map<String, dynamic>>)> _board = _load();
   final _search = TextEditingController();
   String _query = '';
   String? _status;
+
+  Future<(List<dynamic>, Map<int, Map<String, dynamic>>)> _load() async {
+    final results = await Future.wait([
+      widget.api.rooms(),
+      widget.api.stayMonitor(),
+    ]);
+    final stays =
+        (results[1] as Map<String, dynamic>)['stays'] as List? ?? const [];
+    final byRoom = <int, Map<String, dynamic>>{};
+    for (final raw in stays) {
+      if (raw is! Map) continue;
+      final room = raw['room'];
+      if (room is! Map) continue;
+      final id = (room['id'] as num?)?.toInt();
+      if (id == null) continue;
+      byRoom[id] = raw.cast<String, dynamic>();
+    }
+    return (results[0] as List<dynamic>, byRoom);
+  }
 
   @override
   void dispose() {
@@ -28,20 +50,20 @@ class _RoomsScreenState extends State<RoomsScreen> {
     super.dispose();
   }
 
-  void _reload() => setState(() => _rooms = widget.api.rooms());
+  void _reload() => setState(() => _board = _load());
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<dynamic>>(
-      future: _rooms,
+    return FutureBuilder<(List<dynamic>, Map<int, Map<String, dynamic>>)>(
+      future: _board,
       builder: (context, snap) {
         final loading = snap.connectionState != ConnectionState.done;
-        final all = snap.data ?? const <dynamic>[];
+        final all = snap.data?.$1 ?? const <dynamic>[];
+        final stays = snap.data?.$2 ?? const <int, Map<String, dynamic>>{};
         final statuses = <String>{
           for (final r in all)
             if (r is Map && r['status'] != null) r['status'].toString(),
-        }.toList()
-          ..sort();
+        }.toList()..sort();
 
         final filtered = all.where((raw) {
           if (raw is! Map) return false;
@@ -57,7 +79,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
           color: c(LamalivaColors.orangeMid),
           onRefresh: () async {
             _reload();
-            await _rooms;
+            await _board;
           },
           child: ListView(
             padding: const EdgeInsets.fromLTRB(
@@ -119,8 +141,8 @@ class _RoomsScreenState extends State<RoomsScreen> {
                     builder: (context, constraints) {
                       final wide = constraints.maxWidth >= 720;
                       return wide
-                          ? _table(filtered)
-                          : _cards(filtered);
+                          ? _table(filtered, stays)
+                          : _cards(filtered, stays);
                     },
                   ),
                 ),
@@ -131,7 +153,7 @@ class _RoomsScreenState extends State<RoomsScreen> {
     );
   }
 
-  Widget _table(List<dynamic> rooms) {
+  Widget _table(List<dynamic> rooms, Map<int, Map<String, dynamic>> stays) {
     return Column(
       children: [
         Padding(
@@ -142,12 +164,12 @@ class _RoomsScreenState extends State<RoomsScreen> {
             LamalivaSpace.xs,
           ),
           child: Row(
-            children: [
-              const SizedBox(width: 64, child: Text('Room', style: T.label)),
+            children: const [
+              SizedBox(width: 64, child: Text('Room', style: T.label)),
               Expanded(flex: 3, child: Text('Type', style: T.label)),
-              const SizedBox(width: 72, child: Text('Floor', style: T.label)),
-              const SizedBox(width: 140, child: Text('Rate', style: T.label)),
-              const SizedBox(width: 120, child: Text('Status', style: T.label)),
+              SizedBox(width: 72, child: Text('Floor', style: T.label)),
+              SizedBox(width: 140, child: Text('Rate', style: T.label)),
+              SizedBox(width: 132, child: Text('Status', style: T.label)),
             ],
           ),
         ),
@@ -157,14 +179,19 @@ class _RoomsScreenState extends State<RoomsScreen> {
           Reveal(
             delay: Duration(milliseconds: (i * 24).clamp(0, 300)),
             offset: 8,
-            child: _RoomRow(room: rooms[i] as Map<String, dynamic>),
+            child: _RoomRow(
+              api: widget.api,
+              room: rooms[i] as Map<String, dynamic>,
+              stay: stays[(rooms[i]['id'] as num?)?.toInt()],
+              onChanged: _reload,
+            ),
           ),
         ],
       ],
     );
   }
 
-  Widget _cards(List<dynamic> rooms) {
+  Widget _cards(List<dynamic> rooms, Map<int, Map<String, dynamic>> stays) {
     return Column(
       children: [
         for (var i = 0; i < rooms.length; i++) ...[
@@ -172,7 +199,12 @@ class _RoomsScreenState extends State<RoomsScreen> {
           Reveal(
             delay: Duration(milliseconds: (i * 24).clamp(0, 300)),
             offset: 8,
-            child: _RoomCard(room: rooms[i] as Map<String, dynamic>),
+            child: _RoomCard(
+              api: widget.api,
+              room: rooms[i] as Map<String, dynamic>,
+              stay: stays[(rooms[i]['id'] as num?)?.toInt()],
+              onChanged: _reload,
+            ),
           ),
         ],
       ],
@@ -180,10 +212,44 @@ class _RoomsScreenState extends State<RoomsScreen> {
   }
 }
 
-class _RoomRow extends StatefulWidget {
-  const _RoomRow({required this.room});
+/// The guest and the checkout clock for a room that is currently held.
+class _OccupiedLine extends StatelessWidget {
+  const _OccupiedLine({required this.stay});
 
+  final Map<String, dynamic> stay;
+
+  @override
+  Widget build(BuildContext context) {
+    final clock = (stay['clock'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final guest = (stay['guest'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final overdue = clock['is_overdue'] == true;
+    final money = (stay['money'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final balance = (money['balance'] as num?)?.toDouble() ?? 0;
+    return Text(
+      '${guest['display_name'] ?? 'Guest'}  ·  out ${clockTime(clock['expected_checkout_local'])}'
+      '${balance > 0 ? '  ·  ${formatMoney(balance)} due' : ''}'
+      '${overdue ? '  ·  overdue' : ''}',
+      style: T.micro.copyWith(
+        color: overdue ? c(LamalivaColors.danger) : null,
+        fontWeight: overdue ? FontWeight.w600 : null,
+      ),
+      overflow: TextOverflow.ellipsis,
+    );
+  }
+}
+
+class _RoomRow extends StatefulWidget {
+  const _RoomRow({
+    required this.api,
+    required this.room,
+    required this.stay,
+    required this.onChanged,
+  });
+
+  final LamalivaApi api;
   final Map<String, dynamic> room;
+  final Map<String, dynamic>? stay;
+  final VoidCallback onChanged;
 
   @override
   State<_RoomRow> createState() => _RoomRowState();
@@ -192,70 +258,113 @@ class _RoomRow extends StatefulWidget {
 class _RoomRowState extends State<_RoomRow> {
   bool _hover = false;
 
+  Future<void> _open() async {
+    final stay = widget.stay;
+    if (stay == null) return;
+    await showStaySheet(
+      context,
+      api: widget.api,
+      stay: stay,
+      onChanged: widget.onChanged,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final room = widget.room;
+    final stay = widget.stay;
     final type = (room['room_type'] as Map?)?.cast<String, dynamic>();
     final status = '${room['status'] ?? ''}';
+    final clock = (stay?['clock'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final overdue = clock['is_overdue'] == true;
+    final remaining = (clock['minutes_remaining'] as num?)?.toInt() ?? 0;
     return MouseRegion(
+      cursor: stay == null
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
-      child: AnimatedContainer(
-        duration: LamalivaMotion.instant,
-        color: _hover
-            ? c(LamalivaColors.cream).withValues(alpha: 0.7)
-            : Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: LamalivaSpace.md,
-            vertical: LamalivaSpace.sm,
-          ),
-          child: Row(
-            children: [
-              SizedBox(
-                width: 64,
-                child: Reference('${room['number'] ?? '—'}'),
-              ),
-              Expanded(
-                flex: 3,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${type?['name'] ?? 'Room'}',
-                      style: T.body.copyWith(fontWeight: FontWeight.w500),
-                    ),
-                    if (type?['capacity'] != null)
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: stay == null ? null : _open,
+        child: AnimatedContainer(
+          duration: LamalivaMotion.instant,
+          color: _hover && stay != null
+              ? c(LamalivaColors.cream).withValues(alpha: 0.7)
+              : Colors.transparent,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: LamalivaSpace.md,
+              vertical: LamalivaSpace.sm,
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 64,
+                  child: Reference('${room['number'] ?? '—'}'),
+                ),
+                Expanded(
+                  flex: 3,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Sleeps ${type!['capacity']}'
-                        '${type['size_sqm'] == null ? '' : '  ·  ${type['size_sqm']} m²'}',
-                        style: T.micro,
+                        '${type?['name'] ?? 'Room'}',
+                        style: T.body.copyWith(fontWeight: FontWeight.w500),
                       ),
-                  ],
+                      if (stay != null)
+                        _OccupiedLine(stay: stay)
+                      else if (type?['capacity'] != null)
+                        Text(
+                          'Sleeps ${type!['capacity']}'
+                          '${type['size_sqm'] == null ? '' : '  ·  ${type['size_sqm']} m²'}',
+                          style: T.micro,
+                        ),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(
-                width: 72,
-                child: Text(
-                  '${room['floor'] ?? '—'}',
-                  style: T.bodyMuted,
+                SizedBox(
+                  width: 72,
+                  child: Text('${room['floor'] ?? '—'}', style: T.bodyMuted),
                 ),
-              ),
-              SizedBox(
-                width: 140,
-                child: Text(
-                  formatMoney(type?['base_rate']),
-                  style: T.numeral.copyWith(color: c(LamalivaColors.inkMuted)),
+                SizedBox(
+                  width: 140,
+                  child: Text(
+                    formatMoney(type?['base_rate']),
+                    style: T.numeral.copyWith(
+                      color: c(LamalivaColors.inkMuted),
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(
-                width: 120,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: StatusPill(status: status),
+                SizedBox(
+                  width: 132,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        StatusPill(status: status),
+                        if (stay != null &&
+                            clock['minutes_remaining'] != null) ...[
+                          const SizedBox(height: 4),
+                          StayCountdown(
+                            minutes: remaining,
+                            overdue: overdue,
+                            prefix: overdue ? '+' : '',
+                            style: T.micro.copyWith(
+                              color: overdue
+                                  ? c(LamalivaColors.danger)
+                                  : c(LamalivaColors.inkMuted),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -264,56 +373,99 @@ class _RoomRowState extends State<_RoomRow> {
 }
 
 class _RoomCard extends StatelessWidget {
-  const _RoomCard({required this.room});
+  const _RoomCard({
+    required this.api,
+    required this.room,
+    required this.stay,
+    required this.onChanged,
+  });
 
+  final LamalivaApi api;
   final Map<String, dynamic> room;
+  final Map<String, dynamic>? stay;
+  final VoidCallback onChanged;
+
+  Future<void> _open(BuildContext context) async {
+    final current = stay;
+    if (current == null) return;
+    await showStaySheet(context, api: api, stay: current, onChanged: onChanged);
+  }
 
   @override
   Widget build(BuildContext context) {
     final type = (room['room_type'] as Map?)?.cast<String, dynamic>();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: LamalivaSpace.sm,
-        vertical: LamalivaSpace.sm,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: c(LamalivaColors.navy800),
-              borderRadius: BorderRadius.circular(LamalivaShape.card),
-            ),
-            child: Center(
-              child: Text(
-                '${room['number'] ?? '—'}',
-                style: T.numeral.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
+    final clock = (stay?['clock'] as Map?)?.cast<String, dynamic>() ?? const {};
+    final overdue = clock['is_overdue'] == true;
+    final remaining = (clock['minutes_remaining'] as num?)?.toInt() ?? 0;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: stay == null ? null : () => _open(context),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: LamalivaSpace.sm,
+          vertical: LamalivaSpace.sm,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: c(LamalivaColors.navy800),
+                borderRadius: BorderRadius.circular(LamalivaShape.card),
+              ),
+              child: Center(
+                child: Text(
+                  '${room['number'] ?? '—'}',
+                  style: T.numeral.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: LamalivaSpace.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(width: LamalivaSpace.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${type?['name'] ?? 'Room'}',
+                    style: T.body.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 2),
+                  if (stay != null)
+                    _OccupiedLine(stay: stay!)
+                  else
+                    Text(
+                      'Floor ${room['floor'] ?? '—'}  ·  ${formatMoney(type?['base_rate'])}',
+                      style: T.micro,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: LamalivaSpace.xs),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '${type?['name'] ?? 'Room'}',
-                  style: T.body.copyWith(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Floor ${room['floor'] ?? '—'}  ·  ${formatMoney(type?['base_rate'])}',
-                  style: T.micro,
-                ),
+                StatusPill(status: '${room['status'] ?? ''}', compact: true),
+                if (stay != null && clock['minutes_remaining'] != null) ...[
+                  const SizedBox(height: 3),
+                  StayCountdown(
+                    minutes: remaining,
+                    overdue: overdue,
+                    prefix: overdue ? '+' : '',
+                    style: T.micro.copyWith(
+                      color: overdue
+                          ? c(LamalivaColors.danger)
+                          : c(LamalivaColors.inkMuted),
+                    ),
+                  ),
+                ],
               ],
             ),
-          ),
-          StatusPill(status: '${room['status'] ?? ''}', compact: true),
-        ],
+          ],
+        ),
       ),
     );
   }

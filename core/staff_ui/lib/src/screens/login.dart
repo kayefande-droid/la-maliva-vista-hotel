@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:lamaliva_design/lamaliva_design.dart';
 
@@ -27,14 +28,8 @@ const List<_LandingSlide> _landingSlides = <_LandingSlide>[
     'assets/img/mount-cameroon-dawn.jpg',
     'Mount Cameroon at first light',
   ),
-  _LandingSlide(
-    'assets/img/mount-cameroon-dusk.jpg',
-    'Dusk over the mountain',
-  ),
-  _LandingSlide(
-    'assets/img/mount-cameroon-ndongo.jpg',
-    'Ndongo, above Buea',
-  ),
+  _LandingSlide('assets/img/mount-cameroon-dusk.jpg', 'Dusk over the mountain'),
+  _LandingSlide('assets/img/mount-cameroon-ndongo.jpg', 'Ndongo, above Buea'),
 ];
 
 /// A slow carousel behind the sign-in form: each photograph cross-fades while
@@ -126,74 +121,133 @@ class _PhotoCarouselState extends State<_PhotoCarousel>
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final dpr = MediaQuery.devicePixelRatioOf(context);
-        // Decode only as wide as this panel can show: a 1920px photo behind a
-        // 700px panel otherwise costs four times the texture memory.
-        final decodeWidth =
-            (constraints.maxWidth * dpr).round().clamp(480, 2400);
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            ExcludeSemantics(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  for (var i = 0; i < _landingSlides.length; i++)
-                    AnimatedOpacity(
-                      opacity: i == _index ? 1 : 0,
-                      duration: _calm ? Duration.zero : _fade,
-                      curve: Curves.easeInOutCubic,
-                      child: AnimatedBuilder(
-                        animation: _drift,
-                        builder: (context, child) => Transform.scale(
-                          scale: _calm
-                              ? 1
-                              : 1.03 +
-                                  0.055 *
-                                      Curves.easeInOut.transform(_drift.value),
-                          child: child,
-                        ),
-                        child: Image.asset(
-                          _landingSlides[i].asset,
-                          fit: BoxFit.cover,
-                          alignment: Alignment.center,
-                          filterQuality: FilterQuality.high,
-                          cacheWidth: decodeWidth,
+    // The hero is a photograph: dark status-bar glyphs vanish against the
+    // mountain. Light glyphs with a transparent bar belong to this screen only.
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final dpr = MediaQuery.devicePixelRatioOf(context);
+          // Decode only as wide as this panel can show: a 1920px photo behind a
+          // 700px panel otherwise costs four times the texture memory.
+          final decodeWidth = (constraints.maxWidth * dpr).round().clamp(
+            480,
+            2400,
+          );
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              ExcludeSemantics(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    for (var i = 0; i < _landingSlides.length; i++)
+                      AnimatedOpacity(
+                        opacity: i == _index ? 1 : 0,
+                        duration: _calm ? Duration.zero : _fade,
+                        curve: Curves.easeInOutCubic,
+                        child: AnimatedBuilder(
+                          animation: _drift,
+                          builder: (context, child) => Transform.scale(
+                            scale: _calm
+                                ? 1
+                                : 1.03 +
+                                      0.055 *
+                                          Curves.easeInOut.transform(
+                                            _drift.value,
+                                          ),
+                            child: child,
+                          ),
+                          child: Image.asset(
+                            _landingSlides[i].asset,
+                            fit: BoxFit.cover,
+                            alignment: Alignment.center,
+                            filterQuality: FilterQuality.high,
+                            cacheWidth: decodeWidth,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            Semantics(
-              image: true,
-              label:
-                  'Photographs of Buea, the Fako foothills and Mount Cameroon',
-              child: const SizedBox.expand(),
-            ),
-            Positioned(
-              right: LamalivaSpace.lg,
-              bottom: LamalivaSpace.lg,
-              // A fixed column width: AnimatedSwitcher lays its children out in
-              // a loose Stack, and unconstrained text would overrun the panel.
-              child: SizedBox(
-                width: 208,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _caption(),
-                    const SizedBox(height: LamalivaSpace.xs),
-                    _ticks(),
                   ],
                 ),
               ),
-            ),
-          ],
-        );
-      },
+              Semantics(
+                image: true,
+                label:
+                    'Photographs of Buea, the Fako foothills and Mount Cameroon',
+                child: const SizedBox.expand(),
+              ),
+              // The transparent status bar draws white glyphs straight onto the
+              // photograph; on the pale first-light frame they fell to ~2.5:1.
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                height: 132,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: const [Color(0x59000000), Color(0x00000000)],
+                        stops: const [0, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              // A scrim, not decoration: the captions and page ticks sit over
+              // whatever the photograph offers, and pale sky was swallowing them.
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 240,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        // Measured against the pale first-light frame: the old
+                        // two-stop ramp left only ~19% black behind the caption.
+                        colors: const [
+                          Color(0x00000000),
+                          Color(0x8C000000),
+                          Color(0xB3000000),
+                        ],
+                        stops: const [0.18, 0.62, 1],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                right: LamalivaSpace.lg,
+                bottom: LamalivaSpace.lg,
+                // A fixed column width: AnimatedSwitcher lays its children out in
+                // a loose Stack, and unconstrained text would overrun the panel.
+                child: SizedBox(
+                  width: 208,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _caption(),
+                      const SizedBox(height: LamalivaSpace.xs),
+                      _ticks(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -225,11 +279,11 @@ class _PhotoCarouselState extends State<_PhotoCarousel>
               maxLines: 2,
               style: TextStyle(
                 fontFamily: LamalivaType.uiFamily,
-                fontSize: 10.5,
+                fontSize: 11,
                 height: 1.5,
                 letterSpacing: 1.6,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.94),
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
                 shadows: const [
                   Shadow(blurRadius: 16, color: Color(0x99000000)),
                   Shadow(blurRadius: 4, color: Color(0x66000000)),
@@ -238,11 +292,7 @@ class _PhotoCarouselState extends State<_PhotoCarousel>
             ),
           ),
           const SizedBox(height: 6),
-          Container(
-            width: 26,
-            height: 1.5,
-            color: c(LamalivaColors.orangeMid),
-          ),
+          Container(width: 26, height: 1.5, color: c(LamalivaColors.orangeMid)),
         ],
       ),
     );
@@ -262,8 +312,8 @@ class _PhotoCarouselState extends State<_PhotoCarousel>
               onTap: () => _show(i),
               behavior: HitTestBehavior.opaque,
               child: SizedBox(
-                width: 24,
-                height: 24,
+                width: 26,
+                height: 32,
                 child: Center(
                   child: AnimatedContainer(
                     duration: _calm
@@ -274,7 +324,7 @@ class _PhotoCarouselState extends State<_PhotoCarousel>
                     height: 2,
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(
-                        alpha: i == _index ? 0.95 : 0.4,
+                        alpha: i == _index ? 1 : 0.55,
                       ),
                       borderRadius: BorderRadius.circular(2),
                     ),
@@ -352,10 +402,8 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _changeServer() async {
     await showDialog<void>(
       context: context,
-      builder: (_) => ServerDialog(
-        api: widget.api,
-        onSaved: widget.onServerSelected,
-      ),
+      builder: (_) =>
+          ServerDialog(api: widget.api, onSaved: widget.onServerSelected),
     );
     if (mounted) setState(() => _error = null);
   }
@@ -410,7 +458,10 @@ class _LoginScreenState extends State<LoginScreen> {
     return SingleChildScrollView(
       child: Column(
         children: [
-          SizedBox(height: photoHeight, child: _photoPanel(photoHeight, compact: true)),
+          SizedBox(
+            height: photoHeight,
+            child: _photoPanel(photoHeight, compact: true),
+          ),
           Padding(
             padding: EdgeInsets.fromLTRB(
               LamalivaSpace.lg,
@@ -450,7 +501,9 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.all(compact ? LamalivaSpace.lg : LamalivaSpace.xxl),
+            padding: EdgeInsets.all(
+              compact ? LamalivaSpace.lg : LamalivaSpace.xxl,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -487,27 +540,27 @@ class _LoginScreenState extends State<LoginScreen> {
                   Reveal(
                     delay: const Duration(milliseconds: 120),
                     child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'A taste of paradise\nabove the coast',
-                        style: TextStyle(
-                          fontFamily: LamalivaType.displayFamily,
-                          fontSize: 42,
-                          height: 1.12,
-                          fontWeight: FontWeight.w500,
-                          fontStyle: FontStyle.italic,
-                          color: Colors.white,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'A taste of paradise\nabove the coast',
+                          style: TextStyle(
+                            fontFamily: LamalivaType.displayFamily,
+                            fontSize: 42,
+                            height: 1.12,
+                            fontWeight: FontWeight.w500,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.white,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: LamalivaSpace.md),
-                      Container(
-                        width: 56,
-                        height: 2,
-                        color: c(LamalivaColors.orangeMid),
-                      ),
-                      const SizedBox(height: LamalivaSpace.sm),
-                    ],
+                        const SizedBox(height: LamalivaSpace.md),
+                        Container(
+                          width: 56,
+                          height: 2,
+                          color: c(LamalivaColors.orangeMid),
+                        ),
+                        const SizedBox(height: LamalivaSpace.sm),
+                      ],
                     ),
                   ),
               ],
@@ -557,7 +610,9 @@ class _LoginScreenState extends State<LoginScreen> {
             suffixIcon: IconButton(
               tooltip: _obscure ? 'Show password' : 'Hide password',
               icon: Icon(
-                _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                _obscure
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
                 size: 18,
               ),
               onPressed: () => setState(() => _obscure = !_obscure),
@@ -642,7 +697,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 minimumSize: const Size(0, 32),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text('Change', style: T.micro.copyWith(fontWeight: FontWeight.w600)),
+              child: Text(
+                'Change',
+                style: T.micro.copyWith(fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),

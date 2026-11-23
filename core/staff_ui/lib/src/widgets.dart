@@ -247,11 +247,7 @@ class EmptyPanel extends StatelessWidget {
           const SizedBox(height: LamalivaSpace.xxs),
           SizedBox(
             width: 320,
-            child: Text(
-              body,
-              textAlign: TextAlign.center,
-              style: T.bodyMuted,
-            ),
+            child: Text(body, textAlign: TextAlign.center, style: T.bodyMuted),
           ),
         ],
       ),
@@ -291,7 +287,11 @@ class ErrorPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: LamalivaSpace.md),
-          GhostButton(label: 'Try again', icon: Icons.refresh, onPressed: onRetry),
+          GhostButton(
+            label: 'Try again',
+            icon: Icons.refresh,
+            onPressed: onRetry,
+          ),
         ],
       ),
     );
@@ -318,7 +318,8 @@ class FilterBar extends StatelessWidget {
       child: Row(
         children: [
           _chip('All', null),
-          for (final option in options) _chip(StatusPill.labelFor(option), option),
+          for (final option in options)
+            _chip(StatusPill.labelFor(option), option),
         ],
       ),
     );
@@ -341,7 +342,9 @@ class FilterBar extends StatelessWidget {
               color: active ? c(LamalivaColors.navy800) : Colors.white,
               borderRadius: BorderRadius.circular(LamalivaShape.pill),
               border: Border.all(
-                color: active ? c(LamalivaColors.navy800) : c(LamalivaColors.line),
+                color: active
+                    ? c(LamalivaColors.navy800)
+                    : c(LamalivaColors.line),
               ),
             ),
             child: Center(
@@ -517,10 +520,8 @@ class CountedFigure extends StatelessWidget {
       tween: Tween(begin: 0, end: end),
       duration: LamalivaMotion.deliberate * 1.6,
       curve: const Cubic(0.16, 1.0, 0.3, 1.0),
-      builder: (context, v, _) => Text(
-        '${v.toStringAsFixed(decimals)}$suffix',
-        style: text,
-      ),
+      builder: (context, v, _) =>
+          Text('${v.toStringAsFixed(decimals)}$suffix', style: text),
     );
   }
 }
@@ -528,8 +529,18 @@ class CountedFigure extends StatelessWidget {
 String formatDate(String? iso) {
   if (iso == null || iso.length < 10) return '—';
   const months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
   ];
   final parts = iso.substring(0, 10).split('-');
   if (parts.length != 3) return iso;
