@@ -17,12 +17,16 @@ from ._util import body, iso, page_args, paginated
 
 bp = Blueprint("staff", __name__)
 
+PLACEHOLDER_EMAIL_DOMAIN = "staff.lamaliva.local"
+
 
 def serialize_staff(row: Staff) -> dict:
     return {
         "id": row.id,
         "username": row.username,
-        "email": row.email,
+        "email": None
+        if (row.email or "").endswith("@" + PLACEHOLDER_EMAIL_DOMAIN)
+        else row.email,
         "full_name": row.full_name,
         "role": row.role,
         "status": row.status,
@@ -66,6 +70,12 @@ def create_staff():
         return json_error(409, "duplicate_username", "That username already exists.")
     if email and db.session.scalar(db.select(Staff).where(Staff.email == email)) is not None:
         return json_error(409, "duplicate_email", "That email is already in use.")
+
+    # Email is optional in the desk form, but the column is required and
+    # unique; a username-based placeholder keeps both true without inventing
+    # an address the hotel would send mail to. It is hidden again on the way
+    # out, so the admin only ever sees the address they typed.
+    email = email or f"{username}@{PLACEHOLDER_EMAIL_DOMAIN}"
 
     provided = str(data.get("password") or "").strip()
     generated = not provided
