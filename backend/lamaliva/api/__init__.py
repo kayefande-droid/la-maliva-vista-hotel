@@ -22,6 +22,7 @@ from .reports import bp as reports_bp  # noqa: E402
 from .reservations import bp as reservations_bp  # noqa: E402
 from .stays import bp as stays_bp  # noqa: E402
 from .rooms import bp as rooms_bp  # noqa: E402
+from .sales import bp as sales_bp  # noqa: E402
 from .staff import bp as staff_bp  # noqa: E402
 
 api_bp.register_blueprint(auth_bp, url_prefix="/auth")
@@ -33,6 +34,7 @@ api_bp.register_blueprint(staff_bp, url_prefix="/staff")
 api_bp.register_blueprint(reservations_bp, url_prefix="/reservations")
 api_bp.register_blueprint(stays_bp, url_prefix="/stays")
 api_bp.register_blueprint(inventory_bp, url_prefix="/inventory")
+api_bp.register_blueprint(sales_bp, url_prefix="/shop")
 api_bp.register_blueprint(reports_bp, url_prefix="/reports")
 api_bp.register_blueprint(audit_bp, url_prefix="/audit")
 api_bp.register_blueprint(notifications_bp, url_prefix="")

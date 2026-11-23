@@ -11,7 +11,9 @@ import 'screens/admin.dart';
 import 'screens/guests.dart';
 import 'screens/inventory.dart';
 import 'screens/login.dart';
+import 'screens/money.dart';
 import 'screens/register_guest.dart';
+import 'screens/shop.dart';
 import 'screens/overview.dart';
 import 'screens/reservations.dart';
 import 'screens/rooms.dart';
@@ -103,6 +105,7 @@ class _Destination {
     this.title,
     this.subtitle, {
     this.adminOnly = false,
+    this.managersOnly = false,
   });
 
   final String label;
@@ -111,6 +114,7 @@ class _Destination {
   final String title;
   final String subtitle;
   final bool adminOnly;
+  final bool managersOnly;
 }
 
 const _destinations = <_Destination>[
@@ -148,6 +152,21 @@ const _destinations = <_Destination>[
     Icons.inventory_2,
     'Stock',
     'What the store room holds, and every movement in or out.',
+  ),
+  _Destination(
+    'Shop',
+    Icons.storefront_outlined,
+    Icons.storefront,
+    'Shop',
+    'Food and drinks sold from the shelf, and the till total for today.',
+  ),
+  _Destination(
+    'Money',
+    Icons.payments_outlined,
+    Icons.payments,
+    'Money',
+    'What the hotel earned today, week by week and month by month.',
+    managersOnly: true,
   ),
   _Destination(
     'Admin',
@@ -221,25 +240,31 @@ class _SessionShellState extends State<SessionShell> {
     });
   }
 
-  List<_Destination> get _items => widget.api.isAdmin
-      ? _destinations
-      : _destinations.where((d) => !d.adminOnly).toList();
+  List<_Destination> get _items => _destinations
+      .where((d) => !d.adminOnly || widget.api.isAdmin)
+      .where((d) => !d.managersOnly || widget.api.canSeeMoney)
+      .toList();
 
   Widget _screen() {
     final key = ValueKey('${_index}_$_refresh');
-    switch (_index) {
-      case 0:
-        return OverviewScreen(key: key, api: widget.api);
-      case 1:
+    final label = _items[_index].label;
+    switch (label) {
+      case 'Rooms':
         return RoomsScreen(key: key, api: widget.api);
-      case 2:
+      case 'Bookings':
         return ReservationsScreen(key: key, api: widget.api);
-      case 3:
+      case 'Guests':
         return GuestsScreen(key: key, api: widget.api);
-      case 4:
+      case 'Stock':
         return InventoryScreen(key: key, api: widget.api);
-      default:
+      case 'Shop':
+        return ShopScreen(key: key, api: widget.api);
+      case 'Money':
+        return MoneyScreen(key: key, api: widget.api);
+      case 'Admin':
         return AdminScreen(key: key, api: widget.api);
+      default:
+        return OverviewScreen(key: key, api: widget.api);
     }
   }
 
@@ -427,6 +452,10 @@ class _SessionShellState extends State<SessionShell> {
 
   Widget _mobileNav() {
     final items = _items;
+    // A phone bar holds four destinations comfortably; the rest live behind
+    // More, so no label is squeezed into an unreadable sliver.
+    final crowded = items.length > 5;
+    final shown = crowded ? items.take(4).toList() : items;
     return Container(
       decoration: BoxDecoration(
         color: c(LamalivaColors.navy900),
@@ -440,37 +469,69 @@ class _SessionShellState extends State<SessionShell> {
           height: 60,
           child: Row(
             children: [
-              for (var i = 0; i < items.length; i++)
+              for (var i = 0; i < shown.length; i++)
                 Expanded(
                   child: _NavTap(
                     onTap: () => setState(() => _index = i),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _index == i ? items[i].selectedIcon : items[i].icon,
-                          size: 20,
-                          color: _index == i
-                              ? c(LamalivaColors.orangeStart)
-                              : Colors.white.withValues(alpha: 0.66),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          items[i].label,
-                          style: TextStyle(
-                            fontFamily: LamalivaType.uiFamily,
-                            fontSize: 11,
-                            fontWeight: _index == i
-                                ? FontWeight.w600
-                                : FontWeight.w400,
-                            color: _index == i
-                                ? Colors.white
-                                : Colors.white.withValues(alpha: 0.66),
-                          ),
-                        ),
-                      ],
+                    child: _NavColumn(
+                      selected: _index == i,
+                      icon: _index == i ? items[i].selectedIcon : items[i].icon,
+                      label: items[i].label,
                     ),
                   ),
+                ),
+              if (crowded)
+                Expanded(
+                  child: _NavTap(
+                    onTap: () => _showMore(items.skip(4).toList()),
+                    child: const _NavColumn(
+                      selected: false,
+                      icon: Icons.more_horiz,
+                      label: 'More',
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showMore(List<_Destination> rest) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(LamalivaShape.panel),
+        ),
+      ),
+      builder: (sheet) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: LamalivaSpace.sm),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final item in rest)
+                ListTile(
+                  leading: Icon(
+                    item.icon,
+                    size: 20,
+                    color: c(LamalivaColors.navy800),
+                  ),
+                  title: Text(item.label, style: T.body),
+                  subtitle: Text(
+                    item.subtitle,
+                    style: T.micro,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () {
+                    final target = _items.indexOf(item);
+                    Navigator.of(sheet).pop();
+                    if (target >= 0) setState(() => _index = target);
+                  },
                 ),
             ],
           ),
@@ -726,6 +787,46 @@ class _RailItemState extends State<_RailItem> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NavColumn extends StatelessWidget {
+  const _NavColumn({
+    required this.selected,
+    required this.icon,
+    required this.label,
+  });
+
+  final bool selected;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: selected
+              ? c(LamalivaColors.orangeStart)
+              : Colors.white.withValues(alpha: 0.66),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: TextStyle(
+            fontFamily: LamalivaType.uiFamily,
+            fontSize: 11,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected
+                ? Colors.white
+                : Colors.white.withValues(alpha: 0.66),
+          ),
+        ),
+      ],
     );
   }
 }

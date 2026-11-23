@@ -457,6 +457,9 @@ class InventoryItem(TimestampMixin, db.Model):
     quantity = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     reorder_level = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     unit_cost = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    # What the desk charges when this item leaves as a shop sale (food,
+    # drinks, sundries). Cost stays separate so the margin is always visible.
+    sale_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
     location = db.Column(db.String(80), nullable=True)
     active = db.Column(db.Boolean, nullable=False, default=True)
 
@@ -480,6 +483,34 @@ class StockMovement(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
 
     item = db.relationship("InventoryItem", back_populates="movements")
+
+
+class ShopSale(TimestampMixin, db.Model):
+    """One till sale from the store room: food, drinks and sundries.
+
+    Append-only like payments: a mistaken sale is corrected with a manager
+    adjustment, never by editing history. The matching stock movement leaves
+    in the same transaction, so the shelf and the till always reconcile.
+    """
+
+    __tablename__ = "shop_sale"
+
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(
+        db.Integer, db.ForeignKey("inventory_item.id"), nullable=False, index=True
+    )
+    item_name = db.Column(db.String(120), nullable=False, default="")
+    quantity = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    unit_price = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    total = db.Column(db.Numeric(12, 2), nullable=False, default=0)
+    currency = db.Column(db.String(8), nullable=False, default="XAF")
+    method = db.Column(db.String(24), nullable=False, default="cash")
+    # Offline replays reuse the client's reference; the server applies it once.
+    reference = db.Column(db.String(64), nullable=True, unique=True, index=True)
+    staff_id = db.Column(db.Integer, db.ForeignKey("staff.id"), nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=utcnow, index=True)
+
+    item = db.relationship("InventoryItem")
 
 
 class AuditLog(db.Model):

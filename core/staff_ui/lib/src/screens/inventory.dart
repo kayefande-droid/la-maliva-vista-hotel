@@ -252,6 +252,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
     final quantity = TextEditingController();
     final reorder = TextEditingController();
     final cost = TextEditingController();
+    final price = TextEditingController();
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -296,6 +297,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Unit cost (XAF)'),
               ),
+              const SizedBox(height: LamalivaSpace.sm),
+              TextField(
+                controller: price,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Selling price (XAF, for the shop till)',
+                ),
+              ),
             ],
           ),
         ),
@@ -323,6 +332,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         quantity: num.tryParse(quantity.text.trim()) ?? 0,
         reorderLevel: num.tryParse(reorder.text.trim()) ?? 0,
         unitCost: num.tryParse(cost.text.trim()) ?? 0,
+        salePrice: num.tryParse(price.text.trim()) ?? 0,
       );
       _reload();
       _toast('Item created.');
@@ -334,6 +344,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
   Future<void> _editItem(Map<String, dynamic> item) async {
     final reorder = TextEditingController(text: '${item['reorder_level']}');
     final cost = TextEditingController(text: '${item['unit_cost']}');
+    final price = TextEditingController(text: '${item['sale_price'] ?? 0}');
     final saved = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -359,6 +370,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(labelText: 'Unit cost (XAF)'),
             ),
+            const SizedBox(height: LamalivaSpace.sm),
+            TextField(
+              controller: price,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Selling price (XAF) — 0 hides it from the till',
+              ),
+            ),
           ],
         ),
         actions: [
@@ -378,6 +397,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
       await widget.api.updateItem(item['id'] as int, {
         'reorder_level': num.tryParse(reorder.text.trim()) ?? 0,
         'unit_cost': num.tryParse(cost.text.trim()) ?? 0,
+        'sale_price': num.tryParse(price.text.trim()) ?? 0,
       });
       _reload();
       _toast('Item updated.');
@@ -459,7 +479,12 @@ class _ItemRow extends StatelessWidget {
                         : c(LamalivaColors.navy800),
                   ),
                 ),
-                Text(formatMoney(item['unit_cost']), style: T.micro),
+                Text(
+                  (item['sale_price'] as num? ?? 0) > 0
+                      ? 'sells ${formatMoney(item['sale_price'])}'
+                      : 'cost ${formatMoney(item['unit_cost'])}',
+                  style: T.micro,
+                ),
               ],
             ),
             const SizedBox(width: LamalivaSpace.sm),

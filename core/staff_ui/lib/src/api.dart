@@ -432,6 +432,51 @@ class LamalivaApi {
     () async => _list(await _request('GET', '/guests/id-types')),
   );
 
+  /// Money screens carry the night's takings, so they stay with management.
+  bool get canSeeMoney => staffRole == 'admin' || staffRole == 'manager';
+
+  Future<Map<String, dynamic>> moneyReport({int days = 30}) async {
+    final today = DateTime.now();
+    String iso(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-'
+        '${d.month.toString().padLeft(2, '0')}-'
+        '${d.day.toString().padLeft(2, '0')}';
+    final from = iso(today.subtract(Duration(days: days - 1)));
+    final res = await _request(
+      'GET',
+      '/reports/money?from=$from&to=${iso(today)}',
+    );
+    return (res['data'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
+  /// Today's till: the recent sales and their money total.
+  Future<(List<dynamic>, Map<String, dynamic>)> shopSales() async {
+    final res = await _request('GET', '/shop/sales');
+    final meta = (res['totals'] as Map?)?.cast<String, dynamic>() ?? const {};
+    return (_list(res), meta);
+  }
+
+  Future<Map<String, dynamic>> recordSale({
+    required int itemId,
+    required num quantity,
+    num? unitPrice,
+    String method = 'cash',
+    String? reference,
+  }) async {
+    final res = await _request(
+      'POST',
+      '/shop/sales',
+      body: {
+        'item_id': itemId,
+        'quantity': quantity,
+        if (unitPrice != null) 'unit_price': unitPrice,
+        'method': method,
+        if (reference != null) 'reference': reference,
+      },
+    );
+    return (res['data'] as Map?)?.cast<String, dynamic>() ?? const {};
+  }
+
   Future<List<dynamic>> inventoryItems() async => _cachedList(
     'inventory.items',
     () async => _list(await _request('GET', '/inventory/items')),
@@ -464,6 +509,7 @@ class LamalivaApi {
     num quantity = 0,
     num reorderLevel = 0,
     num unitCost = 0,
+    num salePrice = 0,
     String category = 'general',
     String? location,
   }) async {
@@ -476,6 +522,7 @@ class LamalivaApi {
         'quantity': quantity,
         'reorder_level': reorderLevel,
         'unit_cost': unitCost,
+        'sale_price': salePrice,
         'category': category,
         if (location != null && location.trim().isNotEmpty)
           'location': location.trim(),

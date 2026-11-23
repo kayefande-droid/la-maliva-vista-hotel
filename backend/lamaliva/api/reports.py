@@ -1,26 +1,46 @@
 """Reports: occupancy, arrivals, revenue and inventory. No fabricated numbers."""
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 from flask import Blueprint, jsonify, request
 
 from ..extensions import db
 from ..models import (
     EXTENSION_PENDING,
+    PAYMENT_IN,
+    PAYMENT_REFUND,
     RES_CHECKED_IN,
     RES_CHECKED_OUT,
     RES_CONFIRMED,
     InventoryItem,
+    Payment,
     Reservation,
     Room,
     RoomType,
+    ShopSale,
     Staff,
     StayExtension,
     utcnow,
 )
 from ..security import json_error, require_auth, require_permission
 from ..stay import load_policy, stay_state
+
+
+def hotel_today() -> date:
+    """The day it is at the hotel, not on whatever server hosts the API."""
+    return datetime.now(load_policy().tz).date()
+
+
+def _utc_bounds(day: date) -> tuple[datetime, datetime]:
+    """A hotel-local day expressed as naive UTC, for the naive timestamp columns."""
+    tz = load_policy().tz
+    start = datetime(day.year, day.month, day.day, tzinfo=tz)
+    end = start + timedelta(days=1)
+    return (
+        start.astimezone(timezone.utc).replace(tzinfo=None),
+        end.astimezone(timezone.utc).replace(tzinfo=None),
+    )
 
 bp = Blueprint("reports", __name__)
 
@@ -53,7 +73,7 @@ def _stay_counts() -> dict:
 
 
 def _range():
-    today = date.today()
+    today = hotel_today()
     try:
         since = date.fromisoformat(request.args.get("from") or (today - timedelta(days=30)).isoformat())
         until = date.fromisoformat(request.args.get("to") or today.isoformat())
@@ -202,6 +222,135 @@ def occupancy():
             }
         }
     )
+
+
+def _money_day(value) -> dict:
+    """Cash actually banked on one local day, split by where it came from.
+
+    Rooms are the payments posted against a stay (append-only, refunds
+    subtracted); shop is the till. A checked-out stay does not double count:
+    its money was already received through those payments.
+    """
+    day = date.fromisoformat(value)
+    start, end = _utc_bounds(day)
+
+    received = float(
+        db.session.scalar(
+            db.select(db.func.coalesce(db.func.sum(Payment.amount), 0)).where(
+                Payment.kind == PAYMENT_IN,
+                Payment.created_at >= start,
+                Payment.created_at < end,
+            )
+        )
+        or 0
+    )
+    refunded = float(
+        db.session.scalar(
+            db.select(db.func.coalesce(db.func.sum(Payment.amount), 0)).where(
+                Payment.kind == PAYMENT_REFUND,
+                Payment.created_at >= start,
+                Payment.created_at < end,
+            )
+        )
+        or 0
+    )
+    shop = float(
+        db.session.scalar(
+            db.select(db.func.coalesce(db.func.sum(ShopSale.total), 0)).where(
+                ShopSale.created_at >= start,
+                ShopSale.created_at < end,
+            )
+        )
+        or 0
+    )
+    return {
+        "date": value,
+        "rooms": round(received - refunded, 2),
+        "shop": round(shop, 2),
+        "total": round(received - refunded + shop, 2),
+    }
+
+
+def _bucket_rows(since: date, until: date) -> list[dict]:
+    return [_money_day(cursor.isoformat()) for cursor in _dates(since, until)]
+
+
+def _dates(since: date, until: date):
+    cursor = since
+    while cursor <= until:
+        yield cursor
+        cursor += timedelta(days=1)
+
+
+@bp.get("/money")
+@require_auth
+@require_permission("report:financial")
+def money():
+    """The hotel's earnings, day by day, week by week and month by month.
+
+    Every figure is money already received (payments and till sales), never a
+    projection: a booking only appears here once the guest has actually paid.
+    """
+    since, until = _range()
+    if since is None:
+        return json_error(400, "invalid_range", "from/to must be ISO dates.")
+
+    daily = _bucket_rows(since, until)
+
+    weeks: dict[str, dict] = {}
+    months: dict[str, dict] = {}
+    for row in daily:
+        day = date.fromisoformat(row["date"])
+        monday = day - timedelta(days=day.weekday())
+        week_key = monday.isoformat()
+        week = weeks.setdefault(
+            week_key,
+            {"week_start": week_key, "rooms": 0.0, "shop": 0.0, "total": 0.0},
+        )
+        month_key = day.strftime("%Y-%m")
+        month = months.setdefault(
+            month_key,
+            {"month": month_key, "rooms": 0.0, "shop": 0.0, "total": 0.0},
+        )
+        for bucket in (week, month):
+            bucket["rooms"] = round(bucket["rooms"] + row["rooms"], 2)
+            bucket["shop"] = round(bucket["shop"] + row["shop"], 2)
+            bucket["total"] = round(bucket["total"] + row["total"], 2)
+
+    today = hotel_today()
+    start_of_month = today.replace(day=1)
+    return jsonify(
+        {
+            "data": {
+                "currency": "XAF",
+                "range": {"from": since.isoformat(), "to": until.isoformat()},
+                "today": next(
+                    (row for row in daily if row["date"] == today.isoformat()),
+                    _zero_day(today.isoformat()),
+                ),
+                "this_month": _period_total(start_of_month, today),
+                "daily": daily,
+                "weekly": list(weeks.values()),
+                "monthly": list(months.values()),
+                "note": "Money already received from rooms and the shop; not a projection.",
+            }
+        }
+    )
+
+
+def _zero_day(value: str) -> dict:
+    return {"date": value, "rooms": 0.0, "shop": 0.0, "total": 0.0}
+
+
+def _period_total(since: date, until: date) -> dict:
+    rows = _bucket_rows(since, until)
+    return {
+        "from": since.isoformat(),
+        "to": until.isoformat(),
+        "rooms": round(sum(row["rooms"] for row in rows), 2),
+        "shop": round(sum(row["shop"] for row in rows), 2),
+        "total": round(sum(row["total"] for row in rows), 2),
+    }
 
 
 @bp.get("/revenue")

@@ -30,6 +30,7 @@ def serialize_item(item: InventoryItem) -> dict:
         "quantity": float(item.quantity or 0),
         "reorder_level": float(item.reorder_level or 0),
         "unit_cost": money(item.unit_cost),
+        "sale_price": money(item.sale_price),
         "location": item.location,
         "low_stock": item.is_low,
         "updated_at": iso(item.updated_at),
@@ -112,6 +113,7 @@ def create_item():
         quantity=data.get("quantity") or 0,
         reorder_level=data.get("reorder_level") or 0,
         unit_cost=data.get("unit_cost") or 0,
+        sale_price=data.get("sale_price") or 0,
         location=(data.get("location") or None),
     )
     db.session.add(item)
@@ -225,6 +227,8 @@ def update_item(item_id: int):
         item.reorder_level = data["reorder_level"]
     if "unit_cost" in data:
         item.unit_cost = data["unit_cost"]
+    if "sale_price" in data:
+        item.sale_price = data["sale_price"]
     audit(
         "inventory.item_updated",
         "inventory_item",

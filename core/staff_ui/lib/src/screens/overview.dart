@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -63,9 +64,17 @@ class _OverviewScreenState extends State<OverviewScreen> {
             ),
             children: [
               Reveal(
-                child: _Greeting(
+                child: _BannerCarousel(
                   name: widget.api.staffName,
                   role: widget.api.staffRole,
+                  rooms: snap.hasData
+                      ? (snap.data!.$1['rooms'] as Map?)
+                            ?.cast<String, dynamic>()
+                      : null,
+                  today: snap.hasData
+                      ? (snap.data!.$1['today'] as Map?)
+                            ?.cast<String, dynamic>()
+                      : null,
                 ),
               ),
               const SizedBox(height: LamalivaSpace.md),
@@ -623,6 +632,256 @@ class _Greeting extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Three quiet slides behind the greeting: the welcome, the house right now,
+/// and the desk's day. It advances on its own, and the dots say where it is.
+class _BannerCarousel extends StatefulWidget {
+  const _BannerCarousel({
+    required this.name,
+    required this.role,
+    this.rooms,
+    this.today,
+  });
+
+  final String name;
+  final String role;
+  final Map<String, dynamic>? rooms;
+  final Map<String, dynamic>? today;
+
+  @override
+  State<_BannerCarousel> createState() => _BannerCarouselState();
+}
+
+class _BannerCarouselState extends State<_BannerCarousel> {
+  static const _count = 3;
+  final _pages = PageController();
+  Timer? _timer;
+  int _page = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 7), (_) {
+      if (!mounted || !_pages.hasClients) return;
+      _pages.animateToPage(
+        (_page + 1) % _count,
+        duration: const Duration(milliseconds: 560),
+        curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pages.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(LamalivaShape.panel),
+          child: SizedBox(
+            height: 168,
+            child: PageView(
+              controller: _pages,
+              onPageChanged: (index) => setState(() => _page = index),
+              children: [
+                _Greeting(name: widget.name, role: widget.role),
+                _PulseSlide(rooms: widget.rooms),
+                _DaySlide(today: widget.today),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          right: LamalivaSpace.md,
+          bottom: LamalivaSpace.md,
+          child: Row(
+            children: [
+              for (var i = 0; i < _count; i++)
+                AnimatedContainer(
+                  duration: LamalivaMotion.quick,
+                  width: i == _page ? 16 : 6,
+                  height: 6,
+                  margin: const EdgeInsets.only(left: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(
+                      alpha: i == _page ? 0.92 : 0.4,
+                    ),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+const _slideLabel = TextStyle(
+  fontFamily: LamalivaType.uiFamily,
+  fontSize: 12.5,
+  color: Color(0xCCFFFFFF),
+);
+
+const _slideSmall = TextStyle(
+  fontFamily: LamalivaType.uiFamily,
+  fontSize: 12.5,
+  color: Color(0xBFFFFFFF),
+);
+
+const _slideFigure = TextStyle(
+  fontFamily: LamalivaType.displayFamily,
+  fontSize: 44,
+  height: 1.0,
+  fontWeight: FontWeight.w600,
+  color: Colors.white,
+);
+
+class _SlideFrame extends StatelessWidget {
+  const _SlideFrame({required this.alignment, required this.children});
+
+  final Alignment alignment;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/img/mount-cameroon.jpg',
+          fit: BoxFit.cover,
+          alignment: alignment,
+          filterQuality: FilterQuality.high,
+        ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                c(LamalivaColors.navy900).withValues(alpha: 0.94),
+                c(LamalivaColors.navy900).withValues(alpha: 0.62),
+                c(LamalivaColors.navy900).withValues(alpha: 0.16),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(LamalivaSpace.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: children,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PulseSlide extends StatelessWidget {
+  const _PulseSlide({this.rooms});
+
+  final Map<String, dynamic>? rooms;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = (rooms?['total'] as num?)?.toInt() ?? 0;
+    final occupied = (rooms?['occupied'] as num?)?.toInt() ?? 0;
+    final rate = (rooms?['occupancy_rate'] as num?)?.toDouble() ?? 0;
+    final label = rate.toStringAsFixed(rate % 1 == 0 ? 0 : 1);
+    return _SlideFrame(
+      alignment: const Alignment(0, -0.25),
+      children: [
+        const Text('The house right now', style: _slideLabel),
+        const SizedBox(height: LamalivaSpace.xxs),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text('$label%', style: _slideFigure),
+            const SizedBox(width: LamalivaSpace.xs),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Text('occupied', style: _slideLabel),
+            ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(
+          rooms == null
+              ? 'Counting the rooms…'
+              : '$occupied of $total rooms holding a guest',
+          style: _slideSmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _DaySlide extends StatelessWidget {
+  const _DaySlide({this.today});
+
+  final Map<String, dynamic>? today;
+
+  int _count(String key) => (today?[key] as num?)?.toInt() ?? 0;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SlideFrame(
+      alignment: const Alignment(0, 0.35),
+      children: [
+        const Text("The desk's day", style: _slideLabel),
+        const SizedBox(height: LamalivaSpace.xs),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _SlideFigure(value: '${_count('arrivals')}', label: 'arriving'),
+            const SizedBox(width: LamalivaSpace.lg),
+            _SlideFigure(
+              value: '${_count('departures')}',
+              label: 'checking out',
+            ),
+            const SizedBox(width: LamalivaSpace.lg),
+            _SlideFigure(value: '${_count('in_house')}', label: 'in house'),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          today == null
+              ? 'Reading the book…'
+              : 'Everything below is live from the hotel server.',
+          style: _slideSmall,
+        ),
+      ],
+    );
+  }
+}
+
+class _SlideFigure extends StatelessWidget {
+  const _SlideFigure({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(value, style: _slideFigure.copyWith(fontSize: 34)),
+        Text(label, style: _slideLabel),
+      ],
     );
   }
 }
