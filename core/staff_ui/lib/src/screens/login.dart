@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:lamaliva_design/lamaliva_design.dart';
 
 import '../api.dart';
+import '../offline_credentials.dart';
 import '../server_dialog.dart';
 import '../theme.dart';
 import '../widgets.dart';
@@ -391,6 +392,39 @@ class _LoginScreenState extends State<LoginScreen> {
       widget.onSignedIn();
     } on ApiException catch (e) {
       if (!mounted) return;
+      if (e.offline) {
+        // The server is down, not the hotel. A device that has signed this
+        // person in before can keep working from its own caches, with writes
+        // held in the encrypted vault until the server returns.
+        final saved = await OfflineCredentials.recognise(
+          username: username,
+          password: password,
+        );
+        if (saved != null) {
+          widget.api.adoptOfflineSession(saved);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Signed in from this device. The hotel server is unreachable, '
+                  'so new work is held here until it returns.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          widget.onSignedIn();
+          return;
+        }
+        setState(() {
+          _error =
+              'The hotel server cannot be reached, and this device has not '
+              'signed this account in before. Connect to the hotel network '
+              'once to enable offline sign-in.';
+        });
+        return;
+      }
       setState(() => _error = e.message);
     } finally {
       if (mounted) setState(() => _busy = false);

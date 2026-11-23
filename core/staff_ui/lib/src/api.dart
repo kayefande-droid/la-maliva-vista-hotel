@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'offline.dart';
+import 'offline_credentials.dart';
 
 class ApiException implements Exception {
   ApiException(this.message, {this.statusCode, this.offline = false});
@@ -39,8 +40,22 @@ class LamalivaApi {
   String? _refreshToken;
   Map<String, dynamic>? _staff;
 
+  /// Set when this session started from the saved sign-in on the device
+  /// because the hotel server could not be reached.
+  bool _offlineSession = false;
+
   Map<String, dynamic>? get staff => _staff;
-  bool get isSignedIn => _accessToken != null;
+  bool get isSignedIn => _accessToken != null || _offlineSession;
+  bool get isOfflineSession => _offlineSession;
+
+  /// Starts a session from the record this device saved at the last good
+  /// sign-in. Reads then come from the on-device caches and writes are held
+  /// in the encrypted vault until the server answers again.
+  void adoptOfflineSession(Map<String, dynamic> savedStaff) {
+    _offlineSession = true;
+    _staff = savedStaff;
+  }
+
   String get username => (_staff?['username'] ?? '').toString();
 
   String get staffName =>
@@ -133,6 +148,14 @@ class LamalivaApi {
     _accessToken = data['access_token'] as String?;
     _refreshToken = data['refresh_token'] as String?;
     _staff = (data['staff'] as Map?)?.cast<String, dynamic>();
+    _offlineSession = false;
+    if (_staff != null) {
+      await OfflineCredentials.remember(
+        username: username,
+        password: password,
+        staff: _staff!,
+      );
+    }
     return data;
   }
 
@@ -170,6 +193,7 @@ class LamalivaApi {
       _accessToken = null;
       _refreshToken = null;
       _staff = null;
+      _offlineSession = false;
     }
   }
 
