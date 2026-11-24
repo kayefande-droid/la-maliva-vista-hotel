@@ -3,86 +3,158 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Page Not Found - LA-MALIVA VISTA HOTEL</title>
-    <link href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='vendor/css/bootstrap-icons.css') }}" rel="stylesheet">
+    <meta name="robots" content="noindex">
+    <meta name="description" content="This page could not be found. Return to La-Maliva Vista Hotel, browse the rooms, or contact the front desk in Buea, Cameroon.">
+    <meta name="theme-color" content="#001533">
+    <title>Page Not Found — La-Maliva Vista Hotel, Buea</title>
+    <link rel="icon" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --navy: #001533;
-            --charcoal: #002a66;
-            --gold: #DAA520;
-            --white: #ffffff;
+            --navy-900: #001533;
+            --navy-800: #002244;
+            --cream-50: #fdfaf4;
+            --cream-200: #efe6d6;
+            --gold-400: #d9a441;
+            --orange-500: #d97a2b;
+            --orange-600: #bf6520;
         }
-
+        * { box-sizing: border-box; }
         body {
-            background: linear-gradient(180deg, var(--navy), var(--charcoal));
+            margin: 0;
             min-height: 100vh;
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            flex-direction: column;
+            background:
+                radial-gradient(1100px 620px at 78% -10%, rgba(217, 122, 43, 0.16), transparent 62%),
+                radial-gradient(900px 520px at 8% 108%, rgba(217, 164, 65, 0.12), transparent 60%),
+                linear-gradient(165deg, var(--navy-900) 0%, var(--navy-800) 58%, #001c3f 100%);
+            color: var(--cream-50);
+            font-family: 'Jost', 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
-
-        .error-container {
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 1rem;
-            padding: 3rem;
-            text-align: center;
-            color: var(--white);
-            max-width: 500px;
-            width: 90%;
+        .err-nav {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 16px; padding: 26px clamp(22px, 5vw, 72px);
         }
-
-        .error-code {
-            font-size: 8rem;
-            font-weight: bold;
-            color: var(--gold);
-            margin-bottom: 1rem;
-            line-height: 1;
+        .err-brand { display: inline-flex; align-items: center; gap: 14px; text-decoration: none; }
+        .err-brand img { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold-400); }
+        .err-brand span { line-height: 1.05; }
+        .err-brand strong { display: block; font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 1.02rem; letter-spacing: 0.14em; color: var(--cream-50); }
+        .err-brand em { display: block; margin-top: 4px; font-style: normal; font-size: 0.55rem; letter-spacing: 0.4em; text-transform: uppercase; color: var(--gold-400); }
+        .err-nav a.back {
+            font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase;
+            color: rgba(253, 250, 244, 0.72); text-decoration: none;
+            border-bottom: 1px solid rgba(253, 250, 244, 0.22); padding-bottom: 4px;
+            transition: color 0.25s ease, border-color 0.25s ease;
         }
-
-        .error-title {
-            font-size: 2.5rem;
-            margin-bottom: 1.5rem;
-            color: var(--white);
+        .err-nav a.back:hover, .err-nav a.back:focus-visible { color: var(--orange-500); border-color: var(--orange-500); }
+        main {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            padding: clamp(28px, 6vh, 64px) clamp(22px, 5vw, 72px) clamp(40px, 8vh, 88px);
         }
-
-        .error-message {
-            font-size: 1.2rem;
-            margin-bottom: 2rem;
-            color: rgba(255, 255, 255, 0.8);
+        .err-inner { width: 100%; max-width: 660px; text-align: center; }
+        .err-eyebrow {
+            display: inline-flex; align-items: center; gap: 12px;
+            font-size: 0.64rem; letter-spacing: 0.34em; text-transform: uppercase;
+            color: var(--gold-400); margin: 0 0 8px;
         }
-
-        .btn-home {
-            background: var(--gold);
-            color: var(--navy);
-            border: none;
-            padding: 0.75rem 2rem;
-            font-weight: 600;
-            border-radius: 0.5rem;
-            font-size: 1.1rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: all 0.3s ease;
+        .err-eyebrow::before, .err-eyebrow::after {
+            content: ""; width: 28px; height: 1px; background: currentColor; opacity: 0.55;
         }
-        .btn-home:hover {
-            background: #c58e0a;
-            transform: translateY(-2px);
+        .err-code {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600; line-height: 0.9;
+            font-size: clamp(7rem, 22vw, 12rem);
+            letter-spacing: -0.02em;
+            color: var(--cream-50);
+            margin: 0;
+        }
+        .err-code span { color: var(--orange-500); }
+        h1 {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-weight: 600; font-size: clamp(1.7rem, 4.4vw, 2.45rem);
+            line-height: 1.16; margin: clamp(14px, 2vw, 24px) 0 14px;
+        }
+        h1 em { font-style: italic; color: var(--orange-500); }
+        .err-copy {
+            margin: 0 auto; max-width: 46ch;
+            font-size: 0.98rem; font-weight: 300; line-height: 1.75;
+            color: rgba(253, 250, 244, 0.76);
+        }
+        .err-actions {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 12px;
+            margin-top: 30px;
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+            padding: 13px 26px; border-radius: 999px;
+            font-size: 0.74rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+            text-decoration: none; border: 1px solid transparent;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+        }
+        .btn-primary {
+            background: linear-gradient(115deg, var(--orange-500), var(--orange-600));
+            color: #fff; box-shadow: 0 10px 26px rgba(217, 122, 43, 0.35);
+        }
+        .btn-primary:hover, .btn-primary:focus-visible { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(217, 122, 43, 0.45); }
+        .btn-outline {
+            border-color: rgba(253, 250, 244, 0.3); color: var(--cream-50);
+        }
+        .btn-outline:hover, .btn-outline:focus-visible { border-color: var(--cream-50); background: rgba(253, 250, 244, 0.08); }
+        .btn:focus-visible, .err-nav a:focus-visible { outline: 2px solid var(--gold-400); outline-offset: 3px; }
+        .err-links {
+            margin-top: 34px; padding-top: 24px;
+            border-top: 1px solid rgba(253, 250, 244, 0.12);
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 22px;
+            font-size: 0.76rem; letter-spacing: 0.04em;
+            color: rgba(253, 250, 244, 0.55);
+        }
+        .err-links a { color: var(--cream-200); text-decoration: none; border-bottom: 1px solid transparent; }
+        .err-links a:hover, .err-links a:focus-visible { color: var(--orange-500); border-color: var(--orange-500); }
+        @media (max-width: 480px) {
+            .err-actions .btn { width: 100%; }
+            .err-nav a.back { display: none; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            * { transition: none !important; }
         }
     </style>
 </head>
 <body>
-    <div class="error-container">
-        <div class="error-code">404</div>
-        <h1 class="error-title">Page Not Found</h1>
-        <p class="error-message">
-            Sorry, the page you're looking for doesn't exist or has been moved.
-        </p>
-        <a href="{{ url_for('public_home') }}" class="btn-home">
-            <i class="bi bi-house-door"></i> Return to Homepage
+    <header class="err-nav">
+        <a class="err-brand" href="{{ url_for('public_home') }}">
+            <img src="{{ url_for('static', filename='logo.png') }}" alt="La-Maliva Vista Hotel">
+            <span>
+                <strong>La-Maliva Vista</strong>
+                <em>A Taste of Paradise</em>
+            </span>
         </a>
-    </div>
+        <a class="back" href="{{ url_for('public_home') }}">Back to the hotel</a>
+    </header>
+
+    <main>
+        <div class="err-inner">
+            <p class="err-eyebrow">Buea · Mount Cameroon foothills</p>
+            <div class="err-code">404<span>.</span></div>
+            <h1>This path leads <em>nowhere</em>.</h1>
+            <p class="err-copy">
+                The page you asked for has been moved or never existed. Your room,
+                your table and the view are all still waiting — pick up from the
+                lobby below.
+            </p>
+            <div class="err-actions">
+                <a class="btn btn-primary" href="{{ url_for('public_home') }}">Return to the hotel</a>
+                <a class="btn btn-outline" href="{{ url_for('stay') }}">Browse rooms</a>
+            </div>
+            <p class="err-links">
+                Need a hand?
+                <a href="{{ url_for('contact') }}">Contact the front desk</a>
+                <a href="tel:+237679915967">(+237) 679-915-967</a>
+            </p>
+        </div>
+    </main>
 </body>
 </html>
