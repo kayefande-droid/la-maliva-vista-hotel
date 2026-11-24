@@ -13,6 +13,7 @@
       <a href="{{ url_for('stay') }}" class="{{ 'active' if active_nav == 'stay' }}">Rooms &amp; Suites</a>
       <a href="{{ url_for('about') }}" class="{{ 'active' if active_nav == 'about' }}">About</a>
       <a href="{{ url_for('contact') }}" class="{{ 'active' if active_nav == 'contact' }}">Contact</a>
+      <a href="{{ url_for('login') }}" class="nav-signin {{ 'active' if active_nav == 'login' }}">Sign In</a>
       <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." class="nav-book" target="_blank" rel="noopener">Reserve</a>
     </div>
     <button class="nav-toggle" id="navToggle" aria-label="Open menu"><i class="bi bi-list"></i></button>
@@ -27,6 +28,8 @@
   <a href="{{ url_for('about') }}"><i class="bi bi-info-circle"></i> About</a>
   <a href="{{ url_for('contact') }}"><i class="bi bi-envelope"></i> Contact</a>
   <a href="{{ url_for('user_manual') }}"><i class="bi bi-book"></i> Guest Guide</a>
+  <a href="{{ url_for('login') }}"><i class="bi bi-person"></i> Sign In</a>
+  <a href="{{ url_for('signup') }}"><i class="bi bi-person-plus"></i> Create an Account</a>
   <a href="https://wa.me/237679915967?text=Hello%20La-Maliva%20Vista%2C%20I%20would%20like%20to%20reserve%20a%20room." target="_blank" rel="noopener" style="color: var(--orange-400)"><i class="bi bi-whatsapp"></i> Reserve on WhatsApp</a>
 </aside>
 
