@@ -117,6 +117,11 @@ The version lives in `app.py` (`APP_VERSION`), `mobile_app/pubspec.yaml`, `mobil
 `static/readme_banner.png` is generated art (logo + brand palette); regenerate with
 any image editor if the brand palette changes.
 
+## ⚙️ Operations
+
+Deployment, required environment variables, native build steps and rollback live in
+[DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## 📄 User guide
 
 Guest-facing help lives inside the product: the app's Account tab and the website's

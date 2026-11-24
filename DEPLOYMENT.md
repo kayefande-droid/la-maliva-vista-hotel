@@ -80,3 +80,22 @@ python app.py                 # http://127.0.0.1:5000
 
 Default seeded admin: `admin / admin123` (**change immediately**) + secret pass
 `MALIVA-2026` (override with `ELEVATED_ACCESS_PASS`).
+
+## 6. Rollback, backups and handover
+
+- **Deploys are triggered by pushing to `main`.** Render keeps previous builds:
+  open the service's **Deploys** tab, pick the last known-good commit and choose
+  **Redeploy**. That is the fastest rollback and needs no code change.
+- **Code rollback:** `git revert <commit>` then `git push origin rebuild/v3:main`
+  (the `rebuild/v3` branch is what is promoted to `main`). Never force-push `main`.
+- **Schema changes are additive.** Tables are created on boot and new columns do
+  not block the previous release, so rolling back the app does not require a
+  database rollback.
+- **Data:** production uses the Postgres/Neon instance behind `DATABASE_URL`; take
+  a provider snapshot before a risky change. The local SQLite file in `instance/`
+  is development data only.
+- **Handover:** the GitHub repo (`kayefande-droid/la-maliva-vista-hotel`) and the
+  Render service are the two systems to transfer. All credentials live in Render's
+  environment variables (see the table in section 1), never in the repo.
+- **Smoke test after every deploy:** `/`, `/stay`, `/contact`, `/downloads`,
+  `/privacy` return 200; `/login` accepts the admin account and `/rooms` opens.
