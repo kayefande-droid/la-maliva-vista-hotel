@@ -2335,6 +2335,11 @@ def about():
     """Public story page, in the same luxury language as the rest of the site."""
     return render_template('public_about.html')
 
+@app.route('/privacy')
+def privacy():
+    """Public privacy and guest-data page."""
+    return render_template('public_privacy.html')
+
 @app.route('/todays_arrivals')
 @login_required
 @log_activity("Viewed Today's Arrivals") # Log activity
@@ -2574,6 +2579,7 @@ def sitemap_xml():
         ('/downloads', '0.7', 'weekly'),
         ('/contact', '0.7', 'monthly'),
         ('/about', '0.6', 'monthly'),
+        ('/privacy', '0.4', 'yearly'),
         ('/user_manual', '0.5', 'monthly'),
         ('/login', '0.3', 'monthly'),
         ('/signup', '0.3', 'monthly'),

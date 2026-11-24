@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="La-Maliva">
+    <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0a1628">
+    {% set seo_title = 'Privacy & Guest Data' %}
+    {% set seo_desc = 'How La-Maliva Vista Hotel collects, uses and protects guest details — bookings, payments, app data, and how to ask us to correct or delete yours.' %}
+    {% include "_seo.html" %}
+    <title>Privacy &amp; Guest Data — La-Maliva Vista Hotel, Buea</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <link href="{{ url_for('static', filename='vendor/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/css/bootstrap-icons.css') }}" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/luxury.css') }}">
+    <style>
+        .legal-wrap { max-width: 760px; margin: 0 auto; }
+        .legal-wrap h2 { font-family: 'Cormorant Garamond', serif; font-size: 30px; margin: 38px 0 12px; }
+        .legal-wrap h2:first-of-type { margin-top: 0; }
+        .legal-wrap p, .legal-wrap li { color: var(--ink-soft); line-height: 1.85; font-size: 16px; }
+        .legal-wrap ul { padding-left: 20px; margin: 0 0 14px; }
+        .legal-wrap li { margin-bottom: 8px; }
+        .legal-lead { font-size: 17px; }
+        .legal-note { background: #fff; border: 1px solid var(--line-soft); border-left: 3px solid var(--orange-500); border-radius: var(--radius-sm, 10px); padding: 18px 20px; margin: 24px 0; }
+        .legal-note p { margin: 0; font-size: 15px; }
+        .legal-updated { font-size: 14px; color: var(--ink-soft); letter-spacing: 0.02em; }
+        .legal-contact { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+        @media (max-width: 575.98px) {
+            .legal-contact { flex-direction: column; }
+            .legal-contact .btn-lux, .legal-contact .btn-outline-lux { text-align: center; justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    {% include 'partials/_preloader.html' %}
+    {% set active_nav = 'privacy' %}
+    {% include 'partials/_nav.html' %}
+
+    <header class="page-hero">
+        <div class="hero-bg">
+            <img src="/static/img/cameroon/buea-from-fako.jpg" alt="Buea on the slopes of Mount Cameroon">
+        </div>
+        <div class="container-lux">
+            <span class="kicker">Your Privacy</span>
+            <h1>What we keep, and why</h1>
+            <p>A short, plain-language account of the guest details we hold, who can see them, and how to have yours corrected or removed.</p>
+        </div>
+    </header>
+
+    <section class="section">
+        <div class="container-lux">
+            <div class="legal-wrap">
+                <p class="legal-updated">Last updated: November 2026</p>
+
+                <p class="legal-lead">La-Maliva Vista Hotel is a small hotel in Buea, Cameroon. To take a booking and give you a room, we need a few details about you. We keep only what the stay, the bill and the law require — nothing is sold, and nothing is used for advertising.</p>
+
+                <h2>What we collect</h2>
+                <ul>
+                    <li><strong>Booking details:</strong> your name, phone number, email address, the dates you are staying, the room, and the number of guests.</li>
+                    <li><strong>Payment records:</strong> the amount paid, the method (cash, mobile money or card), the date, and the receipt or reference number. We do not store full card numbers — card payments are handled by the payment provider.</li>
+                    <li><strong>Identity details where required:</strong> for stays that must be registered, we record the ID or passport number you show at reception, as Cameroonian hotel rules require.</li>
+                    <li><strong>Notes about your stay:</strong> requests you make (an extra bed, a late check-out, meals charged to your room) so the bill at the end matches what you were told.</li>
+                    <li><strong>App and website data:</strong> when you sign in to the La-Maliva app or website we keep your account name, a securely hashed password, and your bookings. The app caches room photos, prices and the menu on your own device so it works offline.</li>
+                </ul>
+
+                <h2>Why we hold it</h2>
+                <ul>
+                    <li>To confirm your reservation and let you check in.</li>
+                    <li>To prepare your bill, receipt and any invoice you ask for.</li>
+                    <li>To meet hotel registration, accounting and tax obligations in Cameroon.</li>
+                    <li>To answer you when you call or write about a past or future stay.</li>
+                </ul>
+
+                <h2>Who can see it</h2>
+                <p>Reception and management staff can see the details needed to run your stay. Access in the staff system is limited by role: housekeeping sees the room and the stay dates, not your payment details. We do not sell or rent guest data, and we do not share it with advertisers.</p>
+                <p>We use a small number of service providers to operate the site and app — for hosting, and for taking payments where you choose to pay that way. They receive only what is needed to perform that service.</p>
+
+                <h2>How long we keep it</h2>
+                <p>Booking and payment records are kept for as long as accounting and tax rules require. Guest notes are cleared once the stay is settled and the record is no longer needed. You can ask us to delete anything that we are not legally required to keep.</p>
+
+                <h2>Cookies and your device</h2>
+                <p>The website uses one essential cookie to keep you signed in; without it, booking and account pages cannot work. We do not run advertising or cross-site tracking cookies. The app stores its offline copy of rooms, prices and the menu in your device's own storage, and you can clear it from the app settings or by uninstalling the app.</p>
+
+                <div class="legal-note">
+                    <p><strong>Your choices.</strong> Write to us or call reception to see what we hold about you, to correct a mistake, or to ask for deletion. We will confirm what we did, and tell you if something has to be kept for legal reasons.</p>
+                </div>
+
+                <h2>Security</h2>
+                <p>Passwords are stored hashed, the site is served over HTTPS, and staff accounts require a password to reach guest records. If a breach ever affects your details, we will contact you at the phone number or email on your booking.</p>
+
+                <h2>Children</h2>
+                <p>Bookings for children are made by the accompanying adult, and we do not create separate accounts for guests under 18.</p>
+
+                <h2>Changes to this page</h2>
+                <p>If we change how we handle guest details, we will update this page and its date. The version published here is the one that applies to your stay.</p>
+
+                <h2>Talk to us</h2>
+                <p>Questions about privacy go to the same people who answer the front desk.</p>
+                <div class="legal-contact">
+                    <a class="btn-lux" href="{{ url_for('contact') }}"><i class="bi bi-chat-dots"></i> Contact page</a>
+                    <a class="btn-outline-lux" href="tel:+237679915967"><i class="bi bi-telephone"></i> (+237) 679-915-967</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    {% include 'partials/_footer.html' %}
+
+    <script src="{{ url_for('static', filename='vendor/js/bootstrap.bundle.min.js') }}"></script>
+    <script>
+        (function () {
+            var els = document.querySelectorAll('.reveal');
+            if (!('IntersectionObserver' in window)) {
+                els.forEach(function (el) { el.classList.add('in'); });
+                return;
+            }
+            var io = new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+            els.forEach(function (el) { io.observe(el); });
+        })();
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('/sw.js').catch(function () {});
+            });
+        }
+    </script>
+</body>
+</html>

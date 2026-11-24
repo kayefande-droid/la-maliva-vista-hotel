@@ -319,8 +319,10 @@ h1, h2, h3, .display {
 }
 .lux-footer .socials a:hover { background: var(--orange-600); border-color: var(--orange-600); color: #fff; transform: translateY(-3px); }
 .foot-bar { border-top: 1px solid var(--line-dark); padding: 22px 0; text-align: center; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(253,250,244,0.4); }
+.foot-bar .container-lux { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 16px; }
 .foot-bar a { color: rgba(253,250,244,0.6); text-decoration: none; }
 .foot-bar a:hover { color: var(--orange-400); }
+.foot-bar a + a::before, .foot-bar span + a::before { content: '\00b7'; margin-right: 16px; opacity: 0.6; }
 
 /* ---------- Phones & small tablets ---------- */
 @media (max-width: 767.98px) {

@@ -54,7 +54,8 @@
   </div>
   <div class="foot-bar">
     <div class="container-lux">
-      © {{ now().year if now is defined else 2026 }} La-Maliva Vista Hotel · Buea, Cameroon ·
+      <span>© {{ now().year if now is defined else 2026 }} La-Maliva Vista Hotel · Buea, Cameroon</span>
+      <a href="{{ url_for('privacy') }}">Privacy &amp; guest data</a>
     </div>
   </div>
 </footer>
