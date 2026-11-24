@@ -139,10 +139,6 @@
             }
             .hero-strip .strip-item { font-size: 0.58rem; letter-spacing: 0.12em; gap: 6px; }
 
-            .intro-media img { height: 320px; }
-            .intro-media .badge-circle { width: 104px; height: 104px; right: 4px; bottom: -16px; }
-            .badge-circle .b1 { font-size: 1.35rem; }
-            .badge-circle .b2 { font-size: 0.5rem; letter-spacing: 0.22em; }
             .stat-cell { padding: 26px 12px; }
             .stat-cell .n { font-size: 2rem; }
             .stat-cell .l { font-size: 0.6rem; letter-spacing: 0.2em; }
@@ -151,11 +147,10 @@
             .hero-slide { transition: opacity .3s linear; }
             .hero-slide img, .hero-slide.active img { animation: none; transform: none; }
         }
-
         /* ---------- Welcome intro ---------- */
-        .intro-media { position: relative; }
-        .intro-media img { width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); object-fit: cover; height: 520px; }
-        .intro-media .badge-circle {
+        .split-media { position: relative; }
+        .split-media img { width: 100%; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); object-fit: cover; height: 520px; }
+        .split-media .badge-circle {
             position: absolute; bottom: -30px; right: -14px;
             width: 150px; height: 150px; border-radius: 50%;
             background: linear-gradient(135deg, var(--orange-500), var(--orange-600));
@@ -177,6 +172,14 @@
         .stat-cell { padding: 40px 20px; text-align: center; }
         .stat-cell .n { font-family: 'Cormorant Garamond', serif; font-weight: 700; font-size: 2.6rem; color: var(--gold-400); line-height: 1; }
         .stat-cell .l { font-size: 0.68rem; letter-spacing: 0.28em; text-transform: uppercase; color: rgba(253,250,244,0.6); margin-top: 10px; }
+
+        /* Phone sizing last, so it beats the base rules above */
+        @media (max-width: 767.98px) {
+            .split-media img { height: 300px; }
+            .split-media .badge-circle { width: 104px; height: 104px; right: 4px; bottom: -14px; }
+            .badge-circle .b1 { font-size: 1.35rem; }
+            .badge-circle .b2 { font-size: 0.5rem; letter-spacing: 0.22em; }
+        }
     </style>
 </head>
 <body>

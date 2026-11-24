@@ -172,7 +172,7 @@
                     </div>
                     {% endif %}
                     {% if windows.exe_available %}
-                    <a class="btn-ghost-lux" style="text-align:center; margin-top:10px;"
+                    <a class="btn-outline-lux" style="text-align:center; margin-top:10px;"
                        href="{{ url_for('windows_exe_shortcut') }}">
                         <i class="bi bi-windows"></i> Direct EXE download
                     </a>
@@ -192,8 +192,9 @@
                         <li><span class="k">Version</span><span class="v ver rel-ver">{{ app_version }}</span></li>
                         <li><span class="k">Requires</span><span class="v">{{ pwa.min_os }}</span></li>
                         <li><span class="k">Size</span><span class="v">~2 MB</span></li>
+                        <li><span class="k">Status</span><span class="v ok">Available now</span></li>
                     </ul>
-                    <button class="btn-ghost-lux" id="pwaInstallBtn" type="button" style="width:100%;">
+                    <button class="btn-outline-lux" id="pwaInstallBtn" type="button" style="width:100%;">
                         <i class="bi bi-box-arrow-in-down"></i> Install PWA
                     </button>
                 </article>
